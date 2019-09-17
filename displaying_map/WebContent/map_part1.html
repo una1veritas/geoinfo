@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Simple Map</title>
+    <meta name="viewport" content="initial-scale=1.0">
+    <meta charset="utf-8">
+    <style>
+      #map {
+        height: 100%;
+      }
+      html, body {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+      }
+    </style>
+    <style>
+      #mymenu{
+        width:150px;
+        background-color:#f0f0f0;
+        border:1px solid #999999;
+        display:none;
+        position:fixed;
+      }
+      #mymenu.on{
+        display:block;
+      }
+      #mymenu ul{
+        list-style:none;
+        margin:0px;
+        padding:5px;
+      }
+      #area{
+        width:400px;
+        height:200px;
+        background-color:#ddddff;
+      }
+      #mymenu li:hover {
+  	    background-color:#000066; 	/*リンクにマウスが乗ったら背景色を変更する*/
+      }   
+    </style>
+    <style>
+      #modal{
+          display: none;
+          position: fixed;
+          z-index: 1;
+          left: 0;
+          top: 0;
+          width: 100%;
+          height: 100%;
+          overflow: auto;
+          background-color: rgba(0,0,0,0.7);
+      }
+      #modal_content{
+          width:500px;
+          background:#fff;
+          margin:15% auto;
+          padding:10px;
+          position:relative;
+          animation:animatetop 0.4s}@keyframes animatetop{from{top:-300px;opacity:0} to{top:0;opacity:1}
+      }
+    </style>
+  </head>
+  <body onContextmenu="return false;"></body>
+    <script type="text/javascript" src="https://ajax.googleapis.com/ajax/libs/jquery/1.9.1/jquery.min.js"></script>
+    <!--  マップ表示領域 -->
+    <div id="map"></div>
+    <!-- 　メニュー項目 -->
+    <div id="mymenu">
+      <ul onclick="mn_cancel()">
+        <li id="mn_clear" onclick="clear_points()">クリア</li>
+        <li id="mn_get_route" onclick="get_route()">経路座標を表示</li>
+        <li id="mn_cancel" onclick="mn_cancel()">キャンセル</li>
+      </ul>
+    </div>
+    <!-- ルート情報表示モーダル --> 
+　  <div id="modal">
+      <div id="modal_content">
+        <p id="modal_text">ここにルート情報を表示</p>
+        <button class="btn_close">閉じる</button>
+      </div>
+　  </div>
+    <script type="text/javascript">
+      var map;
+      var st = 0;
+      var point = [null, null];
+      var route = {};
+      var points = [];
+
+      function initMap() {
+        // マップの準備
+        map = new google.maps.Map(document.getElementById('map'), {
+          center: {lat: 35.681, lng: 139.767},
+          zoom: 15
+        });
+        var dirService = new google.maps.DirectionsService();
+        var dirDisplay = new google.maps.DirectionsRenderer();
+
+        // イベント登録
+        map.addListener('click', function(e) {
+
+            var latlng = e.latLng;
+            point[st] = latlng;
+            console.log("click event:", st, latlng.lat(), latlng.lng(), point[0], point[1]);
+            if (st == 1) {
+              getRoute(point[0], point[1], 'WALKING');
+              point[0] = point[1];
+            }
+            st = (st+1) & 0x01;
+
+        });
+        map.addListener('rightclick', function(e){
+            console.log("rightclick event:", e);
+            mymenu.style.left = e.va.clientX + 'px';
+            mymenu.style.top = e.va.clientY + 'px';
+            mymenu.classList.add('on');
+        });
+        
+        dirDisplay.setMap(map);
+
+        // ルート検索と表示の準備
+        function getRoute(st, end, mode) {
+  	  var req = {
+            origin: st,
+            destination: end,
+            travelMode: mode,
+            unitSystem: google.maps.UnitSystem.METRIC
+          };
+          dirService.route(req, function(result, status) {
+            if (status == 'OK') {
+              // resultに結果が入っている
+              console.log("route(): SUCCESS");
+              console.log(result);
+              dirDisplay.setDirections(result);
+              // 開始
+              var start_addr = result.routes[0].legs[0].start_address;
+              // 終了
+              var end_addr = result.routes[0].legs[0].end_address;
+              var distance = result.routes[0].legs[0].distance.value;
+              console.log(start_addr, "--(", distance, ")-->", end_addr);
+
+              result.routes[0].legs[0].steps.forEach(element => {
+                console.log(element);
+                console.log(element.start_location.lat(),",",element.start_location.lng(),
+                           "--(", element.distance.value, ")-->", element.end_location.lat(),",",element.end_location.lng());
+                points.push({"lat":element.start_location.lat(),"lng":element.start_location.lng()});
+              });
+              steps = result.routes[0].legs[0].steps;
+              last = steps[steps.length - 1];
+              points.push({"lat":last.end_location.lat(),"lng":last.end_location.lng()});
+
+              route = {"name":"NO NAME", "points":points};
+
+              console.log(route);
+
+            }
+            else {
+              console.log("route(): FAILED");
+            }
+          });
+        }
+      }
+
+      var clear_points = function() {
+         console.log("clear_points");
+          point[0] = null;
+          point[1] = null;
+          st = 0;
+      }
+      var mn_cancel = function() {
+         console.log("mn_cancel");
+         if (mymenu.classList.contains('on')) {
+            mymenu.classList.remove('on');
+          }
+       }
+
+      var view_modal = function(data) {
+        var modal = $('#modal'),
+         modal_content = $('#modal_content'),
+         moda_text = $('#modal_text'),
+         btn_close = $(".btn_close");
+
+        document.getElementById("modal_text").innerText = data;
+        modal.show();        
+        $(modal).on('click', function(event) {
+                if(!($(event.target).closest(modal_content).length)||($(event.target).closest(btn_close).length)){
+                    modal.hide();
+                }
+            });
+      }
+
+      var get_route = function() {
+        console.log("send_route");
+         view_modal(JSON.stringify(points));
+      }
+
+    </script>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyAdIk5KmgwvvT4batQGfB-JPN0H1q0-O0c&callback=initMap"
+    async defer></script>
+  </body>
+</html>
