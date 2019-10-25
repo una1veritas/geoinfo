@@ -1,0 +1,31 @@
+\documentclass[11pt]{jreport}
+\usepackage{latexsym}
+\usepackage{mathrsfs}
+\usepackage{amssymb}
+%\usepackage{url}
+%\usepackage{lscape}
+\usepackage{graphics}
+\usepackage{theorem}
+
+\input{A4}
+\usepackage{theorem}
+\renewcommand{\baselinestretch}{1.25}
+\setlength{\parskip}{0.25ex}
+\renewcommand{\arraystretch}{0.85}
+\begin{document}
+
+
+\subsection*{定義}
+話を簡単にするため，位置の点の時系列 $((t_1, x_1, y_1), \ldots,(t_n,x_n,y_n))$ を時刻の順に並んだ位置点の列とみなすことにする．
+位置点列は，位置 $(x,y) \in \mathbb{Z}^2$ の列 $s = (s_1, \ldots, s_n)$ である．
+$n$ は列 $s$ の長さ．
+
+\begin{defn}[位置点列マッチング]
+二つの位置点列 $s = (s_1, \ldots, s_n)$ と $t = (t_1, \ldots, t_p)$ の距離を
+
+マッチング列 $(m_1, \ldots, m_q)$ ただし$q \leq n+p$ で，
+$m_i$ は $s$ の点$s_j$ または区間 $[s_j,s_{j+1}]$ と $t$ の点 $t_k$ または区間 $[t_k, t_{k+1}]$ の組で，
+$m_i$ と $m_{i+1}$ は組のうち $s$ または $t$ いずれかもしくは両方の点あるいは区間が添え字が異なる大きなものになっているもの．
+\end{defn}
+このままではよくわからない．
+\end{document}
