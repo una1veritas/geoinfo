@@ -3,6 +3,7 @@
 import xml.etree.ElementTree as ElementTree
 from datetime import datetime, timedelta, timezone
 import sys
+import re
 
 if len(sys.argv) < 2 :
     print('input (and optionally output) file names are needed.')
@@ -27,6 +28,10 @@ if not len(xmltext) :
     exit()
 
 gpxroot = ElementTree.fromstring(xmltext)
+xmlnamespace = ''
+tmplist = (re.findall(r'\{[^\}]*\}', gpxroot.tag) )
+if not len(tmplist) :
+    xmlnamespace = tmplist[0]
 
 for trk in gpxroot:
     for elem in trk :
