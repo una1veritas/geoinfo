@@ -28,21 +28,22 @@ if not len(xmltext) :
     exit()
 
 gpxroot = ElementTree.fromstring(xmltext)
-xmlnamespace = ''
+gpxroot_namespace = ''
 tmplist = (re.findall(r'\{[^\}]*\}', gpxroot.tag) )
-if not len(tmplist) :
-    xmlnamespace = tmplist[0]
+if len(tmplist) :
+    gpxroot_namespace = tmplist[0]
+#print(gpxroot_namespace)
 
-for trk in gpxroot:
-    for elem in trk :
-        if elem.tag.endswith('name') :
-            trkname = elem.text.replace(':', '').replace(' ', '_')
-            continue
-        if elem.tag.endswith('trkseg') :
-            trkseg = elem
-            continue
-#        if elem.tag.endswith('extensions') :
+for trk in gpxroot.iter(gpxroot_namespace+'trk'):
+    name = trk.find(gpxroot_namespace+'name') 
+    trkname = name.text.replace(':', '').replace(' ', '_')
+    trkseg = trk.find(gpxroot_namespace+'trkseg') 
+    ext = trk.find(gpxroot_namespace+'extensions')
 #            print(elem.)
+    print(name)
+    print(trkname)
+    print(trkseg)
+    print(ext)
 
     if trkseg :
         if outfilename == '':
@@ -52,6 +53,7 @@ for trk in gpxroot:
         print('writing '+trkname+' to '+outfilename+'...')
         with open(outfilename, mode='w') as outfile: 
             for trkpt in trkseg:
+                print(trkpt)
                 if trkpt[1].text.endswith('Z') :
                     # ISO UTC time
                     tstr = trkpt[1].text[:-1] + '+00:00'
