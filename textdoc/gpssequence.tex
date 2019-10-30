@@ -16,16 +16,18 @@
 
 
 \subsection*{定義}
-話を簡単にするため，位置の点の時系列 $((t_1, x_1, y_1), \ldots,(t_n,x_n,y_n))$ を時刻の順に並んだ位置点の列とみなすことにする．
-位置点列は，位置 $(x,y) \in \mathbb{Z}^2$ の列 $s = (s_1, \ldots, s_n)$ である．
-$n$ は列 $s$ の長さ．
+位置点は整数である時刻 $t$, $xy$ 平面上の座標値 $x, y$ の組 $(t, x, y) \in \mathbb{Z}^+$ である． 
+位置点の時刻に関して真に昇順の列（時系列） $q = ((t_1, x_1, y_1), \ldots,(t_n,x_n,y_n))$ をログ log とよぶ．
+軌跡 $q$ の位置点および各点とその次の点の間の線分からなる列
+\[
+\tilde{q} = (r_1, (r_1, r_2), r_2, (r_2, r_3), r_3, \ldots, r_{n-1}, (r_{n-1}, r_n), r_n)
+\]
+を $q$ の軌跡 trajectory という．
 
 \begin{defn}[位置点列マッチング]
-二つの位置点列 $s = (s_1, \ldots, s_n)$ と $t = (t_1, \ldots, t_p)$ の距離を
-
-マッチング列 $(m_1, \ldots, m_q)$ ただし$q \leq n+p$ で，
-$m_i$ は $s$ の点$s_j$ または区間 $[s_j,s_{j+1}]$ と $t$ の点 $t_k$ または区間 $[t_k, t_{k+1}]$ の組で，
-$m_i$ と $m_{i+1}$ は組のうち $s$ または $t$ いずれかもしくは両方の点あるいは区間が添え字が異なる大きなものになっているもの．
+ある正の値 $\varepsilon \in \mathbb{R}^+$ について，
+二つの位置点列 $q = (s_1, \ldots, s_n)$ と $r = (t_1, \ldots, t_p)$ の軌跡の $\varepsilon$共通部分列とは，
+ $\tilde{q}$ と $\tilde{r}$ の点と点または点と線分の距離が $\varepsilon$ 以内であるものを同値とみなした最長共通部分列 longest common super sequence である．
 \end{defn}
-このままではよくわからない．
+
 \end{document}
