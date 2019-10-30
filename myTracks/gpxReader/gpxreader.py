@@ -4,6 +4,7 @@ import xml.etree.ElementTree as ElementTree
 from datetime import datetime, timedelta, timezone
 import sys
 import re
+from pickle import FALSE, TRUE
 
 if len(sys.argv) < 2 :
     print('input (and optionally output) file names are needed.')
@@ -40,10 +41,7 @@ for trk in gpxroot.iter(gpxroot_namespace+'trk'):
     trkseg = trk.find(gpxroot_namespace+'trkseg') 
     ext = trk.find(gpxroot_namespace+'extensions')
 #            print(elem.)
-    print(name)
-    print(trkname)
-    print(trkseg)
-    print(ext)
+
 
     if trkseg :
         if outfilename == '':
@@ -53,19 +51,28 @@ for trk in gpxroot.iter(gpxroot_namespace+'trk'):
         print('writing '+trkname+' to '+outfilename+'...')
         with open(outfilename, mode='w') as outfile: 
             for trkpt in trkseg:
-                print(trkpt)
-                if trkpt[1].text.endswith('Z') :
-                    # ISO UTC time
-                    tstr = trkpt[1].text[:-1] + '+00:00'
-                else:
-                    #JST?
-                    tstr = trkpt[1].text[:-1] + '+09:00'
+                for t in trkpt.iter(gpxroot_namespace+'time') :
+                    tstr = ''
+                    if t.text.endswith('Z') :
+                        # ISO UTC time
+                        tstr = t.text[:-1] + '+00:00'
+                    else:
+                        #JST?
+                        tstr = t.text[:-1] + '+09:00'
+                elev = ''
+                for t in trkpt.iter(gpxroot_namespace+'ele') :
+                    elev = t.text
                 dt = datetime.strptime(tstr, '%Y-%m-%dT%H:%M:%S%z')
-                print(dt, trkpt.attrib['lat'], trkpt.attrib['lon'])
+                    
+                print(dt, trkpt.attrib['lat'], trkpt.attrib['lon'], elev)
+                
                 outfile.write(str(dt))
                 outfile.write(',')
                 outfile.write(trkpt.attrib['lat'])
                 outfile.write(',')
                 outfile.write(trkpt.attrib['lon'])
+                if len(elev) :
+                    outfile.write(',')
+                    outfile.write(elev)
                 outfile.write('\n')
 
