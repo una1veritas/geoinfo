@@ -18,25 +18,33 @@
 \subsection*{定義}
 位置点は整数である時刻 $t$, $xy$ 平面上の座標値 $x, y$ の組 $(t, x, y) \in \mathbb{Z}^+$ である． 
 位置点の時刻に関して真に昇順の列（時系列） $q = ((t_1, x_1, y_1), \ldots,(t_n,x_n,y_n))$ を軌跡 trajectory とよぶ．
+
+ある整数列（あるいは有限アルファベット上の文字列）$q = (q_1, q_2, \ldots, q_n)$ と列 $s = (s_1, \ldots, s_m)$ （ただし $m \leq n$）について，真に昇順である添え字の列 $i(1) < i(2) < \cdots < i(m)$ で $q_{i(1)} = s_1, q_{i(2)} = s_2, \ldots, q_{i(m)} = s_m$ を満たすものがあるとき，
+$s$ は $q$ の部分列 subsequence であるという．
+
+文字列の連続した一部である部分文字列 substring と異なり，部分列は列中の要素の間が（添え字の数字が）飛んでいてもよい．
+
+\begin{example}
+$q = (134, 135, 136, 135, 134, 132, 137)$ のとき，$s = (134, 135, 132, 137)$ は $q$ の部分列．
+\end{example}
+
+\begin{defn}[最長共通部分列問題 longest common sub-sequence problem]
+整数（あるいは有限アルファベット中の文字）の列の組 $q, r$ が与えられたとき，
+$q$ の部分列かつ $r$ の部分列となる列で，最も長いもの $s$ を求める問題．
+\end{defn}
+
+\begin{defn}[2つの位置点列の最長共通部分列 (I)]
+ある正の値 $\varepsilon \in \mathbb{R}^+$ について，
+二つの位置点列 $q = (s_1, \ldots, s_n)$ と $r = (t_1, \ldots, t_p)$ の間の $\varepsilon$共通部分列とは，
+ $q$ と $r$ の点と点の距離が $\varepsilon$ 以内の対を点が等しいとみなした最長共通部分列 longest common super sequence である．
+\end{defn}
+
+\begin{defn}[2つの位置点列の最長共通部分列 (II)]
 軌跡 $q$ の位置点および位置点と次の点の間の線分からなる列
 \[
 \tilde{q} = (r_1, (r_1, r_2), r_2, (r_2, r_3), r_3, \ldots, r_{n-1}, (r_{n-1}, r_n), r_n)
 \]
 を $q$ の経路 path という．
-
-ある整数列（あるいは有限アルファベット上の文字列）$q = (q_1, q_2, \ldots, q_n)$ と列 $s = (s_1, \ldots, s_m)$ （ただし $m \leq n$）について，真に昇順である添え字の列 $i(1) < i(2) < \cdots < i(m)$ で $q_{i(1)} = s_1, q_{i(2)} = s_2, \ldots, q_{i(m)} = s_m$ を満たすものがあるとき，
-$s$ は $q$ の部分列 subsequence であるという．
-\begin{example}
-$q = (134, 135, 136, 135, 134, 132, 137)$ のとき，$s = (134, 135, 132, 137)$ は $q$ の部分列．
-部分列は間が（添え字の数字が）飛んでいてもよいところが，文字列の連続した一部である部分文字列 substring と異なる．
-\end{example}
-
-\begin{defn}{最長共通部分列問題 longest common sub-sequence problem}
-整数（あるいは有限アルファベット中の文字）の列の組 $q, r$ が与えられたとき，
-$q$ の部分列かつ $r$ の部分列となる列で，最も長いもの $s$ を求める問題．
-\end{defn}
-
-\begin{defn}[2つの位置点列の最長共通部分列]
 ある正の値 $\varepsilon \in \mathbb{R}^+$ について，
 二つの位置点列 $q = (s_1, \ldots, s_n)$ と $r = (t_1, \ldots, t_p)$ それぞれの経路 $\tilde{q}, \tilde{r}$ の間の $\varepsilon$共通部分列とは，
  $\tilde{q}$ と $\tilde{r}$ の (1) 点と点の距離が $\varepsilon$ 以内，または (2) 点と線分の距離が $\varepsilon$ 以内である対を等しいとみなした最長共通部分列 longest common super sequence である．
