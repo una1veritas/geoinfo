@@ -6,6 +6,17 @@ from datetime import datetime, timedelta, timezone
 import sys
 import re
 
+def cd2mjd(cd:datetime):
+    if cd.month <= 2 :
+        y = cd.year - 1
+        m = cd.month + 12
+    else:
+        y = cd.year
+        m = cd.month
+    d = cd.day + (cd.hour + cd.minute/60 + cd.second/3600)/24
+    
+    return 
+
 if len(sys.argv) < 2 :
     print('input (and optionally output) file names are needed.')
     print('usage: python3 gpxreader gpxfile cvsfile[return]')
