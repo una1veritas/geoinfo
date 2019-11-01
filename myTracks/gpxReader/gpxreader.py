@@ -1,21 +1,19 @@
 #!/usr/bin/python3
-#gpxreader version -1.0
+#gpxreader version -0.9
 #
 import xml.etree.ElementTree as ElementTree
-from datetime import datetime, timedelta, timezone
+from datetime import datetime
 import sys
 import re
 
-def cd2mjd(cd:datetime):
-    if cd.month <= 2 :
-        y = cd.year - 1
-        m = cd.month + 12
-    else:
-        y = cd.year
-        m = cd.month
-    d = cd.day + (cd.hour + cd.minute/60 + cd.second/3600)/24
-    
-    return 
+def datetime2mjd(dt:datetime):
+    y = dt.year
+    m = dt.month
+    if m <= 2 :
+        y -= 1
+        m = 12
+    d = dt.day + (3600*dt.hour + 60*dt.minute/60 + dt.second)/86400
+    return int(365.25*y) + int(y/400) - int(y/100) + int(30.59*(m-2)) + d - 678912
 
 if len(sys.argv) < 2 :
     print('input (and optionally output) file names are needed.')
@@ -24,16 +22,21 @@ if len(sys.argv) < 2 :
 else :
     elevinfo = False
     mytracksgpx = False
+    mjdtime = False
     xmltext = ''
     outfilename = ''
-    print('given args: ' + str(sys.argv[1:]))
+    print('command args: ' + str(sys.argv[1:]))
     for arg in sys.argv[1:]:
         if arg[:1] == '-' :
             if arg == '-elev' :
                 elevinfo = True
-                print('will get elevation info.')
+                print('will add elevation info.')
             elif arg == '-mytracks' :
                 mytracksgpx = True
+                print('will add speed info.')
+            elif arg == '-mjd' :
+                mjdtime = True
+                print('date time in modified julian day number.')                
         else:
             if not len(xmltext) :
                 with open(arg, mode='r') as gpxfile :
@@ -76,7 +79,10 @@ for trk in gpxroot.iter(gpxroot_namespace+'trk'):
                 else:
                     #JST?
                     tstr = t.text[:-1] + '+09:00'
-                dt = datetime.strptime(tstr, '%Y-%m-%dT%H:%M:%S%z')   
+                dt = datetime.strptime(tstr, '%Y-%m-%dT%H:%M:%S%z')
+                dtstr = str(dt)
+                if mjdtime :
+                    dtstr = '{:.6f}'.format(datetime2mjd(dt))
                 if elevinfo :
                     elev = trkpt.find(gpxroot_namespace+'ele').text
                 if mytracksgpx : #'{http://mytracks.stichling.info/myTracksGPX/1/0}
@@ -87,14 +93,14 @@ for trk in gpxroot.iter(gpxroot_namespace+'trk'):
                             gpxspeed = c.text
                             break
                     #print(trkpt.find(gpxroot_namespace+'extensions'))
-                print(dt, trkpt.attrib['lat'], trkpt.attrib['lon'], end='')
+                print(dtstr, trkpt.attrib['lat'], trkpt.attrib['lon'], end='')
                 if elevinfo :
                     print('\telev='+elev, end='')
                 if mytracksgpx :
                     print('\tspeed='+gpxspeed, end='')
                 print()
                 
-                outfile.write(str(dt))
+                outfile.write(dtstr)
                 outfile.write(',')
                 outfile.write(trkpt.attrib['lat'])
                 outfile.write(',')
