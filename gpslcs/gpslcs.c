@@ -15,7 +15,7 @@ typedef struct {
 
 int init_varray_gpspos(varray_gpspos * varray, unsigned int array_size) {
 	varray->array = (gpspos *) malloc(sizeof(gpspos)*array_size);
-	if ( varray->array == NULL )
+	if ( ! varray->array )
 		return 0; // failed
 	varray->array_size = array_size;
 	varray->count = 0;
@@ -29,7 +29,7 @@ int discard_varray_gpspos(varray_gpspos * varray) {
 
 int varray_gpspos_resize(varray_gpspos * varray) {
 	gpspos * newarray = (gpspos*) malloc(sizeof(gpspos) * (varray->array_size<<1) );
-	if ( newarray == NULL ) {
+	if ( !newarray ) {
 		fprintf(stderr, "varray_gpspos_resize failed.\n");
 		return 0; // failed
 	}
@@ -108,18 +108,18 @@ double gpspos_distance(gpspos * p, gpspos * q) {
 }
 
 int main(int argc, char **argv) {
-	varray_gpspos posarray;
-	init_varray_gpspos(&posarray, 128);
-	read_gpspos_csv(argv[1], &posarray);
-	for(int i = 0; i < posarray.count; ++i) {
+	varray_gpspos parray;
+	init_varray_gpspos(&parray, 128);
+	read_gpspos_csv(argv[1], &parray);
+	for(int i = 0; i < parray.count; ++i) {
 		printf("%d: %lf, %lf, %lf",
-				i, posarray.array[i].time,
-				posarray.array[i].lat,
-				posarray.array[i].lon);
+				i, parray.array[i].time,
+				parray.array[i].lat,
+				parray.array[i].lon);
 		if ( i > 0 )
-			printf("; (%lf)", gpspos_distance(&posarray.array[i-1], &posarray.array[i]));
+			printf("; (%lf)", gpspos_distance(&parray.array[i-1], &parray.array[i]));
 		printf("\n");
 	}
-	discard_varray_gpspos(&posarray);
+	discard_varray_gpspos(&parray);
 	return 0;
 }
