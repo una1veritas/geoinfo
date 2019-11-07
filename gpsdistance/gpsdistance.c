@@ -63,6 +63,8 @@ int read_gpspos_csv(char * filename, varray_gpspos * array) {
 	}
 	gpspos pos;
 	while (fgets(buff, 1024, fp) != NULL) {
+		// fscanf/scanf は、脆弱で現在は「使ってはいけない」関数のひとつ。
+		// せめて sscanf
 		sscanf(buff,"%lf,%lf,%lf",&pos.time, &pos.lat, &pos.lon);
 		if ( !varray_gpspos_append(array, pos) ) {
 			fprintf(stderr, "varray_gpspos_append: size overflow!\n");
@@ -73,17 +75,16 @@ int read_gpspos_csv(char * filename, varray_gpspos * array) {
 }
 
 #define DEG2RAD(x)  ((M_PI / 180.0) * (x))
-
-double gpspos_distance(gpspos * p, gpspos * q) {
+double gpspos_distance(double plat, double plon, double qlat, double qlon) {
 	//http://dtan4.hatenablog.com/entry/2013/06/10/013724
 	//https://en.wikipedia.org/wiki/Geographical_distance#Ellipsoidal_Earth_projected_to_a_plane
 	//https://stackoverflow.com/questions/27928/calculate-distance-between-two-latitude-longitude-points-haversine-formula
 	//const int mode = 1;
     // 緯度，経度をラジアンに
-	double  plat = DEG2RAD(p->lat),
-			plon = DEG2RAD(p->lon),
-			qlat = DEG2RAD(q->lat),
-			qlon = DEG2RAD(q->lon);
+	plat = DEG2RAD(plat);
+	plon = DEG2RAD(plon);
+	qlat = DEG2RAD(qlat);
+	qlon = DEG2RAD(qlon);
     // 緯度と経度の差
     //double latdiff = plat - qlat, londiff = plon - qlon;
     // 平均緯度
@@ -108,36 +109,24 @@ double gpspos_distance(gpspos * p, gpspos * q) {
 }
 
 int main(int argc, char **argv) {
-	if ( !(argc > 2) ) {
-		fprintf(stderr, "two file names requested.\n");
+	if ( !(argc > 1) ) {
+		fprintf(stderr, "csv table file name is requested.\n");
 		return EXIT_FAILURE;
 	}
-	varray_gpspos parray, qarray;
+	varray_gpspos parray;
 	init_varray_gpspos(&parray, 128);
-	init_varray_gpspos(&qarray, 128);
 	read_gpspos_csv(argv[1], &parray);
-	read_gpspos_csv(argv[2], &qarray);
 
 	printf("\n%s:\n", argv[1]);
 	for(int i = 0; i < parray.count; ++i) {
 		printf("%d: %lf, %lf, %lf",
 				i, parray.array[i].time, parray.array[i].lat, parray.array[i].lon);
 		if ( i > 0 )
-			printf("; (%lf)", gpspos_distance(&parray.array[i-1], &parray.array[i]));
-		printf("\n");
-	}
-
-	printf("%s:\n", argv[2]);
-	for(int i = 0; i < qarray.count; ++i) {
-		printf("%d: %lf, %lf, %lf",
-				i, qarray.array[i].time, qarray.array[i].lat, qarray.array[i].lon);
-		if ( i > 0 )
-			printf("; (%lf)", gpspos_distance(&qarray.array[i-1], &qarray.array[i]));
+			printf("; (%lf)", gpspos_distance(parray.array[i-1].lat, parray.array[i-1].lon, parray.array[i].lat, parray.array[i].lon));
 		printf("\n");
 	}
 
 	discard_varray_gpspos(&parray);
-	discard_varray_gpspos(&qarray);
 
 	return EXIT_SUCCESS; // return 0;
 }
