@@ -108,18 +108,36 @@ double gpspos_distance(gpspos * p, gpspos * q) {
 }
 
 int main(int argc, char **argv) {
-	varray_gpspos parray;
+	if ( !(argc > 2) ) {
+		fprintf(stderr, "two file names requested.\n");
+		return EXIT_FAILURE;
+	}
+	varray_gpspos parray, qarray;
 	init_varray_gpspos(&parray, 128);
+	init_varray_gpspos(&qarray, 128);
 	read_gpspos_csv(argv[1], &parray);
+	read_gpspos_csv(argv[2], &qarray);
+
+	printf("\n%s:\n", argv[1]);
 	for(int i = 0; i < parray.count; ++i) {
 		printf("%d: %lf, %lf, %lf",
-				i, parray.array[i].time,
-				parray.array[i].lat,
-				parray.array[i].lon);
+				i, parray.array[i].time, parray.array[i].lat, parray.array[i].lon);
 		if ( i > 0 )
 			printf("; (%lf)", gpspos_distance(&parray.array[i-1], &parray.array[i]));
 		printf("\n");
 	}
+
+	printf("%s:\n", argv[2]);
+	for(int i = 0; i < qarray.count; ++i) {
+		printf("%d: %lf, %lf, %lf",
+				i, qarray.array[i].time, qarray.array[i].lat, qarray.array[i].lon);
+		if ( i > 0 )
+			printf("; (%lf)", gpspos_distance(&qarray.array[i-1], &qarray.array[i]));
+		printf("\n");
+	}
+
 	discard_varray_gpspos(&parray);
-	return 0;
+	discard_varray_gpspos(&qarray);
+
+	return EXIT_SUCCESS; // return 0;
 }
