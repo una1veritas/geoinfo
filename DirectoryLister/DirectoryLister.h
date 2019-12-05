@@ -39,11 +39,16 @@ struct DirectoryLister {
 	}
 
 	dirent * get_next_file(const char * regpat = ".*") {
-		std::regex fpattern(regpat);
+		std::regex regexpr(regpat);
+		return get_next_file(regexpr);
+	}
+
+	dirent * get_next_file(const std::regex & fpattern) {
 		std::string subdir;
 		for(;;) {
 			lastentry = readdir(pathdirs.back().second);
 			if ( lastentry == NULL ) {
+				closedir(pathdirs.back().second);
 				pathdirs.pop_back();
 				if ( pathdirs.empty() )
 					break;

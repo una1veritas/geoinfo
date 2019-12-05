@@ -12,7 +12,7 @@ else
 	CXXFLAGS += -std=c++11
 endif
 
-OBJS = DirectoryLister.o
+OBJS = main.o
 DEPHEADERS = DirectoryLister.h
 TARGET = DirectoryLister.exe
 
