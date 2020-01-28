@@ -1,4 +1,4 @@
 #!/bin/csh
 foreach f(*.gpx)
-    python3 gpxreader/gpxreader.py -mjd "$f"
+    python3 gpxreader -mjd "$f"
 end
