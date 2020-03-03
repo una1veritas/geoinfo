@@ -1,10 +1,10 @@
-\documentclass[11pt]{jreport}
+\documentclass[11pt]{jarticle}
 \usepackage{latexsym}
 \usepackage{mathrsfs}
 \usepackage{amssymb}
 %\usepackage{url}
 %\usepackage{lscape}
-\usepackage{graphics}
+\usepackage[dvipdfmx]{graphicx}
 \usepackage{theorem}
 
 \input{A4}
@@ -14,10 +14,75 @@
 \renewcommand{\arraystretch}{0.85}
 \begin{document}
 
+\section{目的}
 
-\subsection*{定義}
-位置点は整数である時刻 $t$, $xy$ 平面上の座標値 $x, y$ の組 $(t, x, y) \in \mathbb{Z}^+$ である． 
-位置点の時刻に関して真に昇順の列（時系列） $q = ((t_1, x_1, y_1), \ldots,(t_n,x_n,y_n))$ を軌跡 trajectory とよぶ．
+自動車のカーナビゲーションシステム，スマートフォンのロガーアプリ等で得られる地上座標の移動履歴が蓄積されたときに，
+移動履歴全体あるいは部分の間で比較，検索が可能なデータとして扱うための類似性の定義を行い，
+その類似性に基づく類似度計算を行うアルゴリズムを設計し，計算実験を行って適用の可能性と分野をさぐる．
+
+\section{定義}
+
+\subsection{位置点}
+位置点は，GPS で得られる時刻，地球上での緯度 latitude，経度 longitude の 3 つ組として考える．
+標高，高度は影響が小さいものとして無視する．
+また以下では列において位置点は時刻の真に昇順で並ぶものとして，時刻は省略する．
+したがって，位置点は $(a, g) \in \mathbb{Q}^2$ （ただし $-90 \leq a \leq 90$, $-180 < g \leq 180$）である．
+位置点の時刻に関して真に昇順の列（時系列） $q = ((a_1, g_1), \ldots,(a_n,g_n))$ を軌跡 trajectory とよぶ．
+
+\subsection{2 点を同一地点とみなす距離}
+現実に得られる位置点の座標は，移動で時刻により変わっていくというほかに，
+たとえば GPS の技術に起因する誤差，車線や上下線の違いで生じる道路の幅の程度の違い，鉄道の線番の違いなど，意味的には同一地点とみなしてよい位置の違いもある．
+これに相当する距離の程度は，利用目的やデータソースなどに依存しケースバイケースになるであろうが，たとえば人の徒歩から自動車あるいは鉄道での移動について，およそ 30 秒おきに座標を得ることができるならば，数十メートルから数百メートルで考えることができる．
+この同一地点とみなせる距離の最大値を $\delta > 0$ で表し，距離がこの閾値内であれば，同じ位置にあるとみなすことにする．
+（$\delta$ の大きさとその妥当性については，計算実験をふまえ議論する．とりあえず 50m から 500m と考えてよい．）
+
+\subsection{2 位置点間の距離}
+位置点の組 $p, q$ が与えられたとき，これらが同一地点であるかを判定，あるいは移動中の二点間の軌跡を推定するといった目的のために，
+地表上での距離を求めたい．
+ここでは，位置点の高度（標高）は無視できるものとして，地球を楕円体で近似し距離を求める．
+ヒュベニの公式 \cite{amano-tec,GSI,Hubeny-formula-ref1,Hubeny-formula-ref2} で高次の項のみを使い $p, q$ 間の距離 $d(p,q)$ を次のように求める：
+\[
+d(p,q) = \sqrt{(|p_a - q_a|\cdot M)^2 + \left(|p_g - q_g|\cdot N\cos{P} \right)^2} \,,
+\]
+ただし緯度，経度の単位はラジアン rad であり，$P = \frac{p_a+q_a}{2}$ （緯度の平均値）, $M$ は地球（楕円体）の子午線曲率半径，$N$ は同じく卯酉線曲率半径で，
+地球の赤道半径 $R_x$，極半径 $R_y$，第１離心率 $e=\sqrt{\frac{R_x^2 - R_y^2}{R_x^2}}$ から，$W = \sqrt{1 - (w^2 \cdot \sin P)^2}$ とおくと
+\begin{eqnarray*}
+M &=& \frac{Rx\cdot (1 - e^2)}{W^3} \,, \\
+N &=& \frac{Rx}{W}
+\end{eqnarray*}
+である．
+
+\subsection{位置点と２点間の距離}
+
+二つの移動履歴を表す一点列が，座標を同程度かつ十分高い頻度で記録されていない場合，
+移動の軌跡はほぼ一致しても，座標点は一致しないことになる．
+一方で，履歴中の位置点の間の距離が広ければ，前後する二点間の軌跡を直線として推定するのは乱暴ということになる．
+
+そこで，ふたつの点列 $P, Q$ がある場合に，
+\begin{itemize}
+\item[(1)] $P$ の位置点 $p_i$ と $Q$ の位置点 $q_j$ が同一視できる $d(p_i, q_j) \leq \delta$ か，
+\item[(2)] $P$ の位置点 $p_i$ と $Q$ の連続する 2 つの位置点 $q_{j-1}, q_j$ を結ぶ線分との距離 $d(p_i, q_{j-1}, q_j)$ の距離が $\delta$ 以内，
+\end{itemize}
+であるときに，それぞれ一致度 $1$, $\frac{1}{2}$ と評価し，
+$P$ と $Q$ の間で一致度の総和を最大化する添え字の組をもとめ，その最大値を $P, Q$ の類似度とする．
+\begin{figure}[h]
+\centering
+\includegraphics[scale=0.5]{matching.pdf}
+%\caption{$G_1$}\label{fig:g_1}
+\end{figure}
+
+この時，ある位置点は位置点または位置点間の線分に一致することになるが，順序がいれかわるような一致，一つの点が二つ以上の点と対応する一致は行わない．
+なんじゃそりゃ
+
+真に増加する長さ $k \leq \min(m, n)$ の添え字，または連続する添え字の組，が $k$ 個ならんだ列 
+$i(1), \ldots, i(k)$ と $j(1), \ldots, j(k)$ 
+ただし $i(h)$ は正整数 $1 \leq i(h) \leq m$ または組 $i(h) = (f, g)$ で $1 \leq e, f \leq m$ かつ $e = f-1$, 任意の $i(h)$ と $i(h+1)$ （$1 \leq h < m$）は同じ添え字を共有しない，
+$j(h)$ についても同様，
+とする．
+
+めんどくさいから $(i, 0)$ と $(i, i+1)$ の列にしようず
+
+\newpage
 
 ある整数列（あるいは有限アルファベット上の文字列）$q = (q_1, q_2, \ldots, q_n)$ と列 $s = (s_1, \ldots, s_m)$ （ただし $m \leq n$）について，真に昇順である添え字の列 $i(1) < i(2) < \cdots < i(m)$ で $q_{i(1)} = s_1, q_{i(2)} = s_2, \ldots, q_{i(m)} = s_m$ を満たすものがあるとき，
 $s$ は $q$ の部分列 subsequence であるという．
@@ -53,5 +118,30 @@ $q$ の部分列かつ $r$ の部分列となる列で，最も長いもの $s$ 
 \begin{example}
 例をつくってみよう．
 \end{example}
+
+\begin{thebibliography}{4}
+
+\bibitem{amano-tec}
+アマノ技研ウェブページ
+\newblock  {\tt https://amano-tec.com/apps/paceruler.html}
+
+\bibitem{toriaezu}
+ヒュベニの公式
+\newblock {\tt http://hp.vector.co.jp/authors/VA002244/yacht/geo.htm}
+
+\bibitem{GSI}
+国土地理院ウェブページ ``測量計算（測量計算サイト／距離と方位角の計算）''
+\newblock {\tt https://vldb.gsi.go.jp/sokuchi/surveycalc/main.html}
+
+\bibitem{Hubeny-formula-ref1}
+K. Hubeny: 
+\newblock Weiterentwicklung der Gauss'schen Mittelbreitenformeln, Z.Vermess, {\bf 84}, 159-163, 1959.
+
+\bibitem{Hubeny-formula-ref2}
+K. Hubeny: 
+\newblock
+Zur Entwicklung der Gauss'schen Mittelbreitenformeln. Osterreichische Zeitschrift fur Vernessubgswesen, {\bf 42} Jahrgang (1954) Nr.1,S. 8-17
+
+\end{thebibliography}
 
 \end{document}
