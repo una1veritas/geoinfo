@@ -66,27 +66,42 @@ N &=& \frac{Rx}{W}
 \item[(2)] $P$ の位置点 $p_i$ と $Q$ の連続する 2 つの位置点 $q_{j-1}, q_j$ を結ぶ線分との距離 $d(p_i, q_{j-1}, q_j)$ の距離が $\delta$ 以内，
 \item[(3)] (2) における $P$ と $Q$ が逆，
 \end{itemize}
-であるときに，それぞれ一致度 $1$, $\frac{1}{2}$ と評価し，
+であるときに，点と点の一致度を $1$, 点と二点間線分の一致度を $\frac{1}{2}$ と評価し，
 $P$ と $Q$ の間で一致度の総和を最大化する添え字の組をもとめ，その最大値を $P, Q$ の類似度とする．
+$P$ の点の線分と $Q$ の点の線分の交差や接近は，類似度に寄与しないものとする．
+
 \begin{figure}[h]
 \centering
 \includegraphics[scale=0.5]{matching.pdf}
 %\caption{$G_1$}\label{fig:g_1}
 \end{figure}
 
-便宜的に，点列 $P=(p_1, \ldots, p_m)$ の位置点の添え字を正整数 $1 \leq i \leq m$ と $0$ または $1$ の組
-$i \in \{1,\ldots, m\} \times \{0,1\}$ に拡張し，$p_{i,0}$ を位置点 $p_i$，そして $p_{i,1}$ を二点 $p_i, p_{i+1}$ の間の線分を表すとする．
-ただし，列の最後の点 $p_m$ の添え字には線分を表す添え字 $(m,1)$ はないものとする．
+位置点列 $P=(p_1, \ldots, p_m)$ の位置点と，隣り合う位置点と位置点の組で定義される線分，が交互に並ぶ列
+\[
+\hat{P} = \langle p_1, (p_1, p_2), p_2, (p_2, p_3), \ldots, (p_{m-1}, p_m), p_m \rangle
+\]
+を考える．
+その要素 $\hat{P}(i)$ ($1 \leq i \leq 2m-1$) を
+\[
+\hat{P}(i) = \left\{
+\begin{array}{ll}
+p_{(i+1)/2} & \mbox{$i$ is odd}\\
+(p_{i/2}, p_{i/2 + 1}) & \mbox{$i$ is even}
+\end{array}
+\right.
+\]
+と書くとする． 
 
-
-
-真に増加する長さ $k \leq \min(m, n)$ の $P$ の添え字の列 $\phi_1, \ldots, \phi_k$，
-すなわち $\phi_i = (\phi_i(1), \phi_i(2))$ と $\phi_{i+1} = (\phi_{i+1}(1), \phi_{i+1}(2))$ について $\phi_i(1) < \phi_{i+1}(1)$ または $\phi_i(1) = \phi_{i+1}(1)$ かつ $\phi_i(2) < \phi_{i+1}(2)$ 
- と，同じく $Q$ の添え字の列 $\psi_1, \ldots, \psi_k$ の列
-を添え字の順に組にした列 $((\phi_1,\psi_1), \ldots ,(\phi_k,\psi_k))$ 
-が
-〜であるとき，これを位置点列 $P$ と $Q$ の共通部分列であるという．
-
+位置点列 $P = (p_1, \ldots, p_m)$ と $Q = (q_1, \ldots, q_n)$ について，$\hat{P}, \hat{Q}$ それぞれの添え字の組の列
+$\psi = \langle (\psi_0(1), \psi_1(0)), \ldots, (\psi_0(k), \psi_1(k)) \rangle$ で
+\begin{enumerate}
+%\item $k \leq \min(m,n)$, 
+\item $1 \leq \psi_0(1) < \cdots < \psi_0(k) \leq m$ および $1 \leq \psi_1(1) < \cdots < \psi_1(k) \leq n$，
+\item すべての組 $1 \leq i \leq k$ において $\psi_0(i)$ または $\psi_1(i)$, またはその両方が奇数（単独の位置点），
+\item すべての $1 \leq i \leq k$ について $d(\hat{P}(\psi_0(i)), \hat{P}(\psi_1(i)) \leq \delta$,  
+\end{enumerate}
+であるとき，$\psi$ を位置点列 $P$ と $Q$ の$\delta$ 近傍での共通部分列（$\delta$-LCS）であるという．
+$\psi$ の
 
 \newpage
 

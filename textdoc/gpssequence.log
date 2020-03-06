@@ -1,4 +1,4 @@
-This is e-pTeX, Version 3.14159265-p3.8.2-190131-2.6 (utf8.euc) (TeX Live 2019) (preloaded format=platex 2019.12.5)  5 MAR 2020 17:14
+This is e-pTeX, Version 3.14159265-p3.8.2-190131-2.6 (utf8.euc) (TeX Live 2019) (preloaded format=platex 2019.12.5)  6 MAR 2020 15:13
 entering extended mode
  restricted \write18 enabled.
  file:line:error style messages enabled.
@@ -147,11 +147,11 @@ LaTeX Warning: `h' float specifier changed to `ht'.
 
 [2] [3]
 LaTeX Font Info:    Font shape `JT1/mc/bx/n' in size <10.95> not available
-(Font)              Font shape `JT1/gt/m/n' tried instead on input line 99.
+(Font)              Font shape `JT1/gt/m/n' tried instead on input line 114.
 LaTeX Font Info:    Font shape `JY1/mc/bx/n' in size <10.95> not available
-(Font)              Font shape `JY1/gt/m/n' tried instead on input line 99.
+(Font)              Font shape `JY1/gt/m/n' tried instead on input line 114.
 
-Overfull \hbox (7.30591pt too wide) in paragraph at lines 103--105
+Overfull \hbox (7.30591pt too wide) in paragraph at lines 118--120
 []\JY1/mc/m/n/10.95 整
  []
 
@@ -163,6 +163,6 @@ Here is how much of TeX's memory you used:
  5788 multiletter control sequences out of 15000+600000
  17057 words of font info for 71 fonts, out of 8000000 for 9000
  929 hyphenation exceptions out of 8191
- 30i,6n,31p,298b,286s stack positions out of 5000i,500n,10000p,200000b,80000s
+ 30i,8n,31p,298b,280s stack positions out of 5000i,500n,10000p,200000b,80000s
 
-Output written on gpssequence.dvi (5 pages, 14428 bytes).
+Output written on gpssequence.dvi (5 pages, 15076 bytes).
