@@ -1,0 +1,15 @@
+<?xml version="1.0"?>
+<states>
+    <state code="CA">
+        <name>California</name>
+        <capital>Sacramento</capital>
+    </state>
+    <state code="HI">
+        <name>Hawaii</name>
+        <capital>Honolulu</capital>
+    </state>
+    <state code="TX">
+        <name>Texas</name>
+        <capital>Austin</capital>
+    </state>
+</states>
