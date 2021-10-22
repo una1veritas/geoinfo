@@ -5,50 +5,48 @@ Created on 2021/10/20
 '''
 
 #import json
-import xmltodict
-#from lxml.etree import parse
-from collections import OrderedDict
+#import xmltodict
+#from collections import OrderedDict
 from lxml import etree
+import sys
 
-with open('../GIAJ_DL/FG-GML-503032-ALL-20210701/test-0001.xml') as fp:
-#with open('test.xml') as fp:
-    xtree = etree.parse(fp)
+if len(sys.argv) < 2 :
+    print('xml file name is requested.',file=sys.stderr)
+    exit(1)
 
-#xml = bytes(bytearray(text, encoding='utf-8'))
-#tree = etree.parse(xml)
-root = xtree.getroot()
+try:
+    with open(sys.argv[1], encoding='utf-8') as fp:
+    #with open('test.xml') as fp:
+        xmlbytes = bytes(bytearray(fp.read(), encoding='utf-8'))
+except Exception as ex:
+    print(ex, file=sys.stderr)
+    exit(1)
 
-print( 'root tag = %s' % root.tag )
-print( 'root nsmap = %s' % root.nsmap )
-#print( etree.tostring(xtree, encoding='utf-8').decode())
+xml = etree.fromstring(xmlbytes)
+print("root info: ",xml.tag, xml.attrib,file=sys.stderr)
+nspaces = xml.nsmap
+if None in nspaces :
+    nspaces['defns'] = nspaces.pop(None)
+#print(nspaces)
+#for ch in xroot:
+#    print(ch.tag, ch.attrib)
 
-for elem in xtree.iter():
-    print('tag={}, attr={}, text={}'.format(elem.tag, elem.get('att'), elem.text))
+extract_types = {u'真幅道路', u'索道', u'普通鉄道'}
 
-print(xtree.find('gml:posList', namespaces={'gml': 'http://www.opengis.net/gml/3.2'}) )
-exit()
-
-def traverse(dic, search):
-    #print(search[0:])
-    if not len(search):
-        yield dic
-    elif isinstance(dic, (list, tuple)):
-        for ea in dic:
-            yield from traverse(ea, search)
-    elif isinstance(dic, (dict, OrderedDict)):
-        for k, v in dic.items():
-            if len(search) and k == search[0]:
-                yield from traverse(v, search[1:])
-        # else:
-        #     yield (k, v)
-
-    
-if __name__ == '__main__':
-    with open('../GIAJ_DL/FG-GML-503032-ALL-20210701/FG-GML-503032-AdmArea-20210701-0001.xml', encoding='utf-8') as fp:
-        oddata = xmltodict.parse(fp.read())
-    
-    #print(dict_data)
-    #for a in traverse(oddata,['Dataset','AdmArea', 'area','gml:Surface','gml:patches','gml:PolygonPatch','gml:exterior','gml:Ring','gml:curveMember','gml:Curve','gml:segments','gml:LineStringSegment','gml:posList']):
-    for a in traverse(oddata,['Dataset','AdmArea',]):
-        print(str(a))
+rdcount = 0
+for ea in xml.xpath('./defns:RdEdg', namespaces=nspaces):
+    ##print(etree.tostring(ea, pretty_print=True).decode())
+    eatype = ea.xpath('defns:type/text()', namespaces=nspaces)[0]
+    if eatype in extract_types:
+        print('type:', eatype, 'id:',ea.attrib['{http://www.opengis.net/gml/3.2}id'],file=sys.stderr)
+        postext = ea.xpath('defns:loc/gml:Curve/gml:segments/gml:LineStringSegment/gml:posList/text()', namespaces=nspaces)[0]
+        for aline in postext.split('\n'):
+            if not len(aline) : continue
+            items = aline.split(' ')
+            print('{},{}'.format(items[0], items[1]))        
         print()
+    rdcount += 1
+    #if rdcount > 12 : break
+    #print(etree.tostring(ea, encoding='utf-8', pretty_print=True).decode())
+
+print('rdcount=',rdcount,file=sys.stderr)
