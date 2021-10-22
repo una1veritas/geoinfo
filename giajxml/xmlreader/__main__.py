@@ -14,6 +14,11 @@ if len(sys.argv) < 2 :
     print('xml file name is requested.',file=sys.stderr)
     exit(1)
 
+separator = ','
+for arg in sys.argv[2:]:
+    if arg == '-tab' :
+        separator = '\t'
+
 try:
     with open(sys.argv[1], encoding='utf-8') as fp:
     #with open('test.xml') as fp:
@@ -38,12 +43,12 @@ for ea in xml.xpath('./defns:RdEdg|./defns:RailCL', namespaces=nspaces):
     ##print(etree.tostring(ea, pretty_print=True).decode())
     eatype = ea.xpath('defns:type/text()', namespaces=nspaces)[0]
     if eatype in extract_types:
-        print('type:', eatype, 'id:',ea.attrib['{http://www.opengis.net/gml/3.2}id'])
+        print(str(eatype)+separator+str(ea.attrib['{http://www.opengis.net/gml/3.2}id']))
         postext = ea.xpath('defns:loc/gml:Curve/gml:segments/gml:LineStringSegment/gml:posList/text()', namespaces=nspaces)[0]
         for aline in postext.split('\n'):
             if not len(aline) : continue
             items = aline.split(' ')
-            print('{},{}'.format(items[0], items[1]))        
+            print(('{}'+separator+'{}').format(items[0], items[1]))        
         print()
     rdcount += 1
     #if rdcount > 12 : break
