@@ -2,3 +2,4 @@
 *.o
 *.exe
 giajxml/xmlreader/__pycache__/__main__.cpython-39.pyc
+*.pyc

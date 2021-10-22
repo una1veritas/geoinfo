@@ -34,11 +34,11 @@ if None in nspaces :
 extract_types = {u'真幅道路', u'索道', u'普通鉄道'}
 
 rdcount = 0
-for ea in xml.xpath('./defns:RdEdg', namespaces=nspaces):
+for ea in xml.xpath('./defns:RdEdg|./defns:RailCL', namespaces=nspaces):
     ##print(etree.tostring(ea, pretty_print=True).decode())
     eatype = ea.xpath('defns:type/text()', namespaces=nspaces)[0]
     if eatype in extract_types:
-        print('type:', eatype, 'id:',ea.attrib['{http://www.opengis.net/gml/3.2}id'],file=sys.stderr)
+        print('type:', eatype, 'id:',ea.attrib['{http://www.opengis.net/gml/3.2}id'])
         postext = ea.xpath('defns:loc/gml:Curve/gml:segments/gml:LineStringSegment/gml:posList/text()', namespaces=nspaces)[0]
         for aline in postext.split('\n'):
             if not len(aline) : continue
