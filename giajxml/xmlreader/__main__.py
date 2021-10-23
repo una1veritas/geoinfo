@@ -36,12 +36,17 @@ if None in nspaces :
 #for ch in xroot:
 #    print(ch.tag, ch.attrib)
 
-extract_types = {u'真幅道路', u'索道', u'普通鉄道'}
+extract_types = {u'真幅道路', u'索道', u'徒歩道', u'トンネル内の道路', u'索道', u'普通鉄道', u'トンネル内の鉄道', u'徒歩道'}
+types = dict()
 
 rdcount = 0
-for ea in xml.xpath('./defns:RdEdg|./defns:RailCL', namespaces=nspaces):
+for ea in xml.xpath('./defns:RdEdg|./defns:RailCL|./defns:RdCompt', namespaces=nspaces):
     ##print(etree.tostring(ea, pretty_print=True).decode())
     eatype = ea.xpath('defns:type/text()', namespaces=nspaces)[0]
+    if eatype in types:
+        types[eatype] += 1
+    else:
+        types[eatype] = 1
     if eatype in extract_types:
         print(str(eatype)+separator+str(ea.attrib['{http://www.opengis.net/gml/3.2}id']))
         postext = ea.xpath('defns:loc/gml:Curve/gml:segments/gml:LineStringSegment/gml:posList/text()', namespaces=nspaces)[0]
@@ -55,3 +60,4 @@ for ea in xml.xpath('./defns:RdEdg|./defns:RailCL', namespaces=nspaces):
     #print(etree.tostring(ea, encoding='utf-8', pretty_print=True).decode())
 
 print('rdcount=',rdcount,file=sys.stderr)
+print('types=', types, file=sys.stderr)
