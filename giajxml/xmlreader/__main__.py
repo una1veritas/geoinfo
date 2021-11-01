@@ -60,7 +60,7 @@ for ea in xml.xpath('./defns:RdEdg|./defns:RailCL|./defns:RdCompt', namespaces=n
             if not len(aline) : continue
             items = aline.split(' ')
             coords.append(tuple([float(anitem) for anitem in items]))
-            print(('{:.9f}'+separator+'{:9f}').format(items[0], items[1]))        
+            print(('{:.9f}'+separator+'{:.9f}').format(coords[-1][0], coords[-1][1]))        
         simplified = simplify_coords(coords, 0.00001)
         print()
         for lat, lon in simplified:
