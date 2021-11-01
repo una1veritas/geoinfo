@@ -9,6 +9,11 @@ Created on 2021/10/20
 #from collections import OrderedDict
 from lxml import etree
 import sys
+import numpy as np
+from simplification.cutil import (
+    simplify_coords, # this is Douglas-Peucker 
+    simplify_coords_vw,  # this is Visvalingam-Whyatt
+)
 
 if len(sys.argv) < 2 :
     print('xml file name is requested.',file=sys.stderr)
@@ -50,10 +55,16 @@ for ea in xml.xpath('./defns:RdEdg|./defns:RailCL|./defns:RdCompt', namespaces=n
     if eatype in extract_types:
         print(str(eatype)+separator+str(ea.attrib['{http://www.opengis.net/gml/3.2}id']))
         postext = ea.xpath('defns:loc/gml:Curve/gml:segments/gml:LineStringSegment/gml:posList/text()', namespaces=nspaces)[0]
+        coords = list()
         for aline in postext.split('\n'):
             if not len(aline) : continue
             items = aline.split(' ')
-            print(('{}'+separator+'{}').format(items[0], items[1]))        
+            coords.append(tuple([float(anitem) for anitem in items]))
+            print(('{:.9f}'+separator+'{:9f}').format(items[0], items[1]))        
+        simplified = simplify_coords(coords, 0.00001)
+        print()
+        for lat, lon in simplified:
+            print(('{:.9f}'+separator+'{:.9f}').format(lat,lon))
         print()
     rdcount += 1
     #if rdcount > 12 : break
