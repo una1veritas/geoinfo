@@ -4,7 +4,7 @@ Created on 2021/12/16
 @author: sin
 '''
 ''' 
-python3 openstreetmap map.osm [return]
+python3 OSMReader map.osm [return]
 '''
 
 from lxml import etree
