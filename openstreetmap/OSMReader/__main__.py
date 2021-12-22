@@ -29,30 +29,70 @@ if __name__ == '__main__':
     nspaces = xml.nsmap
     if None in nspaces :
         nspaces['defns'] = nspaces.pop(None)
-    print(nspaces)
+    print('nspaces = ', nspaces)
     
-    nodes = dict()
-    ways = dict()
+    '''
+    Get objects from .osm file into a JSON-like python dict.
+    '''
+    objects = dict()
+    # considers only the following three objects
+    objects['node'] = dict()
+    objects['way'] = dict()
+    objects['relation'] = dict()
     for ch in xml:
         if ch.tag == 'node' :
-            nodes[ch.attrib['id']] = (ch.attrib['lat'], ch.attrib['lon'])
+            objects[ch.tag][ch.attrib['id']] = (ch.attrib['lat'], ch.attrib['lon'])
             # print(ch.tag, ch.attrib)
             # for t in ch:
             #     if t.tag == 'tag' :
             #         print(t.attrib['k'], t.attrib['v'])
-        elif ch.tag == 'way' :            
-            poslist = list()
+        elif ch.tag == 'way' :
+            refs = list()
             tags = dict()
             for t in ch:
                 if t.tag == 'nd':
-                    poslist.append(nodes[t.attrib['ref']])
+                    refs.append(t.attrib['ref'])
                 elif t.tag == 'tag':
                     tags[t.attrib['k']] = t.attrib['v']
-            ways[ch.attrib['id']] = (tags, poslist)
+            objects[ch.tag][ch.attrib['id']] = {'tag': tags, 'ref': refs}
+        elif ch.tag == 'relation' :
+            members = [ t.attrib for t in ch if t.tag == 'member']
+            #print('members = ', members)
+            tags = dict()
+            for t in ch:
+                if t.tag == 'tag' :
+                    tags[t.attrib['k']] = t.attrib['v']
+            objects[ch.tag][ch.attrib['id']] = {'tag': tags, 'member': members}
 
-    print('nodes', len(nodes))
-    print('ways', len(ways))
-    for away in sorted(ways.items())[:10] :
-        print(away[0], away[1][0])
-        print(away[1][1])
-        print()
+    '''
+    Show example data. 
+    '''
+    for i in sorted(objects['node'].keys()):
+        print('node', i, ':', objects['node'][i])
+    else:
+        print(len(objects['node']))
+    for i in sorted(objects['way'].keys()):
+        print('way', i, ':', objects['way'][i])
+    else:
+        print(len(objects['way']))
+    for i in objects['relation']:
+        tags = objects['relation'][i]['tag']
+        if tags['type'] == 'route' or tags['type'] == 'route_master' : 
+            print('relation', i, ':', objects['relation'][i])
+            members = objects['relation'][i]['member']
+            for m in members:
+                ref = m['ref']
+                if ref in objects['way'] :
+                    for r in objects['way'][ref]['ref']:
+                        print(' '+str(r), end=',')
+                else:
+                    print('-',end='')
+            print()
+        
+'''
+  <tag k="route" v="road"/>
+  <tag k="type" v="route"/>
+
+  <tag k="route_master" v="road"/>
+  <tag k="type" v="route_master"/>
+'''
