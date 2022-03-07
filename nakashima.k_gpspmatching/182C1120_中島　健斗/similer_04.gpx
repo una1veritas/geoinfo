@@ -1,0 +1,160 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<gpx version="1.0" creator="GPSBabel - https://www.gpsbabel.org" xmlns="http://www.topografix.com/GPX/1/0">
+  <time>2022-01-22T14:47:22.137Z</time>
+  <bounds minlat="32.581540400" minlon="131.664609700" maxlat="32.589802800" maxlon="131.671313600"/>
+  <wpt lat="32.588882000" lon="131.671125700">
+    <name>WPT001</name>
+    <cmt>WPT001</cmt>
+    <desc>WPT001</desc>
+  </wpt>
+  <wpt lat="32.589802800" lon="131.671174600">
+    <name>WPT002</name>
+    <cmt>WPT002</cmt>
+    <desc>WPT002</desc>
+  </wpt>
+  <wpt lat="32.589269200" lon="131.671146100">
+    <name>WPT003</name>
+    <cmt>WPT003</cmt>
+    <desc>WPT003</desc>
+  </wpt>
+  <wpt lat="32.588882000" lon="131.671125700">
+    <name>WPT004</name>
+    <cmt>WPT004</cmt>
+    <desc>WPT004</desc>
+  </wpt>
+  <wpt lat="32.588244100" lon="131.671093100">
+    <name>WPT005</name>
+    <cmt>WPT005</cmt>
+    <desc>WPT005</desc>
+  </wpt>
+  <wpt lat="32.587847000" lon="131.671074300">
+    <name>WPT006</name>
+    <cmt>WPT006</cmt>
+    <desc>WPT006</desc>
+  </wpt>
+  <wpt lat="32.586805800" lon="131.671072700">
+    <name>WPT007</name>
+    <cmt>WPT007</cmt>
+    <desc>WPT007</desc>
+  </wpt>
+  <wpt lat="32.584627200" lon="131.671313600">
+    <name>WPT008</name>
+    <cmt>WPT008</cmt>
+    <desc>WPT008</desc>
+  </wpt>
+  <wpt lat="32.584011000" lon="131.671311000">
+    <name>WPT009</name>
+    <cmt>WPT009</cmt>
+    <desc>WPT009</desc>
+  </wpt>
+  <wpt lat="32.582700300" lon="131.671268500">
+    <name>WPT010</name>
+    <cmt>WPT010</cmt>
+    <desc>WPT010</desc>
+  </wpt>
+  <wpt lat="32.582098900" lon="131.671250100">
+    <name>WPT011</name>
+    <cmt>WPT011</cmt>
+    <desc>WPT011</desc>
+  </wpt>
+  <wpt lat="32.582117100" lon="131.670558100">
+    <name>WPT012</name>
+    <cmt>WPT012</cmt>
+    <desc>WPT012</desc>
+  </wpt>
+  <wpt lat="32.582115000" lon="131.669945600">
+    <name>WPT013</name>
+    <cmt>WPT013</cmt>
+    <desc>WPT013</desc>
+  </wpt>
+  <wpt lat="32.582116000" lon="131.669370500">
+    <name>WPT014</name>
+    <cmt>WPT014</cmt>
+    <desc>WPT014</desc>
+  </wpt>
+  <wpt lat="32.582108800" lon="131.668688800">
+    <name>WPT015</name>
+    <cmt>WPT015</cmt>
+    <desc>WPT015</desc>
+  </wpt>
+  <wpt lat="32.581942200" lon="131.667433600">
+    <name>WPT016</name>
+    <cmt>WPT016</cmt>
+    <desc>WPT016</desc>
+  </wpt>
+  <wpt lat="32.581805900" lon="131.666519200">
+    <name>WPT017</name>
+    <cmt>WPT017</cmt>
+    <desc>WPT017</desc>
+  </wpt>
+  <wpt lat="32.581671800" lon="131.665562900">
+    <name>WPT018</name>
+    <cmt>WPT018</cmt>
+    <desc>WPT018</desc>
+  </wpt>
+  <wpt lat="32.581540400" lon="131.664609700">
+    <name>WPT019</name>
+    <cmt>WPT019</cmt>
+    <desc>WPT019</desc>
+  </wpt>
+  <wpt lat="32.582590700" lon="131.665498600">
+    <name>WPT020</name>
+    <cmt>WPT020</cmt>
+    <desc>WPT020</desc>
+  </wpt>
+  <wpt lat="32.582647800" lon="131.666444700">
+    <name>WPT021</name>
+    <cmt>WPT021</cmt>
+    <desc>WPT021</desc>
+  </wpt>
+  <wpt lat="32.582685700" lon="131.667354500">
+    <name>WPT022</name>
+    <cmt>WPT022</cmt>
+    <desc>WPT022</desc>
+  </wpt>
+  <wpt lat="32.582756500" lon="131.668720600">
+    <name>WPT023</name>
+    <cmt>WPT023</cmt>
+    <desc>WPT023</desc>
+  </wpt>
+  <wpt lat="32.584583300" lon="131.668820700">
+    <name>WPT024</name>
+    <cmt>WPT024</cmt>
+    <desc>WPT024</desc>
+  </wpt>
+  <wpt lat="32.585884200" lon="131.668913400">
+    <name>WPT025</name>
+    <cmt>WPT025</cmt>
+    <desc>WPT025</desc>
+  </wpt>
+  <wpt lat="32.586205100" lon="131.668922300">
+    <name>WPT026</name>
+    <cmt>WPT026</cmt>
+    <desc>WPT026</desc>
+  </wpt>
+  <wpt lat="32.586777500" lon="131.668943000">
+    <name>WPT027</name>
+    <cmt>WPT027</cmt>
+    <desc>WPT027</desc>
+  </wpt>
+  <wpt lat="32.586799300" lon="131.670029400">
+    <name>WPT028</name>
+    <cmt>WPT028</cmt>
+    <desc>WPT028</desc>
+  </wpt>
+  <wpt lat="32.586806200" lon="131.670522100">
+    <name>WPT029</name>
+    <cmt>WPT029</cmt>
+    <desc>WPT029</desc>
+  </wpt>
+  <wpt lat="32.587847000" lon="131.671074300">
+    <name>WPT030</name>
+    <cmt>WPT030</cmt>
+    <desc>WPT030</desc>
+  </wpt>
+  <wpt lat="32.588244100" lon="131.671093100">
+    <name>WPT031</name>
+    <cmt>WPT031</cmt>
+    <desc>WPT031</desc>
+  </wpt>
+</gpx>
