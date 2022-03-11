@@ -9,6 +9,7 @@ python3 OSMReader map.osm [return]
 
 from lxml import etree
 import sys
+import geohashlite as geohash
 
 if __name__ == '__main__':
     if len(sys.argv) < 2 :
@@ -41,7 +42,7 @@ if __name__ == '__main__':
     objects['relation'] = dict()
     for ch in xml:
         if ch.tag == 'node' :
-            objects[ch.tag][ch.attrib['id']] = (ch.attrib['lat'], ch.attrib['lon'])
+            objects[ch.tag][int(ch.attrib['id'])] = (float(ch.attrib['lat']), float(ch.attrib['lon']))
             # print(ch.tag, ch.attrib)
             # for t in ch:
             #     if t.tag == 'tag' :
@@ -64,6 +65,31 @@ if __name__ == '__main__':
                     tags[t.attrib['k']] = t.attrib['v']
             objects[ch.tag][ch.attrib['id']] = {'tag': tags, 'member': members}
 
+    cnt = 0
+    geohashgrid7 = dict()
+    for k in objects['node'].keys():
+        gpoint = objects['node'][k]
+        hashcode = geohash.encode(gpoint[0], gpoint[1], 7)
+        #print(k, hashcode, gpoint)
+        if hashcode in geohashgrid7:
+            geohashgrid7[hashcode].append(k)
+        else:
+            geohashgrid7[hashcode] = [ k ]  
+        cnt += 1
+        # if cnt > 100 :
+        #     break
+    print(cnt, ' nodes.')
+    print(len(geohashgrid7), ' areas.')
+    cnt = 0
+    for k in geohashgrid7:
+        print(k, len(geohashgrid7[k]), geohashgrid7[k])
+        cnt += 1
+        if cnt > 200:
+            break
+    
+    for i in sorted(objects['way'].keys()):
+        print('way', i, ':', objects['way'][i])
+    exit()
     '''
     Show example data. 
     '''
