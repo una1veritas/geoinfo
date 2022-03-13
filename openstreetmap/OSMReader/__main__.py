@@ -10,6 +10,7 @@ python3 OSMReader map.osm [return]
 from lxml import etree
 import sys
 import geohashlite as geohash
+from PIL import Image, ImageDraw
 
 def getobject(xml):
     '''
@@ -45,6 +46,30 @@ def getobject(xml):
                     tags[t.attrib['k']] = t.attrib['v']
             objects[ch.tag][int(ch.attrib['id'])] = {'tag': tags, 'member': members}
     return objects
+
+def showgeograph(ggraph):
+    (hight, width) = (int(dlat * 1e+6), int(dlon * 1e+6))
+    print(hight, width)
+    
+    mapimg = Image.new("RGB", (width, hight), "White")
+    draw = ImageDraw.Draw(mapimg)
+    gpoints = set()
+    for key in geohashgrid.keys():
+        if key.startswith('wvuzqh'):
+            for ea in geohashgrid[key]:
+                gpoints.add(ea)
+    for i in gpoints:
+        coord = nodes[i]
+        x, y = abs(int((topleft[1]-coord[1])*1e+6)), int((topleft[0]-coord[0])*1e+6)
+        draw.ellipse([x-1,y-1,x+1,y+1], fill = "Black", outline = "Black")
+        adjs = geograph[i]
+        #print(x,y, adjs)
+        for v in adjs:
+            if v in gpoints :
+                p2 = nodes[v]
+                x2, y2 = abs(int((topleft[1]-p2[1])*1e+6)), int((topleft[0]-p2[0])*1e+6)
+                draw.line([x,y,x2,y2], fill= "Black")
+    mapimg.show()
 
 if __name__ == '__main__':
     if len(sys.argv) < 2 :
@@ -83,28 +108,24 @@ if __name__ == '__main__':
         plist = val[1]
         for ix in range(len(plist)-1):
             if plist[ix] not in geograph:
-                geograph[plist[ix]] = list()
+                geograph[plist[ix]] = (nodes[plist[ix]],list())
             if plist[ix+1] not in geograph:
-                geograph[plist[ix+1]] = list()
-            geograph[plist[ix]].append(plist[ix+1])
-            geograph[plist[ix+1]].append(plist[ix])
+                geograph[plist[ix+1]] = (nodes[plist[ix+1]],list())
+            geograph[plist[ix]][-1].append(plist[ix+1])
+            geograph[plist[ix+1]][-1].append(plist[ix])
     
-    print(len(geograph.keys()))
+    print(len(geograph))
 
     geohashgrid = dict()
     for pid in geograph.keys():
-        gpoint = objects['node'][pid]
+        gpoint = geograph[pid][0]
         hashcode = geohash.encode(gpoint[0], gpoint[1], 7)
         #print(k, hashcode, gpoint)
         if hashcode in geohashgrid:
             geohashgrid[hashcode].append(pid)
         else:
             geohashgrid[hashcode] = [ pid ]
-    
-    tally = 0
-    for key, val in geohashgrid.items():
-        tally += len(val)
-    print(tally, ' points in highway/railway.')
+
     print(len(geohashgrid), ' areas.')
     
     (key, amax) = (0, 0)
@@ -121,29 +142,7 @@ if __name__ == '__main__':
     dlat, dlon = areabbox['n'] - areabbox['s'], areabbox['e'] - areabbox['w']
     topleft = (areabbox['n'],  areabbox['w'])
     
-    from PIL import Image, ImageDraw
-    (hight, width) = (int(dlat * 1e+6), int(dlon * 1e+6))
-    print(hight, width)
-    
-    mapimg = Image.new("RGB", (width, hight), "White")
-    draw = ImageDraw.Draw(mapimg)
-    gpoints = set()
-    for key in geohashgrid.keys():
-        if key.startswith('wvuzqh'):
-            for ea in geohashgrid[key]:
-                gpoints.add(ea)
-    for i in gpoints:
-        coord = nodes[i]
-        x, y = abs(int((topleft[1]-coord[1])*1e+6)), int((topleft[0]-coord[0])*1e+6)
-        draw.ellipse([x-1,y-1,x+1,y+1], fill = "Black", outline = "Black")
-        adjs = geograph[i]
-        #print(x,y, adjs)
-        for v in adjs:
-            if v in gpoints :
-                p2 = nodes[v]
-                x2, y2 = abs(int((topleft[1]-p2[1])*1e+6)), int((topleft[0]-p2[0])*1e+6)
-                draw.line([x,y,x2,y2], fill= "Black")
-    mapimg.show()
+    showgeograph(nodes, geograph)
     exit()
     '''
     Show example data. 
