@@ -6,3 +6,5 @@ giajxml/xmlreader/__pycache__/__main__.cpython-39.pyc
 *.pyc
 
 .DS_Store
+
+openstreetmap/*.osm

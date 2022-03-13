@@ -52,10 +52,10 @@ if __name__ == '__main__':
             tags = dict()
             for t in ch:
                 if t.tag == 'nd':
-                    refs.append(t.attrib['ref'])
+                    refs.append(int(t.attrib['ref']))
                 elif t.tag == 'tag':
                     tags[t.attrib['k']] = t.attrib['v']
-            objects[ch.tag][ch.attrib['id']] = {'tag': tags, 'ref': refs}
+            objects[ch.tag][int(ch.attrib['id'])] = {'tag': tags, 'ref': refs}
         elif ch.tag == 'relation' :
             members = [ t.attrib for t in ch if t.tag == 'member']
             #print('members = ', members)
@@ -63,32 +63,47 @@ if __name__ == '__main__':
             for t in ch:
                 if t.tag == 'tag' :
                     tags[t.attrib['k']] = t.attrib['v']
-            objects[ch.tag][ch.attrib['id']] = {'tag': tags, 'member': members}
+            objects[ch.tag][int(ch.attrib['id'])] = {'tag': tags, 'member': members}
 
-    cnt = 0
-    geohashgrid7 = dict()
-    for k in objects['node'].keys():
-        gpoint = objects['node'][k]
-        hashcode = geohash.encode(gpoint[0], gpoint[1], 7)
-        #print(k, hashcode, gpoint)
-        if hashcode in geohashgrid7:
-            geohashgrid7[hashcode].append(k)
-        else:
-            geohashgrid7[hashcode] = [ k ]  
-        cnt += 1
-        # if cnt > 100 :
-        #     break
-    print(cnt, ' nodes.')
-    print(len(geohashgrid7), ' areas.')
-    cnt = 0
-    for k in geohashgrid7:
-        print(k, len(geohashgrid7[k]), geohashgrid7[k])
-        cnt += 1
-        if cnt > 200:
-            break
+    edges = dict()
+    for key, value in sorted(objects['way'].items()):
+        if 'railway' in value['tag']:
+            edges[key] = ('railway', value['ref'])
+            #print('railway',edges['railway'][key])
+        elif 'highway' in value['tag']:
+            edges[key] = ('highway', value['ref'])
+            #print('highway',edges['highway'][key])
+
+    geohashgrid = dict()
+    for key, val in sorted(edges.items()):
+        (tag, plist) = val
+        for pid in plist:
+            gpoint = objects['node'][pid]
+            hashcode = geohash.encode(gpoint[0], gpoint[1], 7)
+            #print(k, hashcode, gpoint)
+            if hashcode in geohashgrid:
+                geohashgrid[hashcode].append(pid)
+            else:
+                geohashgrid[hashcode] = [ pid ]
     
-    for i in sorted(objects['way'].keys()):
-        print('way', i, ':', objects['way'][i])
+    tally = 0
+    for key, val in geohashgrid.items():
+        tally += len(val)
+    print(tally, ' points in highway/railway.')
+    print(len(geohashgrid), ' areas.')
+    
+    amax = 0
+    acnt = 0
+    tally = 0
+    for k in geohashgrid:
+        #print(k, len(geohashgrid[k]), geohashgrid[k])
+        if len(geohashgrid[k]) > amax :
+            amax = len(geohashgrid[k])
+        tally += len(geohashgrid[k])
+        acnt += 1
+    print('the max number in an area: ', amax, float(tally)/acnt)
+    
+    
     exit()
     '''
     Show example data. 
