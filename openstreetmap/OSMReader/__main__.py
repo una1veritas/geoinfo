@@ -92,16 +92,16 @@ if __name__ == '__main__':
     print(tally, ' points in highway/railway.')
     print(len(geohashgrid), ' areas.')
     
-    amax = 0
+    (key, amax) = (0, 0)
     acnt = 0
     tally = 0
     for k in geohashgrid:
         #print(k, len(geohashgrid[k]), geohashgrid[k])
         if len(geohashgrid[k]) > amax :
-            amax = len(geohashgrid[k])
+            (key, amax) = (k, len(geohashgrid[k]) )
         tally += len(geohashgrid[k])
         acnt += 1
-    print('the max number in an area: ', amax, float(tally)/acnt)
+    print('max ', amax, ' point in area', key, float(tally)/acnt)
     
     
     exit()
