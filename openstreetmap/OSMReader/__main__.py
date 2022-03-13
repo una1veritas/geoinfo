@@ -11,6 +11,7 @@ from lxml import etree
 import sys
 import geohashlite as geohash
 from PIL import Image, ImageDraw
+import math
 
 def getobject(xml):
     '''
@@ -47,29 +48,69 @@ def getobject(xml):
             objects[ch.tag][int(ch.attrib['id'])] = {'tag': tags, 'member': members}
     return objects
 
-def showgeograph(ggraph):
-    (hight, width) = (int(dlat * 1e+6), int(dlon * 1e+6))
-    print(hight, width)
-    
+def showgeograph(gg, bbox=None):
+    if bbox == None:
+        bbox = [0, 180, 90, 0]
+        for key, val in gg.items():
+            lat, lon = val[0]
+            bbox[0] = max(bbox[0], lat)
+            bbox[1] = min(bbox[1], lon)
+            bbox[2] = min(bbox[2], lat)
+            bbox[3] = max(bbox[3], lon)
+    dlat = bbox[0] - bbox[2]
+    dlon = bbox[3] - bbox[1]
+    h = geodist((bbox[2], bbox[1]), (bbox[2], bbox[3]))
+    v = geodist((bbox[2], bbox[1]), (bbox[0], bbox[1]))
+    r = 1.17 #h/v
+    print(r)
+    scale = 1024
+    while int(dlon*scale) < 4096 :
+        scale *= 2
+    print(dlat, dlon, scale)
+    width = int(dlon*scale)
+    hight = int(dlat*scale)
+
     mapimg = Image.new("RGB", (width, hight), "White")
     draw = ImageDraw.Draw(mapimg)
-    gpoints = set()
-    for key in geohashgrid.keys():
-        if key.startswith('wvuzqh'):
-            for ea in geohashgrid[key]:
-                gpoints.add(ea)
-    for i in gpoints:
-        coord = nodes[i]
-        x, y = abs(int((topleft[1]-coord[1])*1e+6)), int((topleft[0]-coord[0])*1e+6)
+
+    for i in gg.keys():
+        coord = gg[i][0]
+        if coord[0] < bbox[2] or coord[0] > bbox[0] or coord[1] < bbox[1] or coord[0] > bbox[3] :
+            continue
+        x, y = abs(int((bbox[1]-coord[1])*scale)), int((bbox[0]-coord[0])*scale*r)
         draw.ellipse([x-1,y-1,x+1,y+1], fill = "Black", outline = "Black")
-        adjs = geograph[i]
+        adjs = gg[i][1]
         #print(x,y, adjs)
         for v in adjs:
-            if v in gpoints :
-                p2 = nodes[v]
-                x2, y2 = abs(int((topleft[1]-p2[1])*1e+6)), int((topleft[0]-p2[0])*1e+6)
+            if v in gg :
+                p2 = gg[v][0]
+                x2, y2 = abs(int((bbox[1]-p2[1])*scale)), int((bbox[0]-p2[0])*scale*r)
                 draw.line([x,y,x2,y2], fill= "Black")
     mapimg.show()
+
+def deg2rad(x):
+    return math.pi * x / 180.0
+
+def geodist(gp1, gp2):
+    #const int mode = 1;
+    gp1rad = (deg2rad(gp1[0]), deg2rad(gp1[1]));
+    gp2rad = (deg2rad(gp2[0]), deg2rad(gp2[1]));
+    #double latdiff = plat - qlat, londiff = plon - qlon;
+    latavr = (gp2rad[0] + gp2rad[0]) / 2.0;
+
+    a = 6378137.0           #mode ? 6378137.0 : 6377397.155; // 襍､驕灘濠蠕�
+    #b = 6356752.314140356   #mode ? 6356752.314140356 : 6356078.963; // 讌ｵ蜊雁ｾ�
+    e2 = 0.00669438002301188    #mode ? 0.00669438002301188 : 0.00667436061028297; // 隨ｬ荳�髮｢蠢�邇�^2
+    a1e2 = 6335439.32708317     #mode ? 6335439.32708317 : 6334832.10663254; // 襍､驕謎ｸ翫�ｮ蟄仙壕邱壽峇邇�蜊雁ｾ�
+
+    sin_latavr = math.sin(latavr)
+    W2 = 1.0 - e2 * (sin_latavr*sin_latavr)
+    M = a1e2 / (math.sqrt(W2)*W2)
+    N = a / math.sqrt(W2)
+
+    t1 = M * (gp1rad[0] - gp2rad[1])        #latdiff;
+    t2 = N * math.cos(latavr) * (gp1rad[1] - gp2rad[1])    #londiff;
+    return math.sqrt((t1*t1) + (t2*t2))
 
 if __name__ == '__main__':
     if len(sys.argv) < 2 :
@@ -100,8 +141,11 @@ if __name__ == '__main__':
             links[key] = ('railway', value['ref'])
             #print('railway',edges['railway'][key])
         elif 'highway' in value['tag']:
+            # if value['tag']['highway'] == 'residential':
+            #     pass
+            # else:
             links[key] = ('highway', value['ref'])
-            #print('highway',edges['highway'][key])
+            #print('highway', value)
     
     geograph = dict()
     for key, val in links.items():
@@ -138,11 +182,9 @@ if __name__ == '__main__':
         tally += len(geohashgrid[k])
         acnt += 1
     print('max ', amax, ' point in area', key, float(tally)/acnt)
-    areabbox = geohash.bbox('wvuzqh8')
-    dlat, dlon = areabbox['n'] - areabbox['s'], areabbox['e'] - areabbox['w']
-    topleft = (areabbox['n'],  areabbox['w'])
+    bbox = geohash.bbox('wvuxn')
     
-    showgeograph(nodes, geograph)
+    showgeograph(geograph) #, [bbox['n'],bbox['w'],bbox['s'],bbox['e']])
     exit()
     '''
     Show example data. 
