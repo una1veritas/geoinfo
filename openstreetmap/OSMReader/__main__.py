@@ -59,10 +59,11 @@ def showgeograph(gg, bbox=None):
             bbox[3] = max(bbox[3], lon)
     dlat = bbox[0] - bbox[2]
     dlon = bbox[3] - bbox[1]
-    h = geodist((bbox[2], bbox[1]), (bbox[2], bbox[3]))
-    v = geodist((bbox[2], bbox[1]), (bbox[0], bbox[1]))
-    r = 1.17 #h/v
-    print(r)
+    dangle = min(dlat/2, dlon/2)
+    h = geodist((bbox[0], bbox[1]), (bbox[0], bbox[1]+dangle) )
+    v = geodist((bbox[0], bbox[1]), (bbox[0]+dangle, bbox[1]))
+    print(dangle, h,v,h/v)
+    r = h/v
     scale = 1024
     while int(dlon*scale) < 4096 :
         scale *= 2
@@ -160,29 +161,15 @@ if __name__ == '__main__':
     
     print(len(geograph))
 
-    geohashgrid = dict()
+    geohashlist = list()
     for pid in geograph.keys():
         gpoint = geograph[pid][0]
-        hashcode = geohash.encode(gpoint[0], gpoint[1], 7)
-        #print(k, hashcode, gpoint)
-        if hashcode in geohashgrid:
-            geohashgrid[hashcode].append(pid)
-        else:
-            geohashgrid[hashcode] = [ pid ]
-
-    print(len(geohashgrid), ' areas.')
+        hashcode = geohash.encode(gpoint[0], gpoint[1], 8)
+        geohashlist.append((hashcode, pid))
     
-    (key, amax) = (0, 0)
-    acnt = 0
-    tally = 0
-    for k in geohashgrid:
-        #print(k, len(geohashgrid[k]), geohashgrid[k])
-        if len(geohashgrid[k]) > amax :
-            (key, amax) = (k, len(geohashgrid[k]) )
-        tally += len(geohashgrid[k])
-        acnt += 1
-    print('max ', amax, ' point in area', key, float(tally)/acnt)
-    bbox = geohash.bbox('wvuxn')
+    geohashlist.sort(key=lambda entry: entry[0])
+    for e in geohashlist:
+        print(e[0], e[1])
     
     showgeograph(geograph) #, [bbox['n'],bbox['w'],bbox['s'],bbox['e']])
     exit()
