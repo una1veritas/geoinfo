@@ -168,8 +168,6 @@ if __name__ == '__main__':
         geohashlist.append((hashcode, pid))
     
     geohashlist.sort(key=lambda entry: entry[0])
-    for e in geohashlist:
-        print(e[0], e[1])
     
     showgeograph(geograph) #, [bbox['n'],bbox['w'],bbox['s'],bbox['e']])
     exit()
