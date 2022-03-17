@@ -167,7 +167,7 @@ if __name__ == '__main__':
         geograph[gpid] = (geograph[gpid][0], sorted(geograph[gpid][1]))
 
     with open('out.geo', mode='w', encoding='utf-8') as fp:
-        fp.write(#node id,latitude,longitude,adjacent node id 1, node id 2,...)
+        #fp.write(#node id,latitude,longitude,adjacent node id 1, node id 2,...)
         for t in sorted(geograph.items()) :
             fp.write(str(t[0]))
             fp.write(',')
