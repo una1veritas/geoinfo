@@ -62,7 +62,7 @@ def showgeograph(gg, bbox=None):
     dangle = min(dlat/2, dlon/2)
     h = geodist((bbox[0], bbox[1]), (bbox[0], bbox[1]+dangle) )
     v = geodist((bbox[0], bbox[1]), (bbox[0]+dangle, bbox[1]))
-    print(dangle, h,v,h/v)
+    print(bbox, dangle, h,v,h/v)
     r = h/v
     scale = 1024
     while int(dlon*scale) < 4096 :
@@ -118,49 +118,69 @@ if __name__ == '__main__':
         print('osm file is requested.',file=sys.stderr)
         exit(1)
     
-    try:
-        with open(sys.argv[1], encoding='utf-8') as fp:
-            #with open('test.xml') as fp:
-            xmlbytes = bytes(bytearray(fp.read(), encoding='utf-8'))
-    except Exception as ex:
-        print(ex, file=sys.stderr)
-        exit(1)
-    
-    xml = etree.fromstring(xmlbytes)
-    print("root info: ",xml.tag, xml.attrib)
-
-    nspaces = xml.nsmap
-    if None in nspaces :
-        nspaces['defns'] = nspaces.pop(None)
-    print('nspaces = ', nspaces)
-    
-    objects = getobject(xml)
-    nodes = objects['node']
-    links = dict()
-    for key, value in sorted(objects['way'].items()):
-        if 'railway' in value['tag']:
-            links[key] = ('railway', value['ref'])
-            #print('railway',edges['railway'][key])
-        elif 'highway' in value['tag']:
-            # if value['tag']['highway'] == 'residential':
-            #     pass
-            # else:
-            links[key] = ('highway', value['ref'])
-            #print('highway', value)
-    
     geograph = dict()
-    for key, val in links.items():
-        plist = val[1]
-        for ix in range(len(plist)-1):
-            if plist[ix] not in geograph:
-                geograph[plist[ix]] = (nodes[plist[ix]],list())
-            if plist[ix+1] not in geograph:
-                geograph[plist[ix+1]] = (nodes[plist[ix+1]],list())
-            geograph[plist[ix]][-1].append(plist[ix+1])
-            geograph[plist[ix+1]][-1].append(plist[ix])
+    for filename in sys.argv[1:] :
+        try:
+            with open(filename, encoding='utf-8') as fp:
+                #with open('test.xml') as fp:
+                xmlbytes = bytes(bytearray(fp.read(), encoding='utf-8'))
+        except Exception as ex:
+            print(ex, file=sys.stderr)
+            continue
+        
+        xml = etree.fromstring(xmlbytes)
+        print("root info: ",xml.tag, xml.attrib)
     
-    print(len(geograph))
+        nspaces = xml.nsmap
+        if None in nspaces :
+            nspaces['defns'] = nspaces.pop(None)
+        print('nspaces = ', nspaces)
+        
+        objects = getobject(xml)
+        nodes = objects['node']
+        links = dict()
+        # extract the points only referred in way-links. 
+        for key, value in sorted(objects['way'].items()):
+            if 'railway' in value['tag']:
+                links[key] = ('railway', value['ref'])
+                #print('railway',edges['railway'][key])
+            elif 'highway' in value['tag']:
+                # if value['tag']['highway'] == 'residential':
+                #     pass
+                # else:
+                links[key] = ('highway', value['ref'])
+                #print('highway', value)
 
+        for gpid, val in links.items():
+            (gpoint, gplist) = val
+            for ix in range(len(gplist)-1):
+                if gplist[ix] not in geograph:
+                    geograph[gplist[ix]] = (nodes[gplist[ix]],list())
+                if gplist[ix+1] not in geograph:
+                    geograph[gplist[ix+1]] = (nodes[gplist[ix+1]],list())
+                if gplist[ix+1] not in geograph[gplist[ix]][-1] :
+                    geograph[gplist[ix]][-1].append(gplist[ix+1])
+                if gplist[ix] not in geograph[gplist[ix+1]][-1] :
+                    geograph[gplist[ix+1]][-1].append(gplist[ix])
+        
+    for gpid in geograph:
+        geograph[gpid] = (geograph[gpid][0], sorted(geograph[gpid][1]))
+
+    with open('out.geo', mode='w', encoding='utf-8') as fp:
+        fp.write(#node id,latitude,longitude,adjacent node id 1, node id 2,...)
+        for t in sorted(geograph.items()) :
+            fp.write(str(t[0]))
+            fp.write(',')
+            fp.write(str(t[1][0][0]))
+            fp.write(',')
+            fp.write(str(t[1][0][1]))
+            fp.write(',')
+            fp.write(str(t[1][1][0]))
+            for ea in t[1][1][1:]:
+                fp.write(',')
+                fp.write(str(ea))
+            fp.write('\n')
+    
     geohashlist = list()
     for pid in geograph.keys():
         gpoint = geograph[pid][0]
