@@ -181,6 +181,7 @@ if __name__ == '__main__':
                 fp.write(str(ea))
             fp.write('\n')
     
+    # for some tests
     geohashlist = list()
     for pid in geograph.keys():
         gpoint = geograph[pid][0]
