@@ -5,9 +5,9 @@ Created on 2022/03/11
 '''
 import geohashlite as geohash
 
-(lat, lon) = (33.65385, 130.67082)
+(lat, lon) = (33.58, 130.3)
 
-hashcode = geohash.encode(lat, lon, 8)
+hashcode = geohash.encode(lat, lon, 4)
 
 print(hashcode)
 print(geohash.decode(hashcode))
