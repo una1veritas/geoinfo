@@ -31,24 +31,29 @@ def mjd2datetime(mjd:float):
     minu = int(minu)
     secs = int(math.floor(r * 60))
     return datetime(y, m, d, hour, minu, secs)
-        
-if len(sys.argv) < 2:
-    print(sys.argv)
-    print('give 2019-10-27T07:26:47Z format date-time.')
+
+if __name__ == '__main__':
+    dtnow = datetime.now()
+    print(dtnow, datetime2mjd(dtnow))
     exit()
-
-dtstr = ''
-caltomjd = True
-if sys.argv[1].startswith('-') :
-    if sys.argv[1] == '-cal' :
-        caltomjd = False
-    dtstr = sys.argv[2]
-else:
-    dtstr = sys.argv[1]
-
-if caltomjd :
-    dt = datetime.strptime(dtstr, '%Y-%m-%dT%H:%M:%S%z')
-    print(datetime2mjd(dt))
-else:
-    mjd = float(dtstr)
-    print(mjd2datetime(mjd))
+    
+    if len(sys.argv) < 2:
+        print(sys.argv)
+        print('give 2019-10-27T07:26:47Z format date-time.')
+        exit()
+    
+    dtstr = ''
+    caltomjd = True
+    if sys.argv[1].startswith('-') :
+        if sys.argv[1] == '-cal' :
+            caltomjd = False
+        dtstr = sys.argv[2]
+    else:
+        dtstr = sys.argv[1]
+    
+    if caltomjd :
+        dt = datetime.strptime(dtstr, '%Y-%m-%dT%H:%M:%S%z')
+        print(datetime2mjd(dt))
+    else:
+        mjd = float(dtstr)
+        print(mjd2datetime(mjd))

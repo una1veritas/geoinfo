@@ -19,13 +19,34 @@ private:
 	static constexpr double MIN_LAT = -90.0;
 	static constexpr double MAX_LONG = 180.0;
 	static constexpr double MIN_LONG = -180.0;
-	static constexpr char char_map[] = "0123456789bcdefghjkmnpqrstuvwxyz";
+	static constexpr char * char_map = (char *) "0123456789bcdefghjkmnpqrstuvwxyz";
 	static constexpr int bz_map[] = {
 			10, 11, 12, 13, 14, 15, 16, -1,
 			17, 18, -1,
 			19, 20, -1,
 			21, 22, 23, 24, 25, 26, 27, 28, 29, 30, 31,
 	};
+
+	/*
+	 *  The follow character maps were created by Dave Troy and used in his Javascript Geohashing
+	 *  library. http://github.com/davetroy/geohash-js
+	 */
+	static constexpr char *even_neighbors[] = {
+			(char *) "p0r21436x8zb9dcf5h7kjnmqesgutwvy",
+			(char *) "bc01fg45238967deuvhjyznpkmstqrwx",
+			(char *) "14365h7k9dcfesgujnmqp0r2twvyx8zb",
+			(char *) "238967debc01fg45kmstqrwxuvhjyznp"
+	};
+
+	static constexpr char *odd_neighbors[] = {
+			(char *) "bc01fg45238967deuvhjyznpkmstqrwx",
+			(char *) "p0r21436x8zb9dcf5h7kjnmqesgutwvy",
+			(char *) "238967debc01fg45kmstqrwxuvhjyznp",
+			(char *) "14365h7k9dcfesgujnmqp0r2twvyx8zb"
+	};
+
+	static constexpr char *even_borders[] = {(char *) "prxz", (char *) "bcfguvyz", (char *) "028b", (char *) "0145hjnp"};
+	static constexpr char *odd_borders[] = {(char *) "bcfguvyz", (char *) "prxz", (char *) "0145hjnp", (char *) "028b"};
 
 	static int char_revmap(const char c) {
 		int result = -1;
@@ -38,6 +59,14 @@ private:
 		if (result < 0)
 			return -1;
 		return result;
+	}
+
+	static int index(const char c, const string & str) {
+	    for(unsigned int i = 0; i < str.length(); i++) {
+	        if (c == str[i])
+	        	return i;
+	    }
+	    return -1;
 	}
 
 public:
@@ -152,6 +181,72 @@ public:
 		return box;
 	}
 
+	enum {
+		NORTH 		= 0,
+		NORTHEAST 	= 1,
+		EAST  		= 2,
+		SOUTHEAST 	= 3,
+		SOUTH 		= 4,
+		SOUTHWEST 	= 5,
+		WEST  		= 6,
+		NORTHWEST 	= 7,
+		DIRECTION_END = 8,
+	};
+
+	static string neighbor(const string & hash, const int direction) {
+		coordbox box = decode(hash);
+		int len = hash.length();
+		double lat = box.n - (box.n - box.s)/2.0;
+		double lon = box.e - (box.e - box.w)/2.0;
+		switch(direction) {
+			case NORTH:
+				lat += (box.n - box.s);
+				break;
+			case NORTHEAST:
+				lat += (box.n - box.s);
+				lon += (box.e - box.w);
+				break;
+			case EAST:
+				lon += (box.e - box.w);
+				break;
+			case SOUTHEAST:
+				lat -= (box.n - box.s);
+				lon += (box.e - box.w);
+				break;
+			case SOUTH:
+				lat -= (box.n - box.s);
+				break;
+			case SOUTHWEST:
+				lat -= (box.n - box.s);
+				lon -= (box.e - box.w);
+				break;
+			case WEST:
+				lon -= (box.e - box.w);
+				break;
+			case NORTHWEST:
+				lat += (box.n - box.s);
+				lon -= (box.e - box.w);
+				break;
+		}
+		return encode(lat, lon, len);
+	}
+
+	static string get_neighbor(const string & hash, int direction) {
+		char last_char = hash[hash.length() - 1];
+
+	    int is_odd = hash.length() % 2;
+	    char * const *border = is_odd ? odd_borders : even_borders;
+	    char * const *neighbor = is_odd ? odd_neighbors : even_neighbors;
+
+	    string base(hash, hash.length() - 1);
+
+		if(index(last_char, border[direction]) != -1)
+			base = get_neighbor(base, direction);
+
+	    int neighbor_index = index(last_char, neighbor[direction]);
+	    last_char = char_map[neighbor_index];
+		return base + last_char;
+	}
 };
 
 #endif /* GEOHASH_H_ */

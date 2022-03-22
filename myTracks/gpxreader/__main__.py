@@ -12,8 +12,13 @@ def datetime2mjd(dt:datetime):
     if m <= 2 :
         y -= 1
         m = 12
-    d = dt.day + (3600*dt.hour + 60*dt.minute/60 + dt.second)/86400
-    return int(365.25*y) + int(y/400) - int(y/100) + int(30.59*(m-2)) + d - 678912
+    d = dt.day
+    sec = 3600*dt.hour + 60*dt.minute + dt.second
+    if sec >= 86400 :
+        d += int(sec/86400)
+        sec = sec % 86400
+    mjd = int(365.25*y) + int(y/400) - int(y/100) + int(30.59*(m-2)) + d - 678912
+    return (mjd, sec)
 
 if len(sys.argv) < 2 :
     print('input (and optionally output) file names are needed.')
@@ -46,7 +51,7 @@ else :
                 if outfilename.split('.')[-1] != 'csv' :
                     outfilename += '.csv'
                 with open(outfilename, 'w') as outfile:
-                    pass    
+                    pass
     if not len(xmltext) :
         print('opening file '+sys.argv[1]+' failed.')
         exit()
@@ -81,10 +86,11 @@ for trk in gpxroot.iter(gpxroot_namespace+'trk'):
                 else:
                     #JST?
                     tstr = t.text[:-1] + '+09:00'
-                dt = datetime.strptime(tstr, '%Y-%m-%dT%H:%M:%S%z')
+                dt = datetime.strptime(tstr, '%Y-%m-%dT%H:%M:%S.%f%z')
                 dtstr = str(dt)
                 if mjdtime :
-                    dtstr = '{:.6f}'.format(datetime2mjd(dt))
+                    mjd = datetime2mjd(dt)
+                    dtstr = '{0},{1}'.format(mjd[0],mjd[1])
                 if elevinfo :
                     elev = trkpt.find(gpxroot_namespace+'ele').text
                 if mytracksgpx : #'{http://mytracks.stichling.info/myTracksGPX/1/0}

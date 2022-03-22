@@ -28,6 +28,22 @@ vector<string> split(string& input, char delimiter) {
     return result;
 }
 
+struct geopoint {
+	double lat, lon;
+
+	geopoint(const double & lattitude, const double & longitude) :lat(lattitude), lon(longitude) { }
+	geopoint(const string & latstr, const string & lonstr) {
+		lat = strtod(latstr.c_str(), NULL);
+		lon = strtod(lonstr.c_str(), NULL);
+	}
+
+	friend ostream & operator<<(ostream & out, const geopoint & p) {
+		out << " (" << fixed << setprecision(7) << p.lat << ","
+				<< setprecision(7) << p.lon << ") ";
+		return out;
+	}
+};
+
 struct node_edge {
 	unsigned long id;
 	double lat, lon;
@@ -37,7 +53,7 @@ struct node_edge {
 	static constexpr int prec = 8;
 
 	node_edge(void) : id(0), lat(0), lon(0), hash(""), adjacents({0}) { }
-//	node_edge(const char * key) : id(0), lat(0), lon(0), hash(key), adjacents({0}) { }
+	node_edge(const string key) : id(0), lat(0), lon(0), hash(key), adjacents({0}) { }
 
 	node_edge(const vector<string> & strvec) {
 		id = strtol(strvec[0].c_str(), NULL, 10);
@@ -60,9 +76,12 @@ struct node_edge {
 		out << ne.adjacents[ne.adjacents.size() -1] << "} ";
 		return out;
 	}
-
-
 };
+
+int stringcomp(const string & a, const string & b) {
+	int l = min(a.length(),b.length());
+	return a.substr(0,l) < b.substr(0,l);
+}
 
 int main(const int argc, const char * argv[]) {
 	ifstream csvf;
@@ -88,31 +107,52 @@ int main(const int argc, const char * argv[]) {
         node_edge a_node(strvec);
         ggraph.push_back(a_node);
     }
-
+    csvf.close();
     sort(ggraph.begin(), ggraph.end(),
     		[](const node_edge & a, const node_edge & b) { return a.hash < b.hash; }
     		);
-    unsigned degree = 0;
-    unsigned ix = 0;
-    cout << ggraph.size() << " nodes." << endl;
-    for(unsigned int i = 0; i < ggraph.size(); ++i) {
-    	if (i < min((unsigned) 8, (const unsigned) ggraph.size()) ) {
-    		cout << ggraph[i] << endl;
-    	}
-    	if (degree < ggraph[i].adjacents.size()) {
-    		degree = ggraph[i].adjacents.size();
-    		ix = i;
-    	}
-    }
-    cout << "max. degree is " << degree << " at " << ggraph[ix].hash << endl;
 
-    node_edge key;
-    key.hash = "wvuwzv9";
-    vector<node_edge>::iterator lb = lower_bound(ggraph.begin(), ggraph.end(),
-    		key,
-    		[](const node_edge & a, const node_edge &b){ return a.hash < b.hash; });
-    for(auto it = lb; it != ggraph.end() && ((it->hash).substr(0, key.hash.length()) == key.hash); ++it) {
-  		cout << *it << endl;
+	csvf.open(argv[2]);
+	if (! csvf ) {
+		cerr << "open " << argv[2] << " failed." << endl;
+		exit(EXIT_FAILURE);
+	}
+	vector<geopoint> mytrack;
+    while (getline(csvf, line)) {
+        vector<string> strvec = split(line, ',');
+        if (strvec.size() < 2) {
+        	cerr << "insufficient parameters for a point in my tracking." << endl;
+        	continue;
+        }
+        mytrack.push_back(geopoint(strvec[2], strvec[3]));
+    }
+    csvf.close();
+
+    for(unsigned int i = 0; i < mytrack.size(); ++i) {
+    	string hash = geohash::encode(mytrack[i].lat, mytrack[i].lon,8);
+    	cout << mytrack[i] << ", " << hash << endl;
+
+		node_edge key(hash);
+		vector<node_edge>::iterator lb = lower_bound(ggraph.begin(), ggraph.end(),
+				key,
+				[](const node_edge & a, const node_edge &b){ return stringcomp(a.hash,b.hash); } );
+		vector<node_edge>::iterator ub = upper_bound(ggraph.begin(), ggraph.end(),
+				key,
+				[](const node_edge & a, const node_edge &b){ return stringcomp(a.hash,b.hash); } );
+		unsigned int countp = ub - lb;
+		cout << countp << " points." << endl;
+		if (countp == 0) {
+			//key.hash = hash.substr(0,hash.length() - 1);
+			for(int i = geohash::NORTH; i <= geohash::NORTHWEST; ++i) {
+				key.hash = geohash::neighbor(hash, i);
+				lb = lower_bound(ggraph.begin(), ggraph.end(), key,
+						[](const node_edge & a, const node_edge &b){ return stringcomp(a.hash,b.hash); } );
+				ub = upper_bound(ggraph.begin(), ggraph.end(), key,
+						[](const node_edge & a, const node_edge &b){ return stringcomp(a.hash,b.hash); } );
+				cout << key.hash << " " << (ub - lb) << ", ";
+			}
+			cout << endl;
+		}
     }
 
     return EXIT_SUCCESS;
