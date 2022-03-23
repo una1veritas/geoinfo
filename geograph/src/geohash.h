@@ -3,6 +3,8 @@
  *
  *  Created on: 2022/03/21
  *      Author: Sin Shimozono
+ *
+ *   c++14 or later
  */
 
 #ifndef GEOHASH_H_
@@ -69,7 +71,6 @@ private:
 	    return -1;
 	}
 
-public:
 
 	struct interval {
 		double high, low;
@@ -78,6 +79,8 @@ public:
 				high(hi), low(lo) {
 		}
 	};
+
+public:
 
 	struct coordbox {
 	    double n;
