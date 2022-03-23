@@ -12,6 +12,7 @@
 
 #include <iostream>
 #include <string>
+#include <vector>
 
 using namespace std;
 
@@ -196,45 +197,22 @@ public:
 		DIRECTION_END = 8,
 	};
 
-	static string neighbor(const string & hash, const int direction) {
+	static vector<string> neighbors(const string & hash, const int magnitude) {
 		coordbox box = decode(hash);
 		int len = hash.length();
-		double lat = box.n - (box.n - box.s)/2.0;
-		double lon = box.e - (box.e - box.w)/2.0;
-		switch(direction) {
-			case NORTH:
-				lat += (box.n - box.s);
-				break;
-			case NORTHEAST:
-				lat += (box.n - box.s);
-				lon += (box.e - box.w);
-				break;
-			case EAST:
-				lon += (box.e - box.w);
-				break;
-			case SOUTHEAST:
-				lat -= (box.n - box.s);
-				lon += (box.e - box.w);
-				break;
-			case SOUTH:
-				lat -= (box.n - box.s);
-				break;
-			case SOUTHWEST:
-				lat -= (box.n - box.s);
-				lon -= (box.e - box.w);
-				break;
-			case WEST:
-				lon -= (box.e - box.w);
-				break;
-			case NORTHWEST:
-				lat += (box.n - box.s);
-				lon -= (box.e - box.w);
-				break;
+		double lonwidth = box.e - box.w;
+		double latheight = box.n - box.s;
+		double latcent = box.n - latheight/2.0;
+		double loncent = box.e - lonwidth/2.0;
+		for(int m = 1; m <= magnitude; ++m) {
+			for(int i = 0; i < (m+1)*4; ++i) {
+
+			}
 		}
 		return encode(lat, lon, len);
 	}
 
-	static string get_neighbor(const string & hash, int direction) {
+	static string get_neighbors(const string & hash, int direction) {
 		char last_char = hash[hash.length() - 1];
 
 	    int is_odd = hash.length() % 2;
