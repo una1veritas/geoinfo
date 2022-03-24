@@ -143,13 +143,13 @@ int main(const int argc, const char * argv[]) {
 		cout << countp << " points." << endl;
 		if (countp == 0) {
 			//key.hash = hash.substr(0,hash.length() - 1);
-			for(int i = geohash::NORTH; i <= geohash::NORTHWEST; ++i) {
-				key.hash = geohash::neighbor(hash, i);
-				lb = lower_bound(ggraph.begin(), ggraph.end(), key,
-						[](const node_edge & a, const node_edge &b){ return stringcomp(a.hash,b.hash); } );
-				ub = upper_bound(ggraph.begin(), ggraph.end(), key,
-						[](const node_edge & a, const node_edge &b){ return stringcomp(a.hash,b.hash); } );
-				cout << key.hash << " " << (ub - lb) << ", ";
+			for(int i = 1; i < 5; ++i) {
+				vector<string> vec = geohash::neighbors(hash, i);
+//				lb = lower_bound(ggraph.begin(), ggraph.end(), key,
+//						[](const node_edge & a, const node_edge &b){ return stringcomp(a.hash,b.hash); } );
+//				ub = upper_bound(ggraph.begin(), ggraph.end(), key,
+//						[](const node_edge & a, const node_edge &b){ return stringcomp(a.hash,b.hash); } );
+//				cout << key.hash << " " << (ub - lb) << ", ";
 			}
 			cout << endl;
 		}

@@ -72,7 +72,6 @@ private:
 	    return -1;
 	}
 
-
 	struct interval {
 		double high, low;
 
@@ -114,7 +113,7 @@ public:
 			precision *= 5.0;
 
 			interval lat_interval(MAX_LAT, MIN_LAT);
-			interval lng_interval(geohash::MAX_LONG, MIN_LONG);
+			interval lng_interval(MAX_LONG, MIN_LONG);
 
 			interval *intv;
 			double coord, mid;
@@ -197,22 +196,24 @@ public:
 		DIRECTION_END = 8,
 	};
 
-	static vector<string> neighbors(const string & hash, const int magnitude) {
+	static vector<string> neighbors(const string & hash, const int radius) {
 		coordbox box = decode(hash);
 		int len = hash.length();
 		double lonwidth = box.e - box.w;
 		double latheight = box.n - box.s;
 		double latcent = box.n - latheight/2.0;
 		double loncent = box.e - lonwidth/2.0;
-		for(int m = 1; m <= magnitude; ++m) {
-			for(int i = 0; i < (m+1)*4; ++i) {
-
-			}
+		int side_length = 2*radius + 1;
+		int inner_length = 2*(radius - 1) + 1;
+		for(int i = inner_length*inner_length; i < side_length*side_length; ++i) {
+			// mv: 0 -- right, 1 -- down, 2 -- left, 3 -- up
+			cout << i << " mv " << ((i-inner_length*inner_length+(side_length/2))/(side_length-1))%4 << ", ";
 		}
-		return encode(lat, lon, len);
+		cout << endl;
+		return vector<string>({"test"});
 	}
 
-	static string get_neighbors(const string & hash, int direction) {
+	static string get_neighbor(const string & hash, int direction) {
 		char last_char = hash[hash.length() - 1];
 
 	    int is_odd = hash.length() % 2;
