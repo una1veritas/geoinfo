@@ -60,11 +60,11 @@ def showgeograph(gg, bbox=None):
             bbox[3] = max(bbox[3], lon)
     dlat = bbox[0] - bbox[2]
     dlon = bbox[3] - bbox[1]
-    dangle = min(dlat/2, dlon/2)
+    dangle = max(dlat, dlon)
     h = geodist((bbox[0], bbox[1]), (bbox[0], bbox[1]+dangle) )
     v = geodist((bbox[0], bbox[1]), (bbox[0]+dangle, bbox[1]))
     print(bbox, dangle, h,v,h/v)
-    r = h/v
+    r = 1.15 #h/v
     scale = 1024
     while int(dlon*scale) < 4096 :
         scale *= 2

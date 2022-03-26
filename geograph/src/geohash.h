@@ -16,8 +16,7 @@
 
 using namespace std;
 
-struct geohash {
-private:
+namespace geohash {
 	static constexpr double MAX_LAT = 90.0;
 	static constexpr double MIN_LAT = -90.0;
 	static constexpr double MAX_LONG = 180.0;
@@ -80,7 +79,6 @@ private:
 		}
 	};
 
-public:
 
 	struct coordbox {
 	    double n;
@@ -102,6 +100,19 @@ public:
 	    	return out;
 	    }
 	};
+
+	static string bincode(const string & hash) {
+		string binary;
+		for(unsigned int pos = 0; pos < hash.length(); ++pos) {
+			int val = char_revmap(hash[pos]);
+			if (val < 0) break;
+			for(unsigned int i = 0; i < 5; ++i) {
+				binary += (val & 0x10) ? "1" : "0";
+				val <<= 1;
+			}
+		}
+		return binary;
+	}
 
 	static string encode(const double & lat, const double & lng, int precision = 8) {
 		static char hash[12];
@@ -196,39 +207,68 @@ public:
 		DIRECTION_END = 8,
 	};
 
-	static vector<string> neighbors(const string & hash, const int radius) {
-		coordbox box = decode(hash);
-		int len = hash.length();
-		double lonwidth = box.e - box.w;
-		double latheight = box.n - box.s;
-		double latcent = box.n - latheight/2.0;
-		double loncent = box.e - lonwidth/2.0;
-		int side_length = 2*radius + 1;
-		int inner_length = 2*(radius - 1) + 1;
-		for(int i = inner_length*inner_length; i < side_length*side_length; ++i) {
-			// mv: 0 -- right, 1 -- down, 2 -- left, 3 -- up
-			cout << i << " mv " << ((i-inner_length*inner_length+(side_length/2))/(side_length-1))%4 << ", ";
+	static vector<string> neighbors(const string & hash, const int zone) {
+		vector<string> codes;
+		if (zone < 1) {
+			codes.push_back(hash);
+			return codes;
 		}
-		cout << endl;
-		return vector<string>({"test"});
+		coordbox box = decode(hash);
+		int prec = hash.length();
+		double width = box.e - box.w;
+		double height = box.n - box.s;
+		double lat = box.n - height/2.0;
+		double lon = box.e - width/2.0;
+		//cout << "center: " << lat << ", " << lon << "; ";
+		int side = 2*zone + 1;
+		int inner = 2*(zone - 1) + 1;
+		// starts from upper left
+		double gplat = lat + zone*height, gplon = lon - zone*width;
+		int mvdir;
+		for(int i = inner*inner; i < side*side; ++i) {
+			codes.push_back(encode(gplat, gplon, prec));
+			mvdir = ((i-inner*inner)/(side-1)) % 4 ;
+			//cout << i << " " << mvdir << ": " << gplat << ", " << gplon << "; ";
+			switch(mvdir) {
+			case 0: // r
+				gplon += width;
+				break;
+			case 1: // d
+				gplat -= height;
+				break;
+			case 2: // l
+				gplon -= width;
+				break;
+			case 3: // u
+				gplat += height;
+			}
+			if (gplon >= 180.0) {
+				gplon = -(gplon -360.0);
+			}
+			if ( gplon < -180.0) {
+				gplon += 360.0;
+			}
+		}
+		//cout << endl;
+		return codes;
 	}
 
-	static string get_neighbor(const string & hash, int direction) {
-		char last_char = hash[hash.length() - 1];
-
-	    int is_odd = hash.length() % 2;
-	    char * const *border = is_odd ? odd_borders : even_borders;
-	    char * const *neighbor = is_odd ? odd_neighbors : even_neighbors;
-
-	    string base(hash, hash.length() - 1);
-
-		if(index(last_char, border[direction]) != -1)
-			base = get_neighbor(base, direction);
-
-	    int neighbor_index = index(last_char, neighbor[direction]);
-	    last_char = char_map[neighbor_index];
-		return base + last_char;
-	}
+//	static string get_neighbor(const string & hash, int direction) {
+//		char last_char = hash[hash.length() - 1];
+//
+//	    int is_odd = hash.length() % 2;
+//	    char * const *border = is_odd ? odd_borders : even_borders;
+//	    char * const *neighbor = is_odd ? odd_neighbors : even_neighbors;
+//
+//	    string base(hash, hash.length() - 1);
+//
+//		if(index(last_char, border[direction]) != -1)
+//			base = get_neighbor(base, direction);
+//
+//	    int neighbor_index = index(last_char, neighbor[direction]);
+//	    last_char = char_map[neighbor_index];
+//		return base + last_char;
+//	}
 };
 
 #endif /* GEOHASH_H_ */
