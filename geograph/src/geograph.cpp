@@ -13,6 +13,8 @@
 #include <iomanip>
 #include <algorithm>
 
+#include <stdexcept>
+
 using namespace std;
 
 #include "geonumber.h"
@@ -57,10 +59,15 @@ struct node_edge {
 	node_edge(const geonumber & key) : id(0), lat(0), lon(0), hash(key), adjacents({0}) { }
 
 	node_edge(const vector<string> & strvec) {
-		id = std::stoul(strvec[0]);
-		//cout << strvec[0].c_str() << " " << id << endl;
-		lat = strtod(strvec[1].c_str(), NULL);
-		lon = strtod(strvec[2].c_str(), NULL);
+		try {
+		id = (unsigned long)stod(strvec[0]);
+		lat = stod(strvec[1]);
+		lon = stod(strvec[2]);
+		cout << strvec[0] << ": " << hex << id << ", " << lat << ", " << lon << endl;
+		} catch (out_of_range & ex) {
+			cout << ex.what() << ", " << dec << id << endl;
+			cout.flush();
+		}
 		hash = geonumber(lat, lon, prec);
 		for(unsigned i = 3; i < strvec.size(); ++i) {
 			adjacents.push_back(strtol(strvec[i].c_str(), NULL, 10));
