@@ -9,12 +9,9 @@
 #include <iostream>
 #include <fstream>
 #include <string>
-#include <sstream>
 #include <vector>
 #include <iomanip>
 #include <algorithm>
-//#include <bitset>
-
 
 using namespace std;
 
@@ -59,9 +56,9 @@ struct node_edge {
 	node_edge(void) : id(0), lat(0), lon(0), hash(0), adjacents({0}) { }
 	node_edge(const geonumber & key) : id(0), lat(0), lon(0), hash(key), adjacents({0}) { }
 
-	node_edge(const string & strvec) {
-		id = stoul(strvec[0]);
-		cout << strvec[0].c_str() << " " << id << endl;
+	node_edge(const vector<string> & strvec) {
+		id = std::stoul(strvec[0]);
+		//cout << strvec[0].c_str() << " " << id << endl;
 		lat = strtod(strvec[1].c_str(), NULL);
 		lon = strtod(strvec[2].c_str(), NULL);
 		hash = geonumber(lat, lon, prec);
@@ -76,7 +73,7 @@ struct node_edge {
 				<< setprecision(7) << ne.lon << "), ";
 		out << "{";
 		for(unsigned int i = 0; i+1 < ne.adjacents.size(); ++i) {
-			out << ne.adjacents[i] << ", ";
+			out << dec << ne.adjacents[i] << ", ";
 		}
 		out << ne.adjacents[ne.adjacents.size() -1] << "} ";
 		return out;
@@ -89,18 +86,18 @@ int stringcomp(const string & a, const string & b) {
 	return a.substr(0,l) < b.substr(0,l);
 }
 */
-/*
-pair<int,int> geocodeindex(vector<node_edge> & gg, const string & gcode) {
-	node_edge key(gcode);
+
+pair<int,int> geocodeindex(vector<node_edge> & gg, const geonumber & gnumber) {
+	node_edge key(gnumber);
 	vector<node_edge>::iterator lb = lower_bound(gg.begin(), gg.end(),
 			key,
-			[](const node_edge & a, const node_edge &b){ return stringcomp(a.hash,b.hash); } );
+			[](const node_edge & a, const node_edge &b){ return a.hash < b.hash; } );
 	vector<node_edge>::iterator ub = upper_bound(lb, gg.end(),
 			key,
-			[](const node_edge & a, const node_edge &b){ return stringcomp(a.hash,b.hash); } );
+			[](const node_edge & a, const node_edge &b){ return a.hash < b.hash; } );
 	return pair<int,int>(lb - gg.begin(),ub - gg.begin());
 }
-*/
+
 
 int main(const int argc, const char * argv[]) {
 	ifstream csvf;
@@ -123,27 +120,23 @@ int main(const int argc, const char * argv[]) {
         	cerr << "insufficient parameters for a node_edge." << endl;
         	continue;
         }
-        cout << strvec[0] << " " << strvec[1] << " " << strvec[2] << " ";
-        //for(auto i = strvec.begin(); i != strvec.end(); ++i) {
-        //	cout << *i << ", ";
-        //}
-        //cout << endl;
         node_edge a_node(strvec);
         ggraph.push_back(a_node);
     }
     csvf.close();
+
     sort(ggraph.begin(), ggraph.end(),
     		[](const node_edge & a, const node_edge & b) { return a.hash < b.hash; }
     		);
 
-    int count = 0;
-    for(auto i = ggraph.begin(); i != ggraph.end(); ++i) {
-    	cout << *i << endl;
-    	count += 1;
-    	if (count > 100)
-    		break;
-    }
-    cout << endl;
+//    int count = 0;
+//    for(auto i = ggraph.begin(); i != ggraph.end(); ++i) {
+//    	cout << *i << endl;
+//    	count += 1;
+//    	if (count > 100)
+//    		break;
+//    }
+//    cout << endl;
 
 	csvf.open(argv[2]);
 	if (! csvf ) {
@@ -165,32 +158,34 @@ int main(const int argc, const char * argv[]) {
     	geonumber hash = geonumber(mytrack[i].lat, mytrack[i].lon,20);
     	unsigned int countgp;
     	pair<int,int> range;
-    	//unsigned int z;
-    	//for(z = 0; z < 5; ++z) {
-			//vector<string> vec = geohash::neighbors(hash, z);
+    	unsigned int z;
+    	cout << mytrack[i] << " " << hash << " ";
+    	for(z = 0; z < 5; ++z) {
+			vector<geonumber> vec = hash.neighbors(z);
 			countgp = 0;
-			//for(auto i = vec.begin(); i != vec.end(); ++i) {
-				cout << mytrack[i] << ": " << hash;// << endl;
-//		    	node_edge key(*i);
+			for(auto i = vec.begin(); i != vec.end(); ++i) {
+				node_edge key(*i);
 //		    	vector<node_edge>::iterator lb = lower_bound(ggraph.begin(), ggraph.end(),
 //						key,
-//						[](const node_edge & a, const node_edge &b){ return stringcomp(a.hash,b.hash); } );
+//						[](const node_edge & a, const node_edge &b){ return a.hash < b.hash; } );
 //				vector<node_edge>::iterator ub = upper_bound(ggraph.begin(), ggraph.end(),
 //						key,
-//						[](const node_edge & a, const node_edge &b){ return stringcomp(a.hash,b.hash); } );
+//						[](const node_edge & a, const node_edge &b){ return a.hash < b.hash; } );
 //				countgp += ub - lb;
-				//range = geocodeindex(ggraph, *i);
-				//countgp += range.second - range.first;
-				//cout << "[" << range.first << ", " << range.second << "], ";
-			//}
-				geonumber::coordbox box = hash.decode();
-			cout << box << " " << box.covers(mytrack[i].lat, mytrack[i].lon) << endl;
+				range = geocodeindex(ggraph, *i);
+				countgp += range.second - range.first;
+				cout << "[" << range.first << ", " << range.second << "], ";
+			}
+			//cout << endl;
+			//geonumber::coordbox box = hash.decode();
+			//cout << box << " " << box.covers(mytrack[i].lat, mytrack[i].lon) << endl;
 			if (countgp > 0)
 				break;
-    	//}
+    	}
     	//if (countgp < 1 or z > 2 or countgp > 99) {
     	//	cout << mytrack[i] << ", " << hash << ": " << countgp << " points within " << z << endl;
     	//}
+    	cout << countgp << endl;
     }
 
     /*

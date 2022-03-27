@@ -67,6 +67,7 @@ struct geonumber {
 	friend ostream & operator<<(ostream & out, const geonumber & num) {
 		int d = (num.precision()) / 8 + (num.precision() % 8 ? 1 : 0);
 		out << hex << setw(d*2) << setfill('0') << (num.number>>(64 - 2*num.precision()));
+		out << "(" << dec << num.precision() << ")";
 		return out;
 	}
 
@@ -178,15 +179,14 @@ struct geonumber {
 		DIRECTION_END = 8,
 	};
 
-	/*
-	static vector<string> neighbors(const string & hash, const int zone) {
-		vector<string> codes;
+	vector<geonumber> neighbors(const int zone) const {
+		vector<geonumber> neighbors;
 		if (zone < 1) {
-			codes.push_back(hash);
-			return codes;
+			neighbors.push_back(*this);
+			return neighbors;
 		}
-		coordbox box = decode(hash);
-		int prec = hash.length();
+		coordbox box = decode();
+		int prec = precision();
 		double width = box.e - box.w;
 		double height = box.n - box.s;
 		double lat = box.n - height/2.0;
@@ -198,7 +198,7 @@ struct geonumber {
 		double gplat = lat + zone*height, gplon = lon - zone*width;
 		int mvdir;
 		for(int i = inner*inner; i < side*side; ++i) {
-			codes.push_back(encode(gplat, gplon, prec));
+			neighbors.push_back(geonumber(gplat, gplon, prec));
 			mvdir = ((i-inner*inner)/(side-1)) % 4 ;
 			//cout << i << " " << mvdir << ": " << gplat << ", " << gplon << "; ";
 			switch(mvdir) {
@@ -222,9 +222,8 @@ struct geonumber {
 			}
 		}
 		//cout << endl;
-		return codes;
+		return neighbors;
 	}
-	*/
 
 //	static string get_neighbor(const string & hash, int direction) {
 //		char last_char = hash[hash.length() - 1];
