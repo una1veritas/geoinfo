@@ -1,5 +1,5 @@
 /*
- * geonumber.h
+ * geoid.h
  *
  *  Created on: 2022/03/21
  *      Author: Sin Shimozono
@@ -7,8 +7,8 @@
  *   c++14 or later
  */
 
-#ifndef GEONUMBER_H_
-#define GEONUMBER_H_
+#ifndef GEOID_H_
+#define GEOID_H_
 
 #include <iostream>
 #include <sstream>
@@ -19,16 +19,29 @@
 
 using namespace std;
 
-struct geonumber {
-	uint64_t number;
+struct geoid {
+	uint64_t id;
 
-	geonumber(void) : number(0) {}
-	geonumber(uint64_t num) : number(num) {}
-	geonumber(const geonumber & num) : number(num.number) {}
+	geoid(void) : id(0) {}
+
+	geoid(const uint64_t & num) {
+		unsigned int prec = num & 0xff;
+		prec = (prec < 28 ? prec : 28);
+		id = (num & (0xffffffffffffffff << (64 - prec*2))) | prec;
+	}
+
+	geoid(const uint64_t & num, unsigned int prec) {
+		prec = (prec < 28 ? prec : 28);
+		id = (num & (0xffffffffffffffff << (64 - prec*2))) | (prec & 0xff);
+	}
+
+	geoid(const geoid & num) : id(num.id) {}
 
 	// encode
-	geonumber(const double &lat, const double &lon,	const unsigned int &precision = 20) {
-		number = 0;
+	geoid(const double &lat, const double &lon,	const unsigned int & precision = 20) {
+		id = 0;
+		unsigned int prec = precision;
+		prec = (prec < 28 ? prec : 28);
 		if (lat <= 90.0 && lat >= -90.0 && lon <= 180.0 && lon >= -180.0) {
 			coordbox interval(MAX_LAT, MIN_LAT, MAX_LONG, MIN_LONG);
 
@@ -39,42 +52,52 @@ struct geonumber {
 				lonmid = (interval.w + interval.e) / 2.0;
 				if (lat > latmid) {
 					interval.s = latmid;
-					number |= bit;
+					id |= bit;
 				} else {
 					interval.n = latmid;
 				}
-				bit >>= 1; //number <<= 1;
+				bit >>= 1;
 				if (lon > lonmid) {
 					interval.w = lonmid;
-					number |= bit;
+					id |= bit;
 				} else {
 					interval.e = lonmid;
 				}
-				bit >>= 1; //number <<= 1;
+				bit >>= 1;
 			}
 		}
-		number |= uint64_t(precision & 0xff);
+		id |= uint64_t(prec);
 	}
 
 	inline unsigned int precision(void) const {
-		return number & 0xff;
+		return id & 0xff;
+	}
+
+	unsigned int set_precision(unsigned int prec) {
+		prec = (prec < 28 ? prec : 28);
+		id &= 0xffffffffffffffff << (64 - prec*2);
+		id |= prec;
+		return prec;
 	}
 
 	operator uint64_t() const {
-		return number;
+		return id;
 	}
 
-	friend ostream & operator<<(ostream & out, const geonumber & num) {
+	friend ostream & operator<<(ostream & out, const geoid & num) {
 		int d = (num.precision()) / 8 + (num.precision() % 8 ? 1 : 0);
-		out << hex << setw(d*2) << setfill('0') << (num.number>>(64 - 2*num.precision()));
-		out << "(" << dec << num.precision() << ")";
+		out << hex << setw(d*2) << setfill('0') << (num.id>>(64 - 2*num.precision()));
+		out << "." << hex << num.precision() ;
 		return out;
 	}
 
-	friend bool operator<(const geonumber & a, const geonumber & b) {
+	friend bool operator<(const geoid & a, const geoid & b) {
 		unsigned int prec = min(a.precision(), b.precision());
 		uint64_t mask = 0xffffffffffffffff << (64 - 2*prec);
-		return (a.number & mask) < (b.number & mask);
+		if ( (a.id & mask) == (b.id & mask) ) {
+			return a.precision() < b.precision();
+		}
+		return (a.id & mask) < (b.id & mask);
 	}
 
 	static constexpr double MAX_LAT = 90.0;
@@ -143,10 +166,10 @@ struct geonumber {
 
 	coordbox decode(void) const {
 		coordbox interval(MAX_LAT, MIN_LAT, MAX_LONG, MIN_LONG);
-		unsigned int precision = number & 0xff;
-		uint64_t location = number & 0xffffffffffffff00;
+		unsigned int precision = id & 0xff;
+		uint64_t location = id & 0xffffffffffffff00;
 
-		if (number > 0) {
+		if (id > 0) {
 			double delta;
 			uint64_t checkbit = uint64_t(1)<<63;
 			for (unsigned int i = 0; i < precision; i++) {
@@ -179,8 +202,8 @@ struct geonumber {
 		DIRECTION_END = 8,
 	};
 
-	vector<geonumber> neighbors(const int zone) const {
-		vector<geonumber> neighbors;
+	vector<geoid> neighbors(const int zone) const {
+		vector<geoid> neighbors;
 		if (zone < 1) {
 			neighbors.push_back(*this);
 			return neighbors;
@@ -198,7 +221,7 @@ struct geonumber {
 		double gplat = lat + zone*height, gplon = lon - zone*width;
 		int mvdir;
 		for(int i = inner*inner; i < side*side; ++i) {
-			neighbors.push_back(geonumber(gplat, gplon, prec));
+			neighbors.push_back(geoid(gplat, gplon, prec));
 			mvdir = ((i-inner*inner)/(side-1)) % 4 ;
 			//cout << i << " " << mvdir << ": " << gplat << ", " << gplon << "; ";
 			switch(mvdir) {
@@ -243,4 +266,4 @@ struct geonumber {
 //	}
 };
 
-#endif /* GEONUMBER_H_ */
+#endif /* GEOID_H_ */

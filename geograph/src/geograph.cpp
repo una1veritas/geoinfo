@@ -14,10 +14,11 @@
 #include <algorithm>
 
 #include <stdexcept>
+#include <cinttypes>
 
 using namespace std;
 
-#include "geonumber.h"
+#include "geoid.h"
 //#include <cmath>
 //#include "geodistance.h"
 
@@ -48,39 +49,28 @@ struct geopoint {
 };
 
 struct node_edge {
-	unsigned long id;
+	uint64_t id;
 	double lat, lon;
-	geonumber hash;
-	vector<unsigned long> adjacents;
+	geoid gid;
+	vector<uint64_t> adjacents;
 
 	static constexpr int prec = 20;
 
-	node_edge(void) : id(0), lat(0), lon(0), hash(0), adjacents({0}) { }
-	node_edge(const geonumber & key) : id(0), lat(0), lon(0), hash(key), adjacents({0}) { }
+	node_edge(void) : id(0), lat(0), lon(0), gid(0), adjacents({}) { }
+	node_edge(const geoid & gid) : id(0), lat(0), lon(0), gid(gid), adjacents({}) { }
 
-	node_edge(const vector<string> & strvec) {
-		try {
-		id = (unsigned long)stod(strvec[0]);
-		lat = stod(strvec[1]);
-		lon = stod(strvec[2]);
-		cout << strvec[0] << ": " << hex << id << ", " << lat << ", " << lon << endl;
-		} catch (out_of_range & ex) {
-			cout << ex.what() << ", " << dec << id << endl;
-			cout.flush();
-		}
-		hash = geonumber(lat, lon, prec);
-		for(unsigned i = 3; i < strvec.size(); ++i) {
-			adjacents.push_back(strtol(strvec[i].c_str(), NULL, 10));
-		}
+	node_edge(const uint64_t & id, const double & latitude, const double & longitude)
+	: id(id), lat(latitude), lon(longitude), adjacents({}) {
+		gid = geoid(lat, lon, prec);
 	}
 
 	friend ostream & operator<<(ostream & out, const node_edge & ne) {
-		out << dec << setw(10) << ne.id << " " << ne.hash << " "
+		out << dec << setw(10) << ne.id << " " << ne.gid << " "
 				<< " (" << fixed << setprecision(7) << ne.lat << ","
 				<< setprecision(7) << ne.lon << "), ";
-		out << "{";
+		out << "{" << dec;
 		for(unsigned int i = 0; i+1 < ne.adjacents.size(); ++i) {
-			out << dec << ne.adjacents[i] << ", ";
+			out << ne.adjacents[i] << ", ";
 		}
 		out << ne.adjacents[ne.adjacents.size() -1] << "} ";
 		return out;
@@ -94,15 +84,15 @@ int stringcomp(const string & a, const string & b) {
 }
 */
 
-pair<int,int> geocodeindex(vector<node_edge> & gg, const geonumber & gnumber) {
-	node_edge key(gnumber);
+std::pair<int,int> geoid_index(vector<node_edge> & gg, const geoid & id) {
+	node_edge key(id);
 	vector<node_edge>::iterator lb = lower_bound(gg.begin(), gg.end(),
 			key,
-			[](const node_edge & a, const node_edge &b){ return a.hash < b.hash; } );
+			[](const node_edge & a, const node_edge &b){ return a.gid < b.gid; } );
 	vector<node_edge>::iterator ub = upper_bound(lb, gg.end(),
 			key,
-			[](const node_edge & a, const node_edge &b){ return a.hash < b.hash; } );
-	return pair<int,int>(lb - gg.begin(),ub - gg.begin());
+			[](const node_edge & a, const node_edge &b){ return a.gid < b.gid; } );
+	return std::pair<int,int>(lb - gg.begin(),ub - gg.begin());
 }
 
 
@@ -127,23 +117,30 @@ int main(const int argc, const char * argv[]) {
         	cerr << "insufficient parameters for a node_edge." << endl;
         	continue;
         }
-        node_edge a_node(strvec);
+		uint64_t id = stoull(strvec[0]);
+		double lat = stod(strvec[1]);
+		double lon = stod(strvec[2]);
+        node_edge a_node(id,lat,lon);
+        for(unsigned int i = 3; i < strvec.size(); ++i)
+        	a_node.adjacents.push_back(stoull(strvec[i]));
         ggraph.push_back(a_node);
     }
     csvf.close();
 
     sort(ggraph.begin(), ggraph.end(),
-    		[](const node_edge & a, const node_edge & b) { return a.hash < b.hash; }
+    		[](const node_edge & a, const node_edge & b) { return a.gid < b.gid; }
     		);
 
-//    int count = 0;
-//    for(auto i = ggraph.begin(); i != ggraph.end(); ++i) {
-//    	cout << *i << endl;
-//    	count += 1;
-//    	if (count > 100)
-//    		break;
-//    }
-//    cout << endl;
+
+    int count = 0;
+    for(auto i = ggraph.begin(); i != ggraph.end(); ++i) {
+    	cout << *i << endl;
+    	count += 1;
+    	if (count > 100)
+    		break;
+    }
+    cout << endl;
+
 
 	csvf.open(argv[2]);
 	if (! csvf ) {
@@ -161,30 +158,24 @@ int main(const int argc, const char * argv[]) {
     }
     csvf.close();
 
+    /*
     for(unsigned int i = 0; i < mytrack.size(); ++i) {
-    	geonumber hash = geonumber(mytrack[i].lat, mytrack[i].lon,20);
+    	geoid gid = geoid(mytrack[i].lat, mytrack[i].lon,20);
     	unsigned int countgp;
     	pair<int,int> range;
     	unsigned int z;
-    	cout << mytrack[i] << " " << hash << " ";
+    	cout << mytrack[i] << " " << gid << " ";
     	for(z = 0; z < 5; ++z) {
-			vector<geonumber> vec = hash.neighbors(z);
+			vector<geoid> vec = gid.neighbors(z);
 			countgp = 0;
 			for(auto i = vec.begin(); i != vec.end(); ++i) {
 				node_edge key(*i);
-//		    	vector<node_edge>::iterator lb = lower_bound(ggraph.begin(), ggraph.end(),
-//						key,
-//						[](const node_edge & a, const node_edge &b){ return a.hash < b.hash; } );
-//				vector<node_edge>::iterator ub = upper_bound(ggraph.begin(), ggraph.end(),
-//						key,
-//						[](const node_edge & a, const node_edge &b){ return a.hash < b.hash; } );
-//				countgp += ub - lb;
-				range = geocodeindex(ggraph, *i);
+				range = geoid_index(ggraph, *i);
 				countgp += range.second - range.first;
 				cout << "[" << range.first << ", " << range.second << "], ";
 			}
 			//cout << endl;
-			//geonumber::coordbox box = hash.decode();
+			//geoid::coordbox box = hash.decode();
 			//cout << box << " " << box.covers(mytrack[i].lat, mytrack[i].lon) << endl;
 			if (countgp > 0)
 				break;
@@ -194,6 +185,7 @@ int main(const int argc, const char * argv[]) {
     	//}
     	cout << countgp << endl;
     }
+    */
 
     /*
     int oddbits[] = { 0x0, 0x2, 0x8, 0xa, };
@@ -228,6 +220,6 @@ int main(const int argc, const char * argv[]) {
     }
     cout << "e: " << bitset<32>{even} << " o: " << bitset<32>{odd} << endl;
     */
-
+    cout << sizeof(unsigned long) << ", " << sizeof(unsigned long long) << endl;
     return EXIT_SUCCESS;
 }
