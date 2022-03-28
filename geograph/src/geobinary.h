@@ -1,5 +1,5 @@
 /*
- * geoid.h
+ * geobinary.h
  *
  *  Created on: 2022/03/21
  *      Author: Sin Shimozono
@@ -7,8 +7,8 @@
  *   c++14 or later
  */
 
-#ifndef GEOID_H_
-#define GEOID_H_
+#ifndef GEOBINARY_H_
+#define GEOBINARY_H_
 
 #include <iostream>
 #include <sstream>
@@ -19,7 +19,7 @@
 
 using namespace std;
 
-struct geoid {
+struct geobinary {
 private:
 	uint64_t id;
 
@@ -29,23 +29,23 @@ private:
 	static constexpr double MIN_LONG = -180.0;
 
 public:
-	geoid(void) : id(0) {}
+	geobinary(void) : id(0) {}
 
-	geoid(const uint64_t & num) {
+	geobinary(const uint64_t & num) {
 		unsigned int prec = num & 0xff;
 		prec = (prec < 28 ? prec : 28);
 		id = (num & (0xffffffffffffffff << (64 - prec*2))) | prec;
 	}
 
-	geoid(const uint64_t & num, unsigned int prec) {
+	geobinary(const uint64_t & num, unsigned int prec) {
 		prec = (prec < 28 ? prec : 28);
 		id = (num & (0xffffffffffffffff << (64 - prec*2))) | (prec & 0xff);
 	}
 
-	geoid(const geoid & num) : id(num.id) {}
+	geobinary(const geobinary & gb) : id(gb.id) {}
 
 	// encode
-	geoid(const double &lat, const double &lon,	const unsigned int & precision = 20) {
+	geobinary(const double &lat, const double &lon,	const unsigned int & precision = 20) {
 		id = 0;
 		unsigned int prec = (precision < 28 ? precision : 28);
 		if (lat <= 90.0 && lat >= -90.0 && lon <= 180.0 && lon >= -180.0) {
@@ -80,7 +80,7 @@ public:
 	}
 
 	inline uint64_t location(void) const {
-		return id;
+		return id & 0xffffffffffffff00;
 	}
 
 	unsigned int set_precision(unsigned int prec) {
@@ -94,14 +94,12 @@ public:
 		return id;
 	}
 
-	friend ostream & operator<<(ostream & out, const geoid & num) {
-		int d = (num.precision()) / 8 + (num.precision() % 8 ? 1 : 0);
-		out << hex << setw(d*2) << setfill('0') << (num.id>>(64 - 2*num.precision()));
-		out << "." << hex << num.precision() ;
+	friend ostream & operator<<(ostream & out, const geobinary & num) {
+		out << hex << setw(16) << setfill('0') << num.id;
 		return out;
 	}
 
-	friend bool operator<(const geoid & a, const geoid & b) {
+	friend bool operator<(const geobinary & a, const geobinary & b) {
 		unsigned int prec = min(a.precision(), b.precision());
 		uint64_t mask = 0xffffffffffffffff << (64 - 2*prec);
 		if ( (a.id & mask) == (b.id & mask) ) {
@@ -146,20 +144,19 @@ public:
 
 	coordbox decode(void) const {
 		coordbox interval(MAX_LAT, MIN_LAT, MAX_LONG, MIN_LONG);
-		uint64_t location = id & 0xffffffffffffff00;
 
 		if (id > 0) {
 			double delta;
 			uint64_t checkbit = uint64_t(1)<<63;
 			for (unsigned int i = 0; i < precision(); i++) {
 				delta = (interval.n - interval.s) / 2.0;
-				if ((location & checkbit) != 0)
+				if ((id & checkbit) != 0)
 					interval.s += delta;
 				else
 					interval.n -= delta;
 				checkbit >>= 1;
 				delta = (interval.e - interval.w) / 2.0;
-				if ((location & checkbit) != 0)
+				if ((id & checkbit) != 0)
 					interval.w += delta;
 				else
 					interval.e -= delta;
@@ -169,8 +166,8 @@ public:
 		return interval;
 	}
 
-	geoid north_side() const {
-		geoid g(*this);
+	geobinary north_side() const {
+		geobinary g(*this);
 		uint64_t uintval = 2<<(64 - 2 * precision());
 		uint64_t latbits = g.id & 0xaaaaaaaaaaaaaa00;
 		uint64_t lonbits = g.id & 0x5555555555555500;
@@ -181,8 +178,8 @@ public:
 		return g;
 	}
 
-	geoid south_side() const {
-		geoid g(*this);
+	geobinary south_side() const {
+		geobinary g(*this);
 		uint64_t uintval = 2<<(64 - 2 * precision());
 		uint64_t latbits = g.id & 0xaaaaaaaaaaaaaa00;
 		uint64_t lonbits = g.id & 0x5555555555555500;
@@ -193,8 +190,8 @@ public:
 		return g;
 	}
 
-	geoid east_side() const {
-		geoid g(*this);
+	geobinary east_side() const {
+		geobinary g(*this);
 		uint64_t uintval = 1<<(64 - 2 * precision());
 		uint64_t latbits = g.id & 0xaaaaaaaaaaaaaa00;
 		uint64_t lonbits = g.id & 0x5555555555555500;
@@ -205,8 +202,8 @@ public:
 		return g;
 	}
 
-	geoid west_side() const {
-		geoid g(*this);
+	geobinary west_side() const {
+		geobinary g(*this);
 		uint64_t uintval = 1<<(64 - 2 * precision());
 		uint64_t latbits = g.id & 0xaaaaaaaaaaaaaa00;
 		uint64_t lonbits = g.id & 0x5555555555555500;
@@ -216,46 +213,38 @@ public:
 		g.id |= precision();
 		return g;
 	}
-	vector<geoid> neighbors(const int zone) const {
-		vector<geoid> neighbors;
-		if (zone < 1) {
+	vector<geobinary> neighbors(const int zone) const {
+		vector<geobinary> neighbors;
+		if (zone == 0) {
 			neighbors.push_back(*this);
 			return neighbors;
 		}
-		coordbox box = decode();
-		int prec = precision();
-		double width = box.e - box.w;
-		double height = box.n - box.s;
-		double lat = box.n - height/2.0;
-		double lon = box.e - width/2.0;
+		geobinary current(*this);
 		//cout << "center: " << lat << ", " << lon << "; ";
 		int side = 2*zone + 1;
 		int inner = 2*(zone - 1) + 1;
 		// starts from upper left
-		double gplat = lat + zone*height, gplon = lon - zone*width;
 		int mvdir;
+		for(int i = 0; i < zone; ++i) {
+			current = current.north_side();
+			current = current.west_side();
+		}
 		for(int i = inner*inner; i < side*side; ++i) {
-			neighbors.push_back(geoid(gplat, gplon, prec));
+			neighbors.push_back(current);
 			mvdir = ((i-inner*inner)/(side-1)) % 4 ;
 			//cout << i << " " << mvdir << ": " << gplat << ", " << gplon << "; ";
 			switch(mvdir) {
 			case 0: // r
-				gplon += width;
+				current = current.east_side();
 				break;
 			case 1: // d
-				gplat -= height;
+				current = current.south_side();
 				break;
 			case 2: // l
-				gplon -= width;
+				current = current.west_side();
 				break;
 			case 3: // u
-				gplat += height;
-			}
-			if (gplon >= 180.0) {
-				gplon = -(gplon -360.0);
-			}
-			if ( gplon < -180.0) {
-				gplon += 360.0;
+				current = current.north_side();
 			}
 		}
 		//cout << endl;
@@ -280,4 +269,4 @@ public:
 //	}
 };
 
-#endif /* GEOID_H_ */
+#endif /* GEOBINARY_H_ */
