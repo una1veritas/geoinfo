@@ -140,7 +140,7 @@ int main(const int argc, const char * argv[]) {
     		break;
     }
     cout << endl;
-
+    cout << "goegraph size = " << ggraph.size() << endl;
 
 	csvf.open(argv[2]);
 	if (! csvf ) {
@@ -158,13 +158,13 @@ int main(const int argc, const char * argv[]) {
     }
     csvf.close();
 
-    /*
+
     for(unsigned int i = 0; i < mytrack.size(); ++i) {
     	geoid gid = geoid(mytrack[i].lat, mytrack[i].lon,20);
     	unsigned int countgp;
-    	pair<int,int> range;
+    	pair<uint64_t,uint64_t> range;
     	unsigned int z;
-    	cout << mytrack[i] << " " << gid << " ";
+    	cout << mytrack[i] << " " << gid << " n:" << gid.north_side() << " s:" << gid.south_side() << " w:" << gid.west_side() << " e:" << gid.east_side() << endl;
     	for(z = 0; z < 5; ++z) {
 			vector<geoid> vec = gid.neighbors(z);
 			countgp = 0;
@@ -172,20 +172,14 @@ int main(const int argc, const char * argv[]) {
 				node_edge key(*i);
 				range = geoid_index(ggraph, *i);
 				countgp += range.second - range.first;
-				cout << "[" << range.first << ", " << range.second << "], ";
+				cout << *i << dec <<  "[" << range.first << ", " << range.second << "], ";
 			}
-			//cout << endl;
-			//geoid::coordbox box = hash.decode();
-			//cout << box << " " << box.covers(mytrack[i].lat, mytrack[i].lon) << endl;
 			if (countgp > 0)
 				break;
     	}
-    	//if (countgp < 1 or z > 2 or countgp > 99) {
-    	//	cout << mytrack[i] << ", " << hash << ": " << countgp << " points within " << z << endl;
-    	//}
     	cout << countgp << endl;
     }
-    */
+
 
     /*
     int oddbits[] = { 0x0, 0x2, 0x8, 0xa, };
@@ -219,7 +213,20 @@ int main(const int argc, const char * argv[]) {
     	}
     }
     cout << "e: " << bitset<32>{even} << " o: " << bitset<32>{odd} << endl;
-    */
-    cout << sizeof(unsigned long) << ", " << sizeof(unsigned long long) << endl;
+
+    uint64_t evenbitmask = 0xaaaaaaaaaaaaaaaa, oddbitmask = 0x5555555555555555;
+    uint64_t val = 0;
+    for(int i = 0; i < 130; ++i) {
+    	val = (val | oddbitmask) + 1;
+    	val &= evenbitmask;
+    	cout << hex << bitset<64>{val} << endl;
+    }
+    for(int i = 0; i < 200; ++i) {
+    	val = (val & evenbitmask) - 1;
+    	val &= evenbitmask;
+    	cout << hex << bitset<64>{val} << endl;
+    }
+        */
+
     return EXIT_SUCCESS;
 }

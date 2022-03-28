@@ -20,8 +20,15 @@
 using namespace std;
 
 struct geoid {
+private:
 	uint64_t id;
 
+	static constexpr double MAX_LAT = 90.0;
+	static constexpr double MIN_LAT = -90.0;
+	static constexpr double MAX_LONG = 180.0;
+	static constexpr double MIN_LONG = -180.0;
+
+public:
 	geoid(void) : id(0) {}
 
 	geoid(const uint64_t & num) {
@@ -40,8 +47,7 @@ struct geoid {
 	// encode
 	geoid(const double &lat, const double &lon,	const unsigned int & precision = 20) {
 		id = 0;
-		unsigned int prec = precision;
-		prec = (prec < 28 ? prec : 28);
+		unsigned int prec = (precision < 28 ? precision : 28);
 		if (lat <= 90.0 && lat >= -90.0 && lon <= 180.0 && lon >= -180.0) {
 			coordbox interval(MAX_LAT, MIN_LAT, MAX_LONG, MIN_LONG);
 
@@ -73,6 +79,10 @@ struct geoid {
 		return id & 0xff;
 	}
 
+	inline uint64_t location(void) const {
+		return id;
+	}
+
 	unsigned int set_precision(unsigned int prec) {
 		prec = (prec < 28 ? prec : 28);
 		id &= 0xffffffffffffffff << (64 - prec*2);
@@ -100,20 +110,6 @@ struct geoid {
 		return (a.id & mask) < (b.id & mask);
 	}
 
-	static constexpr double MAX_LAT = 90.0;
-	static constexpr double MIN_LAT = -90.0;
-	static constexpr double MAX_LONG = 180.0;
-	static constexpr double MIN_LONG = -180.0;
-
-	/*
-	struct interval {
-		double high, low;
-
-		interval(const double &hi, const double &lo) :
-				high(hi), low(lo) {
-		}
-	};
-	*/
 
 	struct coordbox {
 		double n;
@@ -129,11 +125,11 @@ struct geoid {
 			w = lonlow;
 		}
 
-		double center_lat() const {
+		double lat_center() const {
 			return n - (n - s) / 2.0;
 		}
 
-		double center_lon() const {
+		double lon_center() const {
 			return e - (e - w) / 2.0;
 		}
 
@@ -148,31 +144,14 @@ struct geoid {
 		}
 	};
 
-	/*
-	static string bincode(const string &hash) {
-		string binary;
-		for (unsigned int pos = 0; pos < hash.length(); ++pos) {
-			int val = char_revmap(hash[pos]);
-			if (val < 0)
-				break;
-			for (unsigned int i = 0; i < 5; ++i) {
-				binary += (val & 0x10) ? "1" : "0";
-				val <<= 1;
-			}
-		}
-		return binary;
-	}
-	*/
-
 	coordbox decode(void) const {
 		coordbox interval(MAX_LAT, MIN_LAT, MAX_LONG, MIN_LONG);
-		unsigned int precision = id & 0xff;
 		uint64_t location = id & 0xffffffffffffff00;
 
 		if (id > 0) {
 			double delta;
 			uint64_t checkbit = uint64_t(1)<<63;
-			for (unsigned int i = 0; i < precision; i++) {
+			for (unsigned int i = 0; i < precision(); i++) {
 				delta = (interval.n - interval.s) / 2.0;
 				if ((location & checkbit) != 0)
 					interval.s += delta;
@@ -190,18 +169,53 @@ struct geoid {
 		return interval;
 	}
 
-	enum {
-		NORTH = 0,
-		NORTHEAST = 1,
-		EAST = 2,
-		SOUTHEAST = 3,
-		SOUTH = 4,
-		SOUTHWEST = 5,
-		WEST = 6,
-		NORTHWEST = 7,
-		DIRECTION_END = 8,
-	};
+	geoid north_side() const {
+		geoid g(*this);
+		uint64_t uintval = 2<<(64 - 2 * precision());
+		uint64_t latbits = g.id & 0xaaaaaaaaaaaaaa00;
+		uint64_t lonbits = g.id & 0x5555555555555500;
+		g.id = (latbits | 0x5555555555555500) + uintval;
+		g.id &= 0xaaaaaaaaaaaaaa00;
+		g.id |= lonbits;
+		g.id |= precision();
+		return g;
+	}
 
+	geoid south_side() const {
+		geoid g(*this);
+		uint64_t uintval = 2<<(64 - 2 * precision());
+		uint64_t latbits = g.id & 0xaaaaaaaaaaaaaa00;
+		uint64_t lonbits = g.id & 0x5555555555555500;
+		g.id = latbits - uintval;
+		g.id &= 0xaaaaaaaaaaaaaa00;
+		g.id |= lonbits;
+		g.id |= precision();
+		return g;
+	}
+
+	geoid east_side() const {
+		geoid g(*this);
+		uint64_t uintval = 1<<(64 - 2 * precision());
+		uint64_t latbits = g.id & 0xaaaaaaaaaaaaaa00;
+		uint64_t lonbits = g.id & 0x5555555555555500;
+		g.id = (lonbits | 0xaaaaaaaaaaaaaa00) + uintval;
+		g.id &= 0x5555555555555500;
+		g.id |= latbits;
+		g.id |= precision();
+		return g;
+	}
+
+	geoid west_side() const {
+		geoid g(*this);
+		uint64_t uintval = 1<<(64 - 2 * precision());
+		uint64_t latbits = g.id & 0xaaaaaaaaaaaaaa00;
+		uint64_t lonbits = g.id & 0x5555555555555500;
+		g.id = lonbits - uintval;
+		g.id &= 0x5555555555555500;
+		g.id |= latbits;
+		g.id |= precision();
+		return g;
+	}
 	vector<geoid> neighbors(const int zone) const {
 		vector<geoid> neighbors;
 		if (zone < 1) {
