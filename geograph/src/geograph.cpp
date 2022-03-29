@@ -18,7 +18,7 @@
 
 using namespace std;
 
-#include "geobinary.h"
+#include "bgeohash.h"
 //#include <cmath>
 //#include "geodistance.h"
 
@@ -51,17 +51,17 @@ struct geopoint {
 struct node_edge {
 	uint64_t id;
 	double lat, lon;
-	geobinary gbin;
+	binarygeohash gbin;
 	vector<uint64_t> adjacents;
 
 	static constexpr int prec = 20;
 
 	node_edge(void) : id(0), lat(0), lon(0), gbin(0), adjacents({}) { }
-	node_edge(const geobinary & gid) : id(0), lat(0), lon(0), gbin(gid), adjacents({}) { }
+	node_edge(const binarygeohash & gid) : id(0), lat(0), lon(0), gbin(gid), adjacents({}) { }
 
 	node_edge(const uint64_t & id, const double & latitude, const double & longitude)
 	: id(id), lat(latitude), lon(longitude), adjacents({}) {
-		gbin = geobinary(lat, lon, prec);
+		gbin = binarygeohash(lat, lon, prec);
 	}
 
 	friend ostream & operator<<(ostream & out, const node_edge & ne) {
@@ -84,7 +84,7 @@ int stringcomp(const string & a, const string & b) {
 }
 */
 
-std::pair<int,int> geobinary_range(vector<node_edge> & gg, const geobinary & gbin) {
+std::pair<int,int> geobinary_range(vector<node_edge> & gg, const binarygeohash & gbin) {
 	node_edge key(gbin);
 	vector<node_edge>::iterator lb = lower_bound(gg.begin(), gg.end(),
 			key,
@@ -160,73 +160,25 @@ int main(const int argc, const char * argv[]) {
 
 
     for(unsigned int i = 0; i < mytrack.size(); ++i) {
-    	geobinary gid = geobinary(mytrack[i].lat, mytrack[i].lon,18);
+    	binarygeohash gid = binarygeohash(mytrack[i].lat, mytrack[i].lon,19);
     	unsigned int countgp;
     	pair<uint64_t,uint64_t> range;
     	unsigned int z;
     	cout << mytrack[i] << " ";
     	for(z = 0; z < 5; ++z) {
-			vector<geobinary> vec = gid.neighbors(z);
+			vector<binarygeohash> vec = gid.neighbors(z);
 			countgp = 0;
 			for(auto i = vec.begin(); i != vec.end(); ++i) {
 				node_edge key(*i);
 				range = geobinary_range(ggraph, *i);
 				countgp += range.second - range.first;
-				//cout << *i << " "; //<< " [" << dec << range.first << ", " << range.second << ") ";
+				cout << *i << " "; // << " [" << dec << range.first << ", " << range.second << ") ";
 			}
 			if (countgp > 0)
 				break;
     	}
     	cout << dec << countgp << endl;
     }
-
-
-    /*
-    int oddbits[] = { 0x0, 0x2, 0x8, 0xa, };
-    int evenbits[] = { 0x0, 0x1, 0x4, 0x5, 0x10, 0x11, 0x14, 0x15, };
-    int revbits[] = {};
-
-    int oddbit_mask = 0xaa;
-    int evenbit_mask = 0x55;
-    int evenbit[] = { 0, 1, 4, 5, 0x10, 0x11, 0x14, 0x15, };
-    int evenbit_length = 8;
-    int oddbit[] = { 0, 2, 8, 0xa, };
-    int oddbit_length = 4;
-    int revbit[] = {
-    		0, 1, 1, -1, 2, 3, -1, -1, 2, -1, 3, -1, -1, -1, -1, -1,
-    		4, 5, -1, -1, 6, 7, -1, -1, -1, -1, -1, -1, -1, -1, -1, -1};
-    string sample = "wvuxn7df";
-    cout << geohash::bincode(sample) << endl;
-    int odd = 0, even = 0;
-    for(int i = 0; i < sample.length(); ++i) {
-    	int c = geohash::char_revmap(sample[i]);
-    	if ((i & 1) == 0) {
-			even<<= 3;
-			even|= revbit[evenbit_mask & c];
-			odd <<= 2;
-			odd |= revbit[oddbit_mask & c];
-    	} else {
-			odd <<= 3;
-			odd|= revbit[evenbit_mask & c];
-			even <<= 2;
-			even |= revbit[oddbit_mask & c];
-    	}
-    }
-    cout << "e: " << bitset<32>{even} << " o: " << bitset<32>{odd} << endl;
-
-    uint64_t evenbitmask = 0xaaaaaaaaaaaaaaaa, oddbitmask = 0x5555555555555555;
-    uint64_t val = 0;
-    for(int i = 0; i < 130; ++i) {
-    	val = (val | oddbitmask) + 1;
-    	val &= evenbitmask;
-    	cout << hex << bitset<64>{val} << endl;
-    }
-    for(int i = 0; i < 200; ++i) {
-    	val = (val & evenbitmask) - 1;
-    	val &= evenbitmask;
-    	cout << hex << bitset<64>{val} << endl;
-    }
-        */
 
     return EXIT_SUCCESS;
 }
