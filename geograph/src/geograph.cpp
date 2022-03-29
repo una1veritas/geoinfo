@@ -84,8 +84,8 @@ int stringcomp(const string & a, const string & b) {
 }
 */
 
-std::pair<int,int> geoid_index(vector<node_edge> & gg, const geobinary & id) {
-	node_edge key(id);
+std::pair<int,int> geobinary_range(vector<node_edge> & gg, const geobinary & gbin) {
+	node_edge key(gbin);
 	vector<node_edge>::iterator lb = lower_bound(gg.begin(), gg.end(),
 			key,
 			[](const node_edge & a, const node_edge &b){ return a.gbin < b.gbin; } );
@@ -160,25 +160,24 @@ int main(const int argc, const char * argv[]) {
 
 
     for(unsigned int i = 0; i < mytrack.size(); ++i) {
-    	geobinary gid = geobinary(mytrack[i].lat, mytrack[i].lon,19);
+    	geobinary gid = geobinary(mytrack[i].lat, mytrack[i].lon,18);
     	unsigned int countgp;
     	pair<uint64_t,uint64_t> range;
     	unsigned int z;
     	cout << mytrack[i] << " ";
-    	for(z = 0; z < 1; ++z) {
+    	for(z = 0; z < 5; ++z) {
 			vector<geobinary> vec = gid.neighbors(z);
 			countgp = 0;
 			for(auto i = vec.begin(); i != vec.end(); ++i) {
 				node_edge key(*i);
-				range = geoid_index(ggraph, *i);
+				range = geobinary_range(ggraph, *i);
 				countgp += range.second - range.first;
-				cout << *i << " " << ggraph[range.first].gbin << ", " << ggraph[range.first+1].gbin << " [" << dec << range.first << ", " << range.second << ") ";
+				//cout << *i << " "; //<< " [" << dec << range.first << ", " << range.second << ") ";
 			}
 			if (countgp > 0)
 				break;
-			cout << "; ";
     	}
-    	cout << countgp << endl;
+    	cout << dec << countgp << endl;
     }
 
 

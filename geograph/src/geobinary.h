@@ -102,9 +102,6 @@ public:
 	friend bool operator<(const geobinary & a, const geobinary & b) {
 		unsigned int prec = min(a.precision(), b.precision());
 		uint64_t mask = 0xffffffffffffffff << (64 - 2*prec);
-		if ( (a.id & mask) == (b.id & mask) ) {
-			return a.precision() < b.precision();
-		}
 		return (a.id & mask) < (b.id & mask);
 	}
 
