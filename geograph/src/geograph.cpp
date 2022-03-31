@@ -36,10 +36,6 @@ struct geopoint {
 	double lat, lon;
 
 	geopoint(const double & lattitude, const double & longitude) :lat(lattitude), lon(longitude) { }
-	geopoint(const string & latstr, const string & lonstr) {
-		lat = strtod(latstr.c_str(), NULL);
-		lon = strtod(lonstr.c_str(), NULL);
-	}
 
 	friend ostream & operator<<(ostream & out, const geopoint & p) {
 		out << " (" << fixed << setprecision(7) << p.lat << ","
@@ -54,7 +50,7 @@ struct node_edge {
 	binarygeohash gbin;
 	vector<uint64_t> adjacents;
 
-	static constexpr int prec = 20;
+	static constexpr int prec = 40;
 
 	node_edge(void) : id(0), lat(0), lon(0), gbin(0), adjacents({}) { }
 	node_edge(const binarygeohash & gid) : id(0), lat(0), lon(0), gbin(gid), adjacents({}) { }
@@ -114,7 +110,7 @@ int main(const int argc, const char * argv[]) {
     while (getline(csvf, line)) {
         vector<string> strvec = split(line, ',');
         if (strvec.size() < 4) {
-        	cerr << "insufficient parameters for a node_edge." << endl;
+        	cerr << "insufficient parameters to define a node_edge." << endl;
         	continue;
         }
 		uint64_t id = stoull(strvec[0]);
@@ -151,18 +147,18 @@ int main(const int argc, const char * argv[]) {
     while (getline(csvf, line)) {
         vector<string> strvec = split(line, ',');
         if (strvec.size() < 2) {
-        	cerr << "insufficient parameters for a point in my tracking." << endl;
+        	cerr << "insufficient parameters for a point." << endl;
         	continue;
         }
-        mytrack.push_back(geopoint(strvec[2], strvec[3]));
+        mytrack.push_back(geopoint(stod(strvec[2]), stod(strvec[3])));
     }
     csvf.close();
 
 
     for(unsigned int i = 0; i < mytrack.size(); ++i) {
-    	binarygeohash gid = binarygeohash(mytrack[i].lat, mytrack[i].lon,19);
+    	binarygeohash gid = binarygeohash(mytrack[i].lat, mytrack[i].lon,37);
     	unsigned int countgp;
-    	pair<uint64_t,uint64_t> range;
+    	std::pair<uint64_t,uint64_t> range;
     	unsigned int z;
     	cout << mytrack[i] << " ";
     	for(z = 0; z < 5; ++z) {
@@ -172,7 +168,7 @@ int main(const int argc, const char * argv[]) {
 				node_edge key(*i);
 				range = geobinary_range(ggraph, *i);
 				countgp += range.second - range.first;
-				cout << *i << " "; // << " [" << dec << range.first << ", " << range.second << ") ";
+				cout << i->geohash() << " " << *i << i->decode() << " "; // << " [" << dec << range.first << ", " << range.second << ") ";
 			}
 			if (countgp > 0)
 				break;

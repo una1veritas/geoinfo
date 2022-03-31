@@ -28,20 +28,21 @@ private:
 	static constexpr double MAX_LONG = 180.0;
 	static constexpr double MIN_LONG = -180.0;
 
-	static constexpr char * char_map = (char *) "0123456789bcdefghjkmnpqrstuvwxyz";
+	static constexpr char * char_map_geohash = (char *) "0123456789bcdefghjkmnpqrstuvwxyz";
+	static constexpr char * char_map_16 = (char *) "0123456789ABCDEF";
 
 public:
 	binarygeohash(void) : hash(0) {}
 
 	binarygeohash(const uint64_t & num) {
 		unsigned int prec = num & 0xff;
-		prec = (prec < 28 ? prec : 28);
-		hash = (num & (0xffffffffffffffff << (64 - (prec<<1)))) | prec;
+		prec = (prec < 56 ? prec : 56);
+		hash = (num & (0xffffffffffffffff << (64 - prec))) | prec;
 	}
 
 	binarygeohash(const uint64_t & num, unsigned int prec) {
-		prec = (prec < 28 ? prec : 28);
-		hash = (num & (0xffffffffffffffff << (64 - (prec<<1)))) | (prec & 0xff);
+		prec = (prec < 56 ? prec : 56);
+		hash = (num & (0xffffffffffffffff << (64 - prec))) | (prec & 0xff);
 	}
 
 	binarygeohash(const binarygeohash & bghash) : hash(bghash.hash) {}
@@ -49,13 +50,13 @@ public:
 	// encode
 	binarygeohash(const double &lat, const double &lon,	const unsigned int & precision = 20) {
 		hash = 0;
-		unsigned int prec = (precision < 28 ? precision : 28);
+		unsigned int prec = (precision < 56 ? precision : 56);
 		if (lat <= 90.0 && lat >= -90.0 && lon <= 180.0 && lon >= -180.0) {
 			coordbox interval(MAX_LAT, MIN_LAT, MAX_LONG, MIN_LONG);
 
 			double latmid, lonmid;
 			uint64_t bit = uint64_t(1)<<63;
-			for (unsigned int i = 0; i < precision; i++) {
+			for (unsigned int i = 0; i < precision; ) {
 				latmid = (interval.s + interval.n) / 2.0;
 				lonmid = (interval.w + interval.e) / 2.0;
 				if (lon > lonmid) {
@@ -65,6 +66,9 @@ public:
 					interval.e = lonmid;
 				}
 				bit >>= 1;
+				++i;
+				if (! (i < precision) )
+					break;
 				if (lat > latmid) {
 					interval.s = latmid;
 					hash |= bit;
@@ -72,6 +76,7 @@ public:
 					interval.n = latmid;
 				}
 				bit >>= 1;
+				++i;
 			}
 		}
 		hash |= uint64_t(prec);
@@ -81,15 +86,15 @@ public:
 		return hash & 0xff;
 	}
 
-	inline uint64_t location(void) const {
-		return hash & 0xffffffffffffff00;
-	}
-
 	unsigned int set_precision(unsigned int prec) {
-		prec = (prec < 28 ? prec : 28);
-		hash &= 0xffffffffffffffff << (64 - (prec<<1));
+		prec = (prec < 56 ? prec : 56);
+		hash &= 0xffffffffffffffff << (64 - prec);
 		hash |= prec;
 		return prec;
+	}
+
+	inline uint64_t location(void) const {
+		return hash & 0xffffffffffffff00;
 	}
 
 	operator uint64_t() const {
@@ -100,7 +105,7 @@ public:
 		string str("");
 		uint64_t bit63 = uint64_t(1)<<63;
 		uint64_t val = hash & 0xffffffffffffff00;
-		unsigned int length = (precision()<<1)/5 + ((precision()<<1) % 5 > 0 ? 1 : 0);
+		unsigned int length = precision()/5 + (precision()% 5 > 0 ? 1 : 0);
 		unsigned int charindex;
 		for(unsigned int i = 0; i < length; ++i) {
 			charindex = 0;
@@ -111,7 +116,7 @@ public:
 				}
 				val <<= 1;
 			}
-			str += char_map[charindex];
+			str += char_map_geohash[charindex];
 
 		}
 		return str;
@@ -124,7 +129,7 @@ public:
 
 	friend bool operator<(const binarygeohash & a, const binarygeohash & b) {
 		unsigned int prec = min(a.precision(), b.precision());
-		uint64_t mask = 0xffffffffffffffff << (64 - (prec<<1));
+		uint64_t mask = 0xffffffffffffffff << (64 - prec);
 		return (a.hash & mask) < (b.hash & mask);
 	}
 
@@ -168,20 +173,23 @@ public:
 		if (hash > 0) {
 			double delta;
 			uint64_t checkbit = uint64_t(1)<<63;
-			for (unsigned int i = 0; i < precision(); i++) {
+			for (unsigned int i = 0; i < precision(); ) {
 				delta = (interval.e - interval.w) / 2.0;
 				if ((hash & checkbit) != 0)
 					interval.w += delta;
 				else
 					interval.e -= delta;
 				checkbit >>= 1;
+				++i;
+				if (! (i < precision()) )
+					break;
 				delta = (interval.n - interval.s) / 2.0;
 				if ((hash & checkbit) != 0)
 					interval.s += delta;
 				else
 					interval.n -= delta;
 				checkbit >>= 1;
-
+				++i;
 			}
 		}
 		return interval;
@@ -189,7 +197,9 @@ public:
 
 	binarygeohash north_side() const {
 		binarygeohash g(*this);
-		uint64_t uintval = 1<<(64 - (precision()<<1));
+		uint64_t uintval = 1<<(64 - precision());
+		if ((precision() & 1) != 0)
+			uintval <<= 1;
 		uint64_t latbits = g.hash & 0x5555555555555500;
 		uint64_t lonbits = g.hash & 0xaaaaaaaaaaaaaa00;
 		g.hash = (latbits | 0xaaaaaaaaaaaaaa00) + uintval;
@@ -201,7 +211,9 @@ public:
 
 	binarygeohash south_side() const {
 		binarygeohash g(*this);
-		uint64_t uintval = 1<<(64 - (precision()<<1));
+		uint64_t uintval = 1<<(64 - precision());
+		if ((precision() & 1) != 0)
+			uintval <<= 1;
 		uint64_t latbits = g.hash & 0x5555555555555500;
 		uint64_t lonbits = g.hash & 0xaaaaaaaaaaaaaa00;
 		g.hash = latbits - uintval;
@@ -213,7 +225,9 @@ public:
 
 	binarygeohash east_side() const {
 		binarygeohash g(*this);
-		uint64_t uintval = 2<<(64 - (precision()<<1));
+		uint64_t uintval = 2<<(64 - precision());
+		if ((precision() & 1) != 0)
+			uintval >>= 1;
 		uint64_t latbits = g.hash & 0x5555555555555500;
 		uint64_t lonbits = g.hash & 0xaaaaaaaaaaaaaa00;
 		g.hash = (lonbits | 0x5555555555555500) + uintval;
@@ -225,7 +239,9 @@ public:
 
 	binarygeohash west_side() const {
 		binarygeohash g(*this);
-		uint64_t uintval = 2<<(64 - 2 * precision());
+		uint64_t uintval = 2<<(64 - precision());
+		if ((precision() & 1) != 0)
+			uintval >>= 1;
 		uint64_t latbits = g.hash & 0x5555555555555500;
 		uint64_t lonbits = g.hash & 0xaaaaaaaaaaaaaa00;
 		g.hash = lonbits - uintval;

@@ -1,0 +1,81 @@
+\documentclass[11pt]{jsarticle}
+\usepackage{setspace}
+\usepackage{multicol}
+\usepackage{latexsym}
+\usepackage{mathrsfs}
+\usepackage{url}
+\usepackage{ascmac}
+\usepackage[dvipdfmx]{graphicx}
+\usepackage{theorem}
+%\usepackage{marginfix}
+\usepackage{framed}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\lhead{Binary Geohash}
+\rhead{Binary Geohash}
+
+\input{A4}
+\setlength{\topmargin}{-0.5in}
+\setlength{\textwidth}{5.6in}
+\setlength{\textheight}{8.8in}
+\setlength{\oddsidemargin}{0in}
+%\setlength{\evensidemargin}{0in}
+\setlength{\marginparwidth}{1in}
+
+\usepackage{theorem}
+\renewcommand{\baselinestretch}{1.1}
+\setlength{\parskip}{0.25ex}
+\renewcommand{\arraystretch}{0.95}
+
+\title{Binary Geohash}
+\author{下薗 真一}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{はじめに}
+Binary Geohash は, ジオコーディングと呼ばれる地理座標の符号化法の一つ Geohash (Gustavo Niemeyer, {\tt http://geohash.org/}) に 1 ビット単位の精度情報を付加し 64 ビット符号なし整数として表現するものである. 
+Geohash が URL への埋め込みなどテキスト情報としての取り扱いの簡便さを重視しているのに対して, 
+バイナリ表現を前提とし, 精度すなわち有効ビット数を明示して地理的な領域を細かく指定できるようにした. 
+精度情報をのぞいた領域コーディング値は, 二進数表現された Geohash と同一である. 
+
+\section{表現方法と構造}
+経度 $-180^\circ$ から $180^\circ$ を $0^\circ$ を中心に, 
+また緯度 $-90^\circ$ から $90^\circ$ を $0^\circ$ を中心に, 
+それぞれ分割し, 対応するビット 0 または 1 を割り当てる. 
+この領域の分割を最大で合計 56 ビット\footnote{精度は 6 ビットあればじゅうぶんなため 58ビットまで増やすことはできるが, とりあえずめんどくさかったので精度を最下位 8 ビットにした. }になるまでくり返し, 必要な領域の表現を得る. 
+この合計ビット数が精度 precision である. 
+精度が偶数の場合, 経度と緯度の分割ビット数は等しく, 精度が奇数ビットの場合は経度についての分割ビット数が緯度のそれより 1 多くなる. 
+そして領域を表現する値を上位最大56ビットに, 精度を表現する値を最下位 8 ビットに格納した
+符号なし 64 ビット整数で表したものが, 地理点あるいは矩形領域の Binary Geohash である. 
+
+たとえば, 北緯 $33.5943573^\circ$, 東経 $130.3467427^\circ$ は, 37 ビットの精度では, 
+南北東西が
+\[33.5941315^\circ, 33.5948181^\circ, 130.3472900^\circ, 130.3466034^\circ \] 
+の領域として, 16進で e6f5da15b8000025 の整数で表現される. 
+これは Geohash 値では {\tt wvuxn5es} (40ビットをコーディングしている) の上位37ビットである. 
+
+すなわち, 領域を表現する整数が $m + n$ ビット, ただし経度が $m$ ビット, 緯度が $n$ ビットで $n \leq m \leq n+1 \leq 56/2$ とすると, 各 $b_i \in \{0, 1\}$ で
+$b_{63} b_{62} b_{61} \cdots b_9 b_8 b_7 b_6 b_5 b_4 b_3 b_2 b_1 b_0$ と領域が表されているとき, 
+経度の範囲が $b_{63} b_{61} b_{59} \cdots b_9$ で表され, 
+緯度の範囲が $b_{62} b_{60 \cdots b_8} で表され$, 
+精度 $p$ は二進の整数 $b_7 b_6 \cdots b_0$ で表される. 
+経度は上位 $\lceil{\frac{p}{2}}\rceil$ ビットが有効, 
+緯度は上位 $\lfloor{\frac{p}{2}}\rfloor$ ビットが有効である. 
+
+Geohash を扱うプログラムコードは文字表現から整数値に変換して, あるいは文字表現のままビット演算を行う
+必要があり, 複数の文字定数テーブルを用意したり, 複雑になる. 
+Binary Geohash では, 文字列として表現する場合の長さは精度情報のため長くなるが, 処理は簡単になり, 
+隣接する同精度の領域を求める等のコードも定数値テープルを利用せずにビットごとの論理演算などでごく短く記述できる. 
+
+Geohash は精度をコードの文字数で表現しており, 領域表現部分のみを上位から 5 ビットずつ 1 文字でエンコードする. 
+したがって精度は 5 ビット単位で, 領域の面積はおよそ 32 倍あるいは 1/32 となる．
+座標点よりも領域の表現として使用するには, より細かな領域サイズ指定ができることが望ましい. 
+さらに, テキストとして人間が読み書きするよりプログラム内での処理が主であること, 
+今日の計算機, 言語処理系では 64 ビット整数が通常のデータ型として扱えること, 
+こまかな座標指定でも50 ビットあればじゅうぶんなこと
+などから,  Binary Geohash は処理の負担が軽く, じゅうぶんな精度／解像度をもち, じゅうぶんコンパクトな表現法となっている. 
+
+\end{document}
