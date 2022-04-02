@@ -16,10 +16,13 @@ class binarygeohash:
         if value != None and precision == None:
             self.code = value
             return
-        prec = precision if precision < 56 else 56
-        if value != None :
+        if value != None and precision != None:
+            prec = min(int(precision), 56)
             self.code = int(value) & (0xffffffffffffffff << (64 - prec))
+            self.code |= prec
+            return
         elif latitude != None and longitude != None:
+            prec = 41 if precision == None else precision if precision < 56 else 56 
             if -90.0 <= latitude <= 90.0 and -180.0 <= longitude <= 180.0 :
                 northsouth = [self.MAX_LAT, self.MIN_LAT]
                 eastwest   = [self.MAX_LONG, self.MIN_LONG]
@@ -44,9 +47,8 @@ class binarygeohash:
                         northsouth[0] = latmid
                     bit >>= 1
                     i += 1
-        else:
-            pass
-        self.code |= prec
+            self.code |= prec
+            return
 
     def precision(self):
         return self.code & 0xff
@@ -108,10 +110,11 @@ if __name__ == '__main__' :
                          items[3:])
             geograph.append(node_edge)
     geograph.sort(key = lambda x: x[2])
-    for i in range(96,100):
-        print(geograph[i][0:2], geograph[i][2])
     
-    searchgp = binarygeohash(0xe6f5cd9da8000028, precision = 35)
+    searchgp = binarygeohash(0xe6f5da1dc8000025, precision = 37)
     left = bisect.bisect_left(geograph, searchgp, key = lambda x: x[2])
     right = bisect.bisect_right(geograph, searchgp, key = lambda x: x[2])
+
+    for i in range(max(0, left - 3), right + 1) :
+        print(geograph[i][2], i, geograph[i][0:2])
     print(searchgp, left, right)
