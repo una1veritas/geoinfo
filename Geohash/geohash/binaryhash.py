@@ -4,6 +4,7 @@ Created on 2022/03/31
 @author: Sin Shimozono
 '''
 import bisect
+from pip._internal.utils.hashes import MissingHashes
 
 # def encode(latitude, longitude, precision = 41) :    
 #     hashcode = 0
@@ -49,6 +50,7 @@ class binaryhash:
     MIN_LAT = -90.0
     MAX_LONG = 180.0
     MIN_LONG = -180.0
+    GEOHASH_BASE32 = "0123456789bcdefghjkmnpqrstuvwxyz"
     
     def __init__(self, arg1 = None, arg2 = None, arg3 = None) :
         self.code = 0
@@ -107,7 +109,7 @@ class binaryhash:
         self.code = value & (0xffffffffffffffff << (64 - prec))
         self.code |= prec
         return self
-     
+      
     def __str__(self):
         return hex(self.code)
     
@@ -144,6 +146,14 @@ class binaryhash:
                 i += 1
         return {'n': northsouth[0], 's': northsouth[1], 'e': eastwest[0], 'w': eastwest[1]}
 
+    def geohash(self, length=None):
+        ghash = ''
+        if length is None :
+            length = int(self.precision() / 5)
+        for pos in range(0, length) :
+            ghash += binaryhash.GEOHASH_BASE32[self.code>>(59 - pos * 5) & 0x1f]
+        return ghash
+    
 if __name__ == '__main__' :
     ghash = binaryhash(33.5925135, 130.3560714, 37)
     # e6f5da1cc0000025
