@@ -5,9 +5,6 @@ Created on 2022/03/31
 '''
 import bisect
 
-<<<<<<< HEAD:Geohash/geohash/binaryhash.py
-class binaryhash:
-=======
 # def encode(latitude, longitude, precision = 41) :    
 #     hashcode = 0
 #     if precision > 56 :
@@ -47,25 +44,26 @@ class binaryhash:
 #     binary |= prec
 #     return binary
     
-class binary:
->>>>>>> 3c3feb4efde9c044af2dfb69d210041bcf79b1ee:Geohash/geohashtest/geohash.py
+class binaryhash:
     MAX_LAT = 90.0
     MIN_LAT = -90.0
     MAX_LONG = 180.0
     MIN_LONG = -180.0
     
-    def __init__(self, value = None, precision = None, latitude = None, longitude = None) :    
+    def __init__(self, arg1 = None, arg2 = None, arg3 = None) :
         self.code = 0
-        if value != None and precision == None:
-            self.code = value
+        defaultprec = 41
+        if isinstance(arg1, (int, str)) and arg3 is None :
+            if arg2 is None :
+                prec = defaultprec
+            else:
+                prec = int(arg2)
+            self.set(int(arg1), prec)
             return
-        if value != None and precision != None:
-            prec = min(int(precision), 56)
-            self.code = int(value) & (0xffffffffffffffff << (64 - prec))
-            self.code |= prec
-            return
-        elif latitude != None and longitude != None:
-            prec = 41 if precision == None else precision if precision < 56 else 56 
+        if isinstance(arg1, float) and isinstance(arg2, float) :
+            latitude = arg1
+            longitude = arg2
+            prec = 41 if arg3 is None else int(arg3) if int(arg3) < 56 else 56 
             if -90.0 <= latitude <= 90.0 and -180.0 <= longitude <= 180.0 :
                 northsouth = [self.MAX_LAT, self.MIN_LAT]
                 eastwest   = [self.MAX_LONG, self.MIN_LONG]
@@ -81,7 +79,7 @@ class binary:
                         eastwest[0] = lonmid                
                     bit >>= 1
                     i += 1
-                    if not i < precision :
+                    if not i < prec :
                         break
                     if latitude > latmid :
                         northsouth[1] = latmid
@@ -96,9 +94,20 @@ class binary:
     def precision(self):
         return self.code & 0xff
 
-    def set(self, value):
-        self.code = value
-    
+    def set_precision(self, prec):
+        self.code &= 0xff
+        self.code |= (prec & 0xff)
+        return self
+
+    def set(self, value, prec = None):
+        if prec is None :
+            prec = value & 0xff
+        if prec > 56 :
+            prec = 56
+        self.code = value & (0xffffffffffffffff << (64 - prec))
+        self.code |= prec
+        return self
+     
     def __str__(self):
         return hex(self.code)
     
@@ -136,19 +145,11 @@ class binary:
         return {'n': northsouth[0], 's': northsouth[1], 'e': eastwest[0], 'w': eastwest[1]}
 
 if __name__ == '__main__' :
-<<<<<<< HEAD:Geohash/geohash/binaryhash.py
-    bingh = binaryhash(latitude = 33.5925135, longitude = 130.3560714, precision = 37)
+    ghash = binaryhash(33.5925135, 130.3560714, 37)
     # e6f5da1cc0000025
-    print('hello.', bingh)
+    print('hello.', ghash)
     bingh2 = binaryhash(0xe6f5da1dc8000025)
-=======
-    bingh = binary(latitude = 33.5925135, longitude = 130.3560714, precision = 37)
-    # e6f5da1cc0000025
-    print('hello.', bingh)
-    bingh2 = binary(0xe6f5da1dc8000025)
->>>>>>> 3c3feb4efde9c044af2dfb69d210041bcf79b1ee:Geohash/geohashtest/geohash.py
-    # (33.5950178,130.3563308)
-    print(bingh2.decode())
+    print(bingh2, bingh2.decode())
     
     geograph = list()
     with open('../geograph/fukuoka.geo', mode = 'r', encoding='utf-8') as f:
@@ -156,20 +157,11 @@ if __name__ == '__main__' :
             items = a_line.strip().split(',')
             geopoint = (float(items[1]), float(items[2]))
             node_edge = (int(items[0]), geopoint, 
-<<<<<<< HEAD:Geohash/geohash/binaryhash.py
-                         binaryhash(precision=40, latitude = geopoint[0], longitude = geopoint[1]), 
-=======
-                         binary(precision=40, latitude = geopoint[0], longitude = geopoint[1]), 
->>>>>>> 3c3feb4efde9c044af2dfb69d210041bcf79b1ee:Geohash/geohashtest/geohash.py
-                         items[3:])
+                         binaryhash(geopoint[0], geopoint[1], 40), items[3:])
             geograph.append(node_edge)
     geograph.sort(key = lambda x: x[2])
     
-<<<<<<< HEAD:Geohash/geohash/binaryhash.py
-    searchgp = binaryhash(0xe6f5da1dc8000025, precision = 37)
-=======
-    searchgp = binary(0xe6f5da1dc8000025, precision = 37)
->>>>>>> 3c3feb4efde9c044af2dfb69d210041bcf79b1ee:Geohash/geohashtest/geohash.py
+    searchgp = binaryhash(0xe6f5da1dc8000025, 38)
     left = bisect.bisect_left(geograph, searchgp, key = lambda x: x[2])
     right = bisect.bisect_right(geograph, searchgp, key = lambda x: x[2])
 
