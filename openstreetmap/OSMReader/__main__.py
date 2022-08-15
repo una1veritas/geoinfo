@@ -123,17 +123,18 @@ if __name__ == '__main__':
     mapbbox = None
     ix = 1
     while ix < len(sys.argv) :
-        # if sys.argv[ix].startswith('-r'):
-        #     ix += 1
-        #     obj = eval(sys.argv[ix])
-        #     if isinstance(obj, (list,tuple,dict)) and len(obj) == 4 :
-        #         if isinstance(obj, dict):
-        #             mapbbox = [obj['s'],obj['e'],obj['n'],obj['w']]
-        #         else:
-        #             mapbbox = obj
-        # else:
-        paths.append(sys.argv[ix])
-        ix += 1
+        if sys.argv[ix].startswith('-g'):
+            ix += 1
+            if ix >= len(sys.argv):
+                print("error: supply GeoHash code fater -g.")
+                exit()
+            ghcode = sys.argv[ix]
+            mapbbox = geohash.decode(ghcode)
+            print(mapbbox)
+            ix += 1
+        else:
+            paths.append(sys.argv[ix])
+            ix += 1
 
     geograph = dict()
     for filename in paths :
@@ -172,12 +173,14 @@ if __name__ == '__main__':
         for wayid, val in links.items():
             (wayclass, gplist) = val
             for ix in range(len(gplist)-1):
-                # (lat, lon) = nodes[gplist[ix]]
-                # if lat < min(mapbbox[0],mapbbox[2]) or \
-                # lat >= max(mapbbox[0],mapbbox[2]) or \
-                # lon < min(mapbbox[1],mapbbox[3]) or \
-                # lon >= max(mapbbox[1],mapbbox[3]) :
-                #     continue
+                if False and  mapbbox != None :
+                    print(mapbbox)
+                    (lat, lon) = nodes[gplist[ix]]
+                    if lat < min(mapbbox[0],mapbbox[2]) or \
+                    lat >= max(mapbbox[0],mapbbox[2]) or \
+                    lon < min(mapbbox[1],mapbbox[3]) or \
+                    lon >= max(mapbbox[1],mapbbox[3]) :
+                        continue
                 if gplist[ix] not in geograph:
                     geograph[gplist[ix]] = (nodes[gplist[ix]],list())
                 if gplist[ix+1] not in geograph:
@@ -191,7 +194,7 @@ if __name__ == '__main__':
         geograph[gpid] = (geograph[gpid][0], sorted(geograph[gpid][1]))
     
 
-    with open('out.geo', mode='w', encoding='utf-8') as fp:
+    with open('output.csv', mode='w', encoding='utf-8') as fp:
         #fp.write(#node id,latitude,longitude,adjacent node id 1, node id 2,...)
         for t in sorted(geograph.items()) :
             fp.write(str(t[0]))

@@ -73,14 +73,7 @@ struct node_edge {
 	}
 };
 
-/*
-int stringcomp(const string & a, const string & b) {
-	int l = min(a.length(),b.length());
-	return a.substr(0,l) < b.substr(0,l);
-}
-*/
-
-std::pair<int,int> geobinary_range(vector<node_edge> & gg, const binarygeohash & gbin) {
+pair<int,int> geobinary_range(vector<node_edge> & gg, const binarygeohash & gbin) {
 	node_edge key(gbin);
 	vector<node_edge>::iterator lb = lower_bound(gg.begin(), gg.end(),
 			key,
@@ -88,7 +81,7 @@ std::pair<int,int> geobinary_range(vector<node_edge> & gg, const binarygeohash &
 	vector<node_edge>::iterator ub = upper_bound(lb, gg.end(),
 			key,
 			[](const node_edge & a, const node_edge &b){ return a.gbin < b.gbin; } );
-	return std::pair<int,int>(lb - gg.begin(),ub - gg.begin());
+	return pair<int,int>(lb - gg.begin(),ub - gg.begin());
 }
 
 
@@ -96,12 +89,12 @@ int main(const int argc, const char * argv[]) {
 	ifstream csvf;
 
 	if (argc <= 1) {
-		cerr << "arg as a file name needed." << endl;
+		cerr << "arg as a geograph file name needed." << endl;
 		exit(EXIT_FAILURE);
 	}
 	csvf.open(argv[1]);
 	if (! csvf ) {
-		cerr << "open " << argv[1] << " failed." << endl;
+		cerr << "open a geograph file " << argv[1] << " failed." << endl;
 		exit(EXIT_FAILURE);
 	}
 
@@ -138,9 +131,13 @@ int main(const int argc, const char * argv[]) {
     cout << endl;
     cout << "goegraph size = " << ggraph.size() << endl;
 
+    if (argc < 3) {
+		cerr << "arg as a tracked-points file name needed." << endl;
+		exit(EXIT_FAILURE);
+    }
 	csvf.open(argv[2]);
 	if (! csvf ) {
-		cerr << "open " << argv[2] << " failed." << endl;
+		cerr << "open a tracked-points file " << argv[2] << " failed." << endl;
 		exit(EXIT_FAILURE);
 	}
 	vector<geopoint> mytrack;
@@ -154,11 +151,11 @@ int main(const int argc, const char * argv[]) {
     }
     csvf.close();
 
-
+    // 軌跡の各点について
     for(unsigned int i = 0; i < mytrack.size(); ++i) {
     	binarygeohash gid = binarygeohash(mytrack[i].lat, mytrack[i].lon,37);
     	unsigned int countgp;
-    	std::pair<uint64_t,uint64_t> range;
+    	pair<uint64_t,uint64_t> range;
     	unsigned int z;
     	cout << mytrack[i] << " ";
     	for(z = 0; z < 5; ++z) {
