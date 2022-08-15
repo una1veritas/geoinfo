@@ -123,21 +123,22 @@ if __name__ == '__main__':
     mapbbox = None
     ix = 1
     while ix < len(sys.argv) :
-        if sys.argv[ix].startswith('-r'):
-            ix += 1
-            obj = eval(sys.argv[ix])
-            if isinstance(obj, (list,tuple,dict)) and len(obj) == 4 :
-                if isinstance(obj, dict):
-                    mapbbox = [obj['s'],obj['e'],obj['n'],obj['w']]
-                else:
-                    mapbbox = obj
-        else:
-            paths.append(sys.argv[ix])
+        # if sys.argv[ix].startswith('-r'):
+        #     ix += 1
+        #     obj = eval(sys.argv[ix])
+        #     if isinstance(obj, (list,tuple,dict)) and len(obj) == 4 :
+        #         if isinstance(obj, dict):
+        #             mapbbox = [obj['s'],obj['e'],obj['n'],obj['w']]
+        #         else:
+        #             mapbbox = obj
+        # else:
+        paths.append(sys.argv[ix])
         ix += 1
 
     geograph = dict()
     for filename in paths :
         try:
+            print(filename)
             with open(filename, encoding='utf-8') as fp:
                 #with open('test.xml') as fp:
                 xmlbytes = bytes(bytearray(fp.read(), encoding='utf-8'))
@@ -171,12 +172,12 @@ if __name__ == '__main__':
         for wayid, val in links.items():
             (wayclass, gplist) = val
             for ix in range(len(gplist)-1):
-                (lat, lon) = nodes[gplist[ix]]
-                if lat < min(mapbbox[0],mapbbox[2]) or \
-                lat >= max(mapbbox[0],mapbbox[2]) or \
-                lon < min(mapbbox[1],mapbbox[3]) or \
-                lon >= max(mapbbox[1],mapbbox[3]) :
-                    continue
+                # (lat, lon) = nodes[gplist[ix]]
+                # if lat < min(mapbbox[0],mapbbox[2]) or \
+                # lat >= max(mapbbox[0],mapbbox[2]) or \
+                # lon < min(mapbbox[1],mapbbox[3]) or \
+                # lon >= max(mapbbox[1],mapbbox[3]) :
+                #     continue
                 if gplist[ix] not in geograph:
                     geograph[gplist[ix]] = (nodes[gplist[ix]],list())
                 if gplist[ix+1] not in geograph:
