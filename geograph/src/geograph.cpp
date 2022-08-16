@@ -16,7 +16,10 @@
 #include <stdexcept>
 #include <cinttypes>
 
-using namespace std;
+using std::pair;
+using std::vector;
+using std::cout;
+using std::endl;
 
 #include "bgeohash.h"
 //#include <cmath>
@@ -81,7 +84,7 @@ pair<int,int> geobinary_range(vector<node_edge> & gg, const binarygeohash & gbin
 	vector<node_edge>::iterator ub = upper_bound(lb, gg.end(),
 			key,
 			[](const node_edge & a, const node_edge &b){ return a.gbin < b.gbin; } );
-	return pair<int,int>(lb - gg.begin(),ub - gg.begin());
+	return pair<int,int>(lb - gg.begin(), ub - gg.begin());
 }
 
 
