@@ -253,22 +253,6 @@ namespace geohash {
 		return codes;
 	}
 
-//	static string get_neighbor(const string & hash, int direction) {
-//		char last_char = hash[hash.length() - 1];
-//
-//	    int is_odd = hash.length() % 2;
-//	    char * const *border = is_odd ? odd_borders : even_borders;
-//	    char * const *neighbor = is_odd ? odd_neighbors : even_neighbors;
-//
-//	    string base(hash, hash.length() - 1);
-//
-//		if(index(last_char, border[direction]) != -1)
-//			base = get_neighbor(base, direction);
-//
-//	    int neighbor_index = index(last_char, neighbor[direction]);
-//	    last_char = char_map[neighbor_index];
-//		return base + last_char;
-//	}
 };
 
 #endif /* GEOHASH_H_ */
