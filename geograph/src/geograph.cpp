@@ -95,16 +95,17 @@ std::pair<int,int> geobinary_range(vector<node_edge> & gg, const binarygeohash &
 int main(const int argc, const char * argv[]) {
 	ifstream csvf;
 
-	if (argc <= 1) {
-		cerr << "arg as a file name needed." << endl;
+	if (argc != 3) {
+		cerr << "usage: command [geograph csv file name] [GPS trajectory csv file name]" << endl;
 		exit(EXIT_FAILURE);
 	}
+
+	cout << "reading geograph file." << endl;
 	csvf.open(argv[1]);
 	if (! csvf ) {
 		cerr << "open " << argv[1] << " failed." << endl;
 		exit(EXIT_FAILURE);
 	}
-
 	vector<node_edge> ggraph;
     string line;
     while (getline(csvf, line)) {
@@ -127,7 +128,7 @@ int main(const int argc, const char * argv[]) {
     		[](const node_edge & a, const node_edge & b) { return a.gbin < b.gbin; }
     		);
 
-
+    /*
     int count = 0;
     for(auto i = ggraph.begin(); i != ggraph.end(); ++i) {
     	cout << *i << endl;
@@ -136,8 +137,10 @@ int main(const int argc, const char * argv[]) {
     		break;
     }
     cout << endl;
+    */
     cout << "goegraph size = " << ggraph.size() << endl;
 
+    cout << "reading GPS trajectory file." << endl;
 	csvf.open(argv[2]);
 	if (! csvf ) {
 		cerr << "open " << argv[2] << " failed." << endl;
@@ -154,7 +157,7 @@ int main(const int argc, const char * argv[]) {
     }
     csvf.close();
 
-
+    // collect points on the map along with the points in the GPS trajectory.
     for(unsigned int i = 0; i < mytrack.size(); ++i) {
     	binarygeohash gid = binarygeohash(mytrack[i].lat, mytrack[i].lon,37);
     	unsigned int countgp;
