@@ -10,6 +10,7 @@
 #include <fstream>
 #include <string>
 #include <vector>
+#include <set>
 #include <iomanip>
 #include <algorithm>
 
@@ -38,7 +39,14 @@ vector<string> split(string& input, char delimiter) {
 struct geopoint {
 	double lat, lon;
 
-	geopoint(const double & lattitude, const double & longitude) :lat(lattitude), lon(longitude) { }
+	geopoint(const double & lattitude, const double & longitude)
+	: lat(lattitude), lon(longitude) { }
+
+	geopoint(void) : lat(0.0), lon(0.0) {}
+
+	binarygeohash bgeohash(const int & precision = 40) {
+		return  binarygeohash(lat, lon, precision);
+	}
 
 	friend ostream & operator<<(ostream & out, const geopoint & p) {
 		out << " (" << fixed << setprecision(7) << p.lat << ","
@@ -47,45 +55,131 @@ struct geopoint {
 	}
 };
 
-struct node_edge {
-	uint64_t id;
-	double lat, lon;
-	binarygeohash gbin;
-	vector<uint64_t> adjacents;
+struct geograph {
+public:
+	struct node {
+		uint64_t osmid;
+		geopoint gpoint;
+		binarygeohash ghash;
+		std::vector<uint64_t> adjlist;
 
+		node(const uint64_t & id, const double & latitude, const double & longitude)
+		: osmid(id), gpoint(latitude, longitude), adjlist({}) {
+			ghash = gpoint.bgeohash(prec);
+		}
+
+		node(const uint64_t & id, const double & latitude, const double & longitude, const std::vector<uint64_t> & alist)
+		: osmid(id), gpoint(latitude, longitude), adjlist(alist) {
+			ghash = gpoint.bgeohash(prec);
+		}
+
+		// dummy for a search key
+		node(const binarygeohash & hash) : osmid(0), gpoint(), ghash(hash), adjlist({}) { }
+
+		~node() {
+			adjlist.clear();
+		}
+
+		uint64_t id() const { return osmid; }
+
+		friend std::ostream & operator<<(std::ostream & out, const node & n) {
+			out << "(" << std::dec << std::setw(10) << n.id() << " " << n.ghash << " "
+					<< " (" << std::fixed << std::setprecision(7) << n.gpoint.lat << ","
+					<< std::setprecision(7) << n.gpoint.lon << "), ";
+			out << "{" << std::dec;
+			if ( n.adjlist.size() > 0 ) {
+				for(unsigned int i = 0; i+1 < n.adjlist.size(); ++i) {
+					out << n.adjlist[i] << ", ";
+				}
+				out << n.adjlist[n.adjlist.size() - 1] << "} ";
+			}
+			out << ") ";
+			return out;
+		}
+	};
+
+	std::vector<node> nodes;
+
+private:
 	static constexpr int prec = 40;
 
-	node_edge(void) : id(0), lat(0), lon(0), gbin(0), adjacents({}) { }
-	node_edge(const binarygeohash & gid) : id(0), lat(0), lon(0), gbin(gid), adjacents({}) { }
+public:
+	unsigned int size() const { return nodes.size(); }
 
-	node_edge(const uint64_t & id, const double & latitude, const double & longitude)
-	: id(id), lat(latitude), lon(longitude), adjacents({}) {
-		gbin = binarygeohash(lat, lon, prec);
+
+	void push_back(const uint64_t & id, const double & lat, const double & lon, const std::vector<uint64_t> & alist) {
+		nodes.push_back(node(id, lat, lon, alist));
 	}
 
-	friend ostream & operator<<(ostream & out, const node_edge & ne) {
-		out << dec << setw(10) << ne.id << " " << ne.gbin << " "
-				<< " (" << fixed << setprecision(7) << ne.lat << ","
-				<< setprecision(7) << ne.lon << "), ";
-		out << "{" << dec;
-		for(unsigned int i = 0; i+1 < ne.adjacents.size(); ++i) {
-			out << ne.adjacents[i] << ", ";
+    void sort() {
+    	std::sort(nodes.begin(), nodes.end(),
+    			[](const node & a, const node & b) { return a.ghash < b.ghash; }
+    	);
+    }
+
+    // all the nodes being adjacent to id.
+    std::set<uint64_t> adjacents(const uint64_t & id) const {
+    	std::set<uint64_t> adjset;
+    	for(auto & n: nodes) {
+    		if (n.id() == id) {
+    			for(const auto & adjid : n.adjlist) {
+    				adjset.insert(adjid);
+    			}
+    		} else {
+    			const auto & list = n.adjlist;
+    			if (find(list.begin(), list.end(), id) != list.end()) {
+    				adjset.insert(n.id());
+    			}
+    		}
+    	}
+    	return adjset;
+    }
+
+    // all the edges having id as an end point.
+    std::set<std::pair<uint64_t,uint64_t>> adjacent_edges(const uint64_t & id) const {
+    	std::set<std::pair<uint64_t, uint64_t>> edgeset;
+    	for(auto & n: nodes) {
+    		if (n.id() == id) {
+    			for(const auto & adjid : n.adjlist) {
+    				if (id < adjid) {
+    					edgeset.insert(std::pair<uint64_t,uint64_t>(id, adjid));
+    				} else {
+    					edgeset.insert(std::pair<uint64_t,uint64_t>(adjid, id));
+    				}
+    			}
+    		} else {
+    			const auto & list = n.adjlist;
+    			if (find(list.begin(), list.end(), id) != list.end()) {
+    				if (id < n.id()) {
+    					edgeset.insert(std::pair<uint64_t,uint64_t>(id, n.id()));
+    				} else {
+    					edgeset.insert(std::pair<uint64_t,uint64_t>(n.id(),id));
+    				}
+    			}
+    		}
+    	}
+    	return edgeset;
+    }
+
+	std::pair<int,int> range(const binarygeohash & gbin) {
+		node key(gbin);
+		vector<node>::iterator lb = lower_bound(nodes.begin(), nodes.end(),
+				key,
+				[](const node & a, const node &b){ return a.ghash < b.ghash; } );
+		vector<node>::iterator ub = upper_bound(lb, nodes.end(),
+				key,
+				[](const node & a, const node &b){ return a.ghash < b.ghash; } );
+		return std::pair<int,int>(lb - nodes.begin(), ub - nodes.begin());
+	}
+
+	friend std::ostream & operator<<(std::ostream & out, const geograph & gg) {
+		for(const node & n : gg.nodes) {
+			out << n << endl;
 		}
-		out << ne.adjacents[ne.adjacents.size() -1] << "} ";
 		return out;
 	}
 };
 
-pair<int,int> geobinary_range(vector<node_edge> & gg, const binarygeohash & gbin) {
-	node_edge key(gbin);
-	vector<node_edge>::iterator lb = lower_bound(gg.begin(), gg.end(),
-			key,
-			[](const node_edge & a, const node_edge &b){ return a.gbin < b.gbin; } );
-	vector<node_edge>::iterator ub = upper_bound(lb, gg.end(),
-			key,
-			[](const node_edge & a, const node_edge &b){ return a.gbin < b.gbin; } );
-	return pair<int,int>(lb - gg.begin(), ub - gg.begin());
-}
 
 
 int main(const int argc, const char * argv[]) {
@@ -102,7 +196,7 @@ int main(const int argc, const char * argv[]) {
 		cerr << "open a geograph file " << argv[1] << " failed." << endl;
 		exit(EXIT_FAILURE);
 	}
-	vector<node_edge> ggraph;
+	geograph ggraph;
     string line;
     while (getline(csvf, line)) {
         vector<string> strvec = split(line, ',');
@@ -113,27 +207,26 @@ int main(const int argc, const char * argv[]) {
 		uint64_t id = stoull(strvec[0]);
 		double lat = stod(strvec[1]);
 		double lon = stod(strvec[2]);
-        node_edge a_node(id,lat,lon);
+        std::vector<uint64_t> adjacents;
         for(unsigned int i = 3; i < strvec.size(); ++i)
-        	a_node.adjacents.push_back(stoull(strvec[i]));
-        ggraph.push_back(a_node);
+        	adjacents.push_back(stoull(strvec[i]));
+        ggraph.push_back(id, lat, lon, adjacents);
+        adjacents.clear();
     }
     csvf.close();
+    ggraph.sort();
 
-    sort(ggraph.begin(), ggraph.end(),
-    		[](const node_edge & a, const node_edge & b) { return a.gbin < b.gbin; }
-    		);
-
-    /*
     int count = 0;
-    for(auto i = ggraph.begin(); i != ggraph.end(); ++i) {
+    for(auto i = ggraph.nodes.begin(); i != ggraph.nodes.end(); ++i) {
     	cout << *i << endl;
     	count += 1;
-    	if (count > 100)
+    	if (count > 100) {
+    		cout << "..." << endl;
     		break;
+    	}
     }
     cout << endl;
-    */
+
     cout << "goegraph size = " << ggraph.size() << endl;
 
     cout << "reading GPS trajectory file." << endl;
@@ -157,23 +250,32 @@ int main(const int argc, const char * argv[]) {
     for(unsigned int i = 0; i < mytrack.size(); ++i) {
     	binarygeohash gid = binarygeohash(mytrack[i].lat, mytrack[i].lon,37);
     	unsigned int countgp;
-    	pair<uint64_t,uint64_t> range;
+    	std::pair<uint64_t,uint64_t> range;
     	unsigned int z;
     	cout << mytrack[i] << " ";
-    	for(z = 0; z < 5; ++z) {
+    	for(z = 0; z < 2; ++z) {
 			vector<binarygeohash> vec = gid.neighbors(z);
+			cout << vec.size() << " ";
 			countgp = 0;
-			for(auto i = vec.begin(); i != vec.end(); ++i) {
-				node_edge key(*i);
-				range = geobinary_range(ggraph, *i);
-				countgp += range.second - range.first;
-				cout << i->geohash() << " " << *i << i->decode() << " "; // << " [" << dec << range.first << ", " << range.second << ") ";
+
+			std::set<std::pair<uint64_t,uint64_t>> edges;
+			for(auto & i : vec) {
+				geograph::node key(i);
+				range = ggraph.range(i);
+				for(unsigned int i = range.first; i < range.second; ++i) {
+					edges.merge(ggraph.adjacent_edges(ggraph.nodes[i].id()));
+				}
 			}
+			countgp = edges.size();
+			edges.clear();
+			/*
 			if (countgp > 0)
 				break;
+			*/
     	}
     	cout << dec << countgp << endl;
     }
+    cout << "finished." << endl;
 
     return EXIT_SUCCESS;
 }
