@@ -11,6 +11,7 @@
 #include <string>
 #include <vector>
 #include <set>
+#include <map>
 #include <iomanip>
 #include <algorithm>
 
@@ -42,8 +43,6 @@ struct geopoint {
 	geopoint(const double & lattitude, const double & longitude)
 	: lat(lattitude), lon(longitude) { }
 
-	geopoint(void) : lat(0.0), lon(0.0) {}
-
 	binarygeohash bgeohash(const int & precision = 40) {
 		return  binarygeohash(lat, lon, precision);
 	}
@@ -56,49 +55,46 @@ struct geopoint {
 };
 
 struct geograph {
+
 public:
-	struct node {
+	struct geonode {
 		uint64_t osmid;
 		geopoint gpoint;
-		binarygeohash ghash;
-		std::vector<uint64_t> adjlist;
+		binarygeohash geohash;
 
-		node(const uint64_t & id, const double & latitude, const double & longitude)
-		: osmid(id), gpoint(latitude, longitude), adjlist({}) {
-			ghash = gpoint.bgeohash(prec);
-		}
+		geonode(const geonode & gn) : osmid(gn.osmid), gpoint(gn.gpoint), geohash(gn.geohash) {}
 
-		node(const uint64_t & id, const double & latitude, const double & longitude, const std::vector<uint64_t> & alist)
-		: osmid(id), gpoint(latitude, longitude), adjlist(alist) {
-			ghash = gpoint.bgeohash(prec);
+		geonode(const uint64_t & id, const double & latitude, const double & longitude)
+		: osmid(id), gpoint(latitude, longitude) {
+			geohash = gpoint.bgeohash(prec);
 		}
 
 		// dummy for a search key
-		node(const binarygeohash & hash) : osmid(0), gpoint(), ghash(hash), adjlist({}) { }
+		geonode(const binarygeohash & hash) : osmid(0), gpoint(0,0), geohash(hash) { }
 
-		~node() {
-			adjlist.clear();
-		}
+		//~geonode() {}
 
 		uint64_t id() const { return osmid; }
 
-		friend std::ostream & operator<<(std::ostream & out, const node & n) {
-			out << "(" << std::dec << std::setw(10) << n.id() << " " << n.ghash << " "
+		bool operator<(const geonode & another) const {
+			return geohash < another.geohash;
+		}
+
+		bool operator==(const geonode & another) const {
+			return geohash == another.geohash;
+		}
+
+		friend std::ostream & operator<<(std::ostream & out, const geonode & n) {
+			out << "(" << std::dec << std::setw(10) << n.id() << " " << n.geohash << " "
 					<< " (" << std::fixed << std::setprecision(7) << n.gpoint.lat << ","
-					<< std::setprecision(7) << n.gpoint.lon << "), ";
-			out << "{" << std::dec;
-			if ( n.adjlist.size() > 0 ) {
-				for(unsigned int i = 0; i+1 < n.adjlist.size(); ++i) {
-					out << n.adjlist[i] << ", ";
-				}
-				out << n.adjlist[n.adjlist.size() - 1] << "} ";
-			}
+					<< std::setprecision(7) << n.gpoint.lon << ") ";
 			out << ") ";
 			return out;
 		}
 	};
 
-	std::vector<node> nodes;
+	set<geonode> nodes;
+	map<uint64_t,set<uint64_t>> adjacent;
 
 private:
 	static constexpr int prec = 40;
@@ -107,74 +103,70 @@ public:
 	unsigned int size() const { return nodes.size(); }
 
 
-	void push_back(const uint64_t & id, const double & lat, const double & lon, const std::vector<uint64_t> & alist) {
-		nodes.push_back(node(id, lat, lon, alist));
+	void insert(const uint64_t & id, const double & lat, const double & lon, const vector<uint64_t> & alist) {
+		nodes.insert(geonode(id, lat, lon));
+		auto itr = adjacent.find(id);
+		if (itr == adjacent.end()) {
+			adjacent[id] = std::set<uint64_t>(alist.begin(),alist.end());
+		}
+		adjacent[id].insert(alist.begin(),alist.end());
+
+		for(auto & xid : alist) {
+			if (adjacent.find(xid) == adjacent.end()) {
+				adjacent[xid] = std::set<uint64_t>();
+			}
+			adjacent[xid].insert(id);
+		}
 	}
 
-    void sort() {
-    	std::sort(nodes.begin(), nodes.end(),
-    			[](const node & a, const node & b) { return a.ghash < b.ghash; }
+	/*
+    vector<pair<binarygeohash,uint64_t>> hashtoid() {
+    	vector<pair<binarygeohash,uint64_t>> hash2id;
+    	for(auto itr = nodes.begin(); itr != nodes.end(); ++itr) {
+    		hash2id.push_back(pair<binarygeohash,uint64_t>(itr->geohash,itr->osmid));
+    	}
+    	std::sort(hash2id.begin(), hash2id.end(),
+    			[](const pair<binarygeohash,uint64_t> & a, const pair<binarygeohash,uint64_t> & b)
+				{ return a.first < b.first; }
     	);
+    	return hash2id;
     }
+    */
 
     // all the nodes being adjacent to id.
-    std::set<uint64_t> adjacents(const uint64_t & id) const {
-    	std::set<uint64_t> adjset;
-    	for(auto & n: nodes) {
-    		if (n.id() == id) {
-    			for(const auto & adjid : n.adjlist) {
-    				adjset.insert(adjid);
-    			}
-    		} else {
-    			const auto & list = n.adjlist;
-    			if (find(list.begin(), list.end(), id) != list.end()) {
-    				adjset.insert(n.id());
-    			}
-    		}
-    	}
-    	return adjset;
+    std::set<uint64_t> adjacents(const uint64_t & id) {
+    	return adjacent[id];
     }
 
     // all the edges having id as an end point.
-    std::set<std::pair<uint64_t,uint64_t>> adjacent_edges(const uint64_t & id) const {
-    	std::set<std::pair<uint64_t, uint64_t>> edgeset;
-    	for(auto & n: nodes) {
-    		if (n.id() == id) {
-    			for(const auto & adjid : n.adjlist) {
-    				if (id < adjid) {
-    					edgeset.insert(std::pair<uint64_t,uint64_t>(id, adjid));
-    				} else {
-    					edgeset.insert(std::pair<uint64_t,uint64_t>(adjid, id));
-    				}
-    			}
-    		} else {
-    			const auto & list = n.adjlist;
-    			if (find(list.begin(), list.end(), id) != list.end()) {
-    				if (id < n.id()) {
-    					edgeset.insert(std::pair<uint64_t,uint64_t>(id, n.id()));
-    				} else {
-    					edgeset.insert(std::pair<uint64_t,uint64_t>(n.id(),id));
-    				}
-    			}
-    		}
+    std::set<pair<uint64_t,uint64_t>> adjacent_edges(const uint64_t & id) {
+    	std::set<pair<uint64_t, uint64_t>> edgeset;
+    	for(auto & adjid : adjacent[id]) {
+			if (id < adjid) {
+				edgeset.insert(pair<uint64_t,uint64_t>(id, adjid));
+			} else {
+				edgeset.insert(pair<uint64_t,uint64_t>(adjid, id));
+			}
     	}
     	return edgeset;
     }
 
-	std::pair<int,int> range(const binarygeohash & gbin) {
-		node key(gbin);
-		vector<node>::iterator lb = lower_bound(nodes.begin(), nodes.end(),
+    /*
+	pair<int,int> range(const vector<pair<binarygeohash,uint64_t>> & h2idvec, const binarygeohash & ghash) {
+		geonode key(ghash);
+		vector<geonode>::iterator lb = lower_bound(ghashtoid.begin(), ghashtoid.end(),
 				key,
-				[](const node & a, const node &b){ return a.ghash < b.ghash; } );
-		vector<node>::iterator ub = upper_bound(lb, nodes.end(),
+				[](const geonode & a, const geonode &b){ return a.geohash < b.geohash; } );
+		vector<geonode>::iterator ub = upper_bound(lb, ghashtoid.end(),
 				key,
-				[](const node & a, const node &b){ return a.ghash < b.ghash; } );
-		return std::pair<int,int>(lb - nodes.begin(), ub - nodes.begin());
+				[](const geonode & a, const geonode &b){ return a.geohash < b.geohash; } );
+		return pair<int,int>(lb - ghashtoid.begin(), ub - ghashtoid.begin());
 	}
+	*/
 
 	friend std::ostream & operator<<(std::ostream & out, const geograph & gg) {
-		for(const node & n : gg.nodes) {
-			out << n << endl;
+		for(const auto & a_node : gg.nodes) {
+			out << a_node << ", " << endl;
 		}
 		return out;
 	}
@@ -210,12 +202,20 @@ int main(const int argc, const char * argv[]) {
         std::vector<uint64_t> adjacents;
         for(unsigned int i = 3; i < strvec.size(); ++i)
         	adjacents.push_back(stoull(strvec[i]));
-        ggraph.push_back(id, lat, lon, adjacents);
+        ggraph.insert(id, lat, lon, adjacents);
         adjacents.clear();
     }
     csvf.close();
-    ggraph.sort();
 
+    // construct the node table sorted by geohash
+    vector<const geograph::geonode *> hash2id;
+    for(auto & a_node : ggraph.nodes) {
+    	hash2id.push_back(&a_node);
+    }
+	std::sort(hash2id.begin(), hash2id.end(), [ ](const geograph::geonode * a, const geograph::geonode * b) { return a->geohash < b->geohash; }
+	);
+
+	// show some entry
     int count = 0;
     for(auto i = ggraph.nodes.begin(); i != ggraph.nodes.end(); ++i) {
     	cout << *i << endl;
@@ -259,11 +259,21 @@ int main(const int argc, const char * argv[]) {
 			countgp = 0;
 
 			std::set<std::pair<uint64_t,uint64_t>> edges;
-			for(auto & i : vec) {
-				geograph::node key(i);
-				range = ggraph.range(i);
+			for(const binarygeohash & ghash : vec) {
+				// binary search algorithm std::range
+				geograph::geonode key(ghash); // dummy node with geohash code
+				auto lb = lower_bound(hash2id.begin(), hash2id.end(), &key,
+							[](const geograph::geonode * a, const geograph::geonode * b)
+							{ return a->geohash < b->geohash; } );
+				auto ub = upper_bound(lb, hash2id.end(), &key,
+							[](const geograph::geonode * a, const geograph::geonode * b)
+							{ return a->geohash < b->geohash; } );
+				range.first = lb - hash2id.begin();
+				range.second = ub - hash2id.begin();
+				//cout << dec << range.first << " : " << range.second << " ";
+
 				for(unsigned int i = range.first; i < range.second; ++i) {
-					edges.merge(ggraph.adjacent_edges(ggraph.nodes[i].id()));
+					edges.merge(ggraph.adjacent_edges(hash2id[i]->id()));
 				}
 			}
 			countgp = edges.size();
