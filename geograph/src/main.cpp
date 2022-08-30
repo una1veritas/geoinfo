@@ -25,8 +25,9 @@ using std::endl;
 
 #include "bgeohash.h"
 #include "geograph.h"
-//#include <cmath>
-//#include "geodistance.h"
+
+#include <cmath>
+#include "geodistance.h"
 
 vector<string> split(string& input, char delimiter) {
     istringstream stream(input);
@@ -37,8 +38,6 @@ vector<string> split(string& input, char delimiter) {
     }
     return result;
 }
-
-
 
 int main(const int argc, const char * argv[]) {
 	ifstream csvf;
@@ -73,20 +72,10 @@ int main(const int argc, const char * argv[]) {
     }
     csvf.close();
 
-    /*
-    // construct the node table sorted by geohash
-    vector<const geograph::geonode *> hash2id;
-    for(auto & a_node : ggraph.nodes) {
-    	hash2id.push_back(&a_node);
-    }
-	std::sort(hash2id.begin(), hash2id.end(), [ ](const geograph::geonode * a, const geograph::geonode * b) { return a->geohash < b->geohash; }
-	);
-	*/
-
-	// show some entry
+	// show some entries.
     int count = 0;
     for(const auto & a_pair : ggraph.nodes) {
-    	cout << a_pair.first << endl;
+    	cout << a_pair.second << endl;
     	count += 1;
     	if (count > 100) {
     		cout << "..." << endl;
@@ -116,21 +105,23 @@ int main(const int argc, const char * argv[]) {
 
     // collect points on the map along with the points in the GPS trajectory.
     for(unsigned int i = 0; i < mytrack.size(); ++i) {
-    	binarygeohash gid = binarygeohash(mytrack[i].lat, mytrack[i].lon,37);
+    	geopoint & gp = mytrack[i];
+    	bgeohash gid = bgeohash(gp.lat, gp.lon,37);
     	unsigned int countgp;
     	std::pair<uint64_t,uint64_t> range;
     	unsigned int z;
-    	cout << mytrack[i] << " ";
+    	cout << gp << " ";
     	for(z = 0; z < 2; ++z) {
-			vector<binarygeohash> vec = gid.neighbors(z);
+			vector<bgeohash> vec = gid.neighbors(z);
 			cout << vec.size() << " ";
 			countgp = 0;
 
 			std::set<std::pair<uint64_t,uint64_t>> edges;
-			for(const binarygeohash & ghash : vec) {
+			for(const bgeohash & ghash : vec) {
 				// binary search algorithm std::range
 				for(auto & a_node : ggraph.geohash_range(ghash)) {
-					edges.merge(ggraph.adjacent_edges(a_node.id()));
+					if (gp.distance_to(a_node.gpoint) <= 45.0)
+						edges.merge(ggraph.adjacent_edges(a_node.id()));
 				}
 			}
 			countgp = edges.size();

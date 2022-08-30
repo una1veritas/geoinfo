@@ -28,13 +28,13 @@ namespace geodistance {
 		// 平均緯度
 		double latavr = (plat + qlat) / 2.0;
 
-		double a = 6378137.0; // 赤道半径
-		double f = 1/298.257222101;  // 扁平率
-		//double b = 6356752.314140356; // 極半径
+		constexpr double a = 6378137.0; // 赤道半径
+		//constexpr double f = 1/298.257222101;  // 扁平率
+		//constexpr double b = 6356752.314140356; // 極半径
 		//$e^2 = ($a*$a - $b*$b) / ($a*$a);
-		double e2 = 0.00669438002301188; // 第一離心率^2
+		constexpr double e2 = 0.00669438002301188; // 第一離心率^2
 		//$a1e2 = $a * (1 - $e2);
-		double a1e2 = 6335439.32708317; // mode ? 6335439.32708317 : 6334832.10663254; // 赤道上の子午線曲率半径
+		constexpr double a1e2 = 6335439.32708317; // mode ? 6335439.32708317 : 6334832.10663254; // 赤道上の子午線曲率半径
 
 		double sin_latavr = sin(latavr);
 		double W2 = 1.0 - e2 * (sin_latavr*sin_latavr);
