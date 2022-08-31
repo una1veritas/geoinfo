@@ -126,7 +126,7 @@ if __name__ == '__main__':
         if sys.argv[ix].startswith('-g'):
             ix += 1
             if ix >= len(sys.argv):
-                print("error: supply GeoHash code fater -g.")
+                print("error: supply GeoHash code after -g.")
                 exit()
             ghcode = sys.argv[ix]
             mapbbox = geohash.decode(ghcode)

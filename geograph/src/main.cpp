@@ -23,7 +23,7 @@ using std::vector;
 using std::cout;
 using std::endl;
 
-#include "bgeohash.h"
+#include "bingeohash.h"
 #include "geograph.h"
 
 #include <cmath>
@@ -74,7 +74,7 @@ int main(const int argc, const char * argv[]) {
 
 	// show some entries.
     int count = 0;
-    for(const auto & a_pair : ggraph.nodes) {
+    for(const auto & a_pair : ggraph.nodemap()) {
     	cout << a_pair.second << endl;
     	count += 1;
     	if (count > 100) {
@@ -84,12 +84,12 @@ int main(const int argc, const char * argv[]) {
     }
     cout << endl;
 
-    cout << "goegraph size = " << ggraph.size() << endl;
+    cout << "goegraph size = " << std::dec << ggraph.size() << endl;
 
     cout << "reading GPS trajectory file." << endl;
 	csvf.open(argv[2]);
 	if (! csvf ) {
-		cerr << "open a tracked-points file " << argv[2] << " failed." << endl;
+		cerr << "open a trajectory file " << argv[2] << " failed." << endl;
 		exit(EXIT_FAILURE);
 	}
 	vector<geopoint> mytrack;
@@ -106,32 +106,34 @@ int main(const int argc, const char * argv[]) {
     // collect points on the map along with the points in the GPS trajectory.
     for(unsigned int i = 0; i < mytrack.size(); ++i) {
     	geopoint & gp = mytrack[i];
-    	bgeohash gid = bgeohash(gp.lat, gp.lon,37);
-    	unsigned int countgp;
+    	bingeohash gid = bingeohash(gp.lat, gp.lon,37);
     	std::pair<uint64_t,uint64_t> range;
     	unsigned int z;
     	cout << gp << " ";
+		std::set<std::pair<uint64_t,uint64_t>> edges;
     	for(z = 0; z < 2; ++z) {
-			vector<bgeohash> vec = gid.neighbors(z);
+			vector<bingeohash> vec = gid.neighbors(z);
 			cout << vec.size() << " ";
-			countgp = 0;
-
-			std::set<std::pair<uint64_t,uint64_t>> edges;
-			for(const bgeohash & ghash : vec) {
+			edges.clear();
+			for(const bingeohash & ghash : vec) {
 				// binary search algorithm std::range
 				for(auto & a_node : ggraph.geohash_range(ghash)) {
-					if (gp.distance_to(a_node.gpoint) <= 45.0)
-						edges.merge(ggraph.adjacent_edges(a_node.id()));
+					for(auto & b : ggraph.adjacent_nodes(a_node.id())) {
+						if (gp.distance_to(a_node.point(), ggraph.node(b).point()) <= 30.0) {
+							if (a_node.id() < b)
+								edges.insert(std::pair<uint64_t,uint64_t>(a_node.id(),b));
+							else
+								edges.insert(std::pair<uint64_t,uint64_t>(b,a_node.id()));
+						}
+					}
 				}
 			}
-			countgp = edges.size();
-			edges.clear();
-			/*
-			if (countgp > 0)
-				break;
-			*/
     	}
-    	cout << dec << countgp << endl;
+    	cout << dec << edges.size() << " ";
+    	for(auto & an_edge : edges) {
+    		cout << "(" << an_edge.first << " - " << an_edge.second << "), ";
+    	}
+    	cout << endl;
     }
     cout << "finished." << endl;
 

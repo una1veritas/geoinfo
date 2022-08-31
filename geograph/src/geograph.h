@@ -9,7 +9,7 @@
 #define GEOGRAPH_H_
 
 
-#include "bgeohash.h"
+#include "bingeohash.h"
 //#include <cmath>
 //#include "geodistance.h"
 
@@ -19,11 +19,15 @@ struct geopoint {
 	geopoint(const double & lattitude, const double & longitude)
 	: lat(lattitude), lon(longitude) { }
 
-	bgeohash geohash(const int & precision = 40) {
-		return  bgeohash(lat, lon, precision);
+	bingeohash geohash(const int & precision = 40) const {
+		return  bingeohash(lat, lon, precision);
 	}
 
 	double distance_to(const geopoint & q) const;
+	double distance_to(const geopoint &q1, const geopoint &q2) const;
+	double inner_prod(const geopoint & a, const geopoint & b) const;
+	double outer_prod_norm(const geopoint & a, const geopoint & b) const;
+
 
 	friend ostream & operator<<(ostream & out, const geopoint & p) {
 		out << " (" << fixed << setprecision(7) << p.lat << ","
@@ -33,12 +37,13 @@ struct geopoint {
 };
 
 struct geograph {
-
 public:
 	struct geonode {
 		uint64_t osmid;
 		geopoint gpoint;
-		bgeohash geohash;
+		bingeohash geohash;
+
+		static constexpr int prec = 40;
 
 		geonode(void) : osmid(0), gpoint(0, 0) { geohash = gpoint.geohash(prec); }
 
@@ -50,11 +55,13 @@ public:
 		}
 
 		// dummy for a search key
-		geonode(const bgeohash & hash) : osmid(0), gpoint(0,0), geohash(hash) { }
+		geonode(const bingeohash & hash) : osmid(0), gpoint(0,0), geohash(hash) { }
 
 		//~geonode() {}
 
-		uint64_t id() const { return osmid; }
+		const uint64_t & id() const { return osmid; }
+		const geopoint & point() const { return gpoint; }
+		const bingeohash & bingeohash() const { return geohash; }
 
 		bool operator<(const geonode & b) const {
 			return osmid < b.osmid;
@@ -71,25 +78,26 @@ public:
 			out << ") ";
 			return out;
 		}
+
 	};
 
+private:
 	struct geohash_compare {
 		bool operator() (geonode * a, geonode * b) const {
-			return a->geohash < b->geohash;
+			return a->bingeohash() < b->bingeohash();
 		}
 	};
 
+private:
 	map<uint64_t, geonode> nodes;
 	map<uint64_t,std::set<uint64_t>> adjacents;
 	set<geonode *,geohash_compare> hashes;
 
-private:
-	static constexpr int prec = 40;
-
 public:
 	unsigned int size() const { return nodes.size(); }
-	geonode node(const uint64_t & id) { return nodes[id]; }
+	const geonode & node(const uint64_t & id) const { return nodes.at(id); }
 
+	const map<uint64_t, geonode> & nodemap() const { return nodes;}
 	void insert(const uint64_t & id, const double & lat, const double & lon, const vector<uint64_t> & alist);
 
 	/*
@@ -107,12 +115,12 @@ public:
     */
 
     // all the nodes being adjacent to id.
-    std::set<uint64_t> adjacent_nodes(const uint64_t & id);
+    const std::set<uint64_t> & adjacent_nodes(const uint64_t & id) const;
 
     // all the edges having id as an end point.
-    std::set<std::pair<uint64_t,uint64_t>> adjacent_edges(const uint64_t & id);
+    std::set<std::pair<uint64_t,uint64_t>> adjacent_edges(const uint64_t & id) const;
 
-    std::vector<geograph::geonode> geohash_range(const bgeohash & ghash);
+    std::vector<geonode> geohash_range(const bingeohash & ghash);
 
 	friend std::ostream & operator<<(std::ostream & out, const geograph & gg) {
 		for(const auto & a_pair : gg.nodes) {

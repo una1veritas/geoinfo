@@ -24,7 +24,7 @@
 using std::cout;
 using std::endl;
 
-#include "bgeohash.h"
+#include "bingeohash.h"
 #include "geograph.h"
 
 #define DEG2RAD(x)  ((std::numbers::pi / 180.0) * (x))
@@ -61,13 +61,49 @@ double geopoint::distance_to(const geopoint & q) const {
     return sqrt((t1*t1) + (t2*t2));
 }
 
+double geopoint::inner_prod(const geopoint & a, const geopoint & b) const {
+	double ax = distance_to(geopoint(lat, a.lon));
+	double ay = distance_to(geopoint(a.lat, lon));
+	double bx = distance_to(geopoint(lat, b.lon));
+	double by = distance_to(geopoint(b.lat, lon));
+	if (a.lon < lon) ax = -ax;
+	if (a.lat < lat) ay = -ay;
+	if (b.lon < lon) bx = -bx;
+	if (b.lat < lat) by = -by;
+	return (ax * bx) + (ay * by);
+}
+
+double geopoint::outer_prod_norm(const geopoint & a, const geopoint & b) const {
+	double ax = distance_to(geopoint(lat, a.lon));
+	double ay = distance_to(geopoint(a.lat, lon));
+	double bx = distance_to(geopoint(lat, b.lon));
+	double by = distance_to(geopoint(b.lat, lon));
+	if (a.lon < lon) ax = -ax;
+	if (a.lat < lat) ay = -ay;
+	if (b.lon < lon) bx = -bx;
+	if (b.lat < lat) by = -by;
+	return (ax * by) - (ay * bx);
+}
+
+
+double geopoint::distance_to(const geopoint &q1, const geopoint &q2) const {
+	if ( q1.inner_prod(*this, q2) <= 0.0 ) { // < 0.0
+		return distance_to(q1);
+	}
+	if ( q2.inner_prod(q1, *this) < 0.0 ) { // < 0.0
+		return distance_to(q2);
+	}
+	return abs(q1.outer_prod_norm(q2, *this)) / q1.distance_to(q2);
+}
+
 void geograph::insert(const uint64_t & id, const double & lat, const double & lon, const vector<uint64_t> & alist) {
 	nodes[id] = geonode(id,lat,lon);
 	if (adjacents.find(id) == adjacents.end()) {
 		adjacents[id] = std::set<uint64_t>(alist.begin(),alist.end());
 	} else {
 		for(const uint64_t & adj_id : alist) {
-			adjacents[id].insert(adj_id) ;
+			//if (adj_id != id)
+			adjacents[id].insert(adj_id);
 		}
 	}
 	hashes.insert(&nodes[id]);
@@ -76,19 +112,19 @@ void geograph::insert(const uint64_t & id, const double & lat, const double & lo
 		if (adjacents.find(xid) == adjacents.end()) {
 			adjacents[xid] = std::set<uint64_t>();
 		}
-		adjacents[id].insert(id);
+		adjacents[xid].insert(id);
 	}
 }
 
-std::set<uint64_t> geograph::adjacent_nodes(const uint64_t & id) {
-	return adjacents[id];
+const std::set<uint64_t> & geograph::adjacent_nodes(const uint64_t & id) const {
+	return adjacents.at(id);
 }
 
 
 // all the edges having id as an end point.
-std::set<std::pair<uint64_t,uint64_t>> geograph::adjacent_edges(const uint64_t & id) {
+std::set<std::pair<uint64_t,uint64_t>> geograph::adjacent_edges(const uint64_t & id) const {
 	std::set<std::pair<uint64_t, uint64_t>> edgeset;
-	for(auto & adjid : adjacents[id]) {
+	for(auto & adjid : adjacents.at(id) ) {
 		if (id < adjid) {
 			edgeset.insert(std::pair<uint64_t,uint64_t>(id, adjid));
 		} else {
@@ -99,9 +135,9 @@ std::set<std::pair<uint64_t,uint64_t>> geograph::adjacent_edges(const uint64_t &
 }
 
 
-std::vector<geograph::geonode> geograph::geohash_range(const bgeohash & ghash) {
+std::vector<geograph::geonode> geograph::geohash_range(const bingeohash & ghash) {
 	vector<geograph::geonode> tmp;
-	geonode key(ghash);
+	geograph::geonode key(ghash);
 	set<geograph::geonode*>::const_iterator lb = hashes.lower_bound(&key);
 	set<geograph::geonode*>::const_iterator ub = hashes.upper_bound(&key);
 	for(;lb != ub; ++lb) {
