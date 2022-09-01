@@ -99,6 +99,8 @@ public:
 
 	const map<uint64_t, geonode> & nodemap() const { return nodes;}
 	void insert(const uint64_t & id, const double & lat, const double & lon, const vector<uint64_t> & alist);
+	void insert_node(const geonode & gnode);
+	void insert_edge(const std::pair<uint64_t, uint64_t> & edge);
 
 	/*
     vector<pair<binarygeohash,uint64_t>> hashtoid() {

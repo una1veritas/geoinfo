@@ -116,6 +116,24 @@ void geograph::insert(const uint64_t & id, const double & lat, const double & lo
 	}
 }
 
+void geograph::insert_node(const geograph::geonode & gnode) {
+	nodes[gnode.id()] = gnode;
+	if (adjacents.find(gnode.id()) == adjacents.end()) {
+		adjacents[gnode.id()] = std::set<uint64_t>();
+	}
+	hashes.insert(&nodes[gnode.id()]);
+}
+
+void geograph::insert_edge(const std::pair<uint64_t, uint64_t> & edge) {
+	if (nodes.find(edge.first) == nodes.end() or nodes.find(edge.second) == nodes.end()) {
+		cerr << "tried to add the edge with undefined end-point(s) " << edge.first << ", " << edge.second << ". "  << endl;
+		return;
+	}
+	adjacents[edge.first].insert(edge.second);
+	adjacents[edge.second].insert(edge.first);
+
+}
+
 const std::set<uint64_t> & geograph::adjacent_nodes(const uint64_t & id) const {
 	return adjacents.at(id);
 }
