@@ -89,7 +89,7 @@ int main(const int argc, const char * argv[]) {
     cout << "reading GPS trajectory file." << endl;
 	csvf.open(argv[2]);
 	if (! csvf ) {
-		cerr << "open a trajectory file " << argv[2] << " failed." << endl;
+		cerr << "open a trajectory file '" << argv[2] << "' failed." << endl;
 		exit(EXIT_FAILURE);
 	}
 	vector<geopoint> mytrack;
@@ -103,15 +103,14 @@ int main(const int argc, const char * argv[]) {
     }
     csvf.close();
 
-    // collect points on the map along with the points in the GPS trajectory.
+    // collect road segments on the map along with the points in the GPS trajectory.
+    geograph roadsegs;
     for(unsigned int i = 0; i < mytrack.size(); ++i) {
     	geopoint & gp = mytrack[i];
     	bingeohash gid = bingeohash(gp.lat, gp.lon,37);
-    	std::pair<uint64_t,uint64_t> range;
-    	unsigned int z;
     	cout << gp << " ";
 		std::set<std::pair<uint64_t,uint64_t>> edges;
-    	for(z = 0; z < 2; ++z) {
+    	for(unsigned int z = 0; z < 2; ++z) {
 			vector<bingeohash> vec = gid.neighbors(z);
 			cout << vec.size() << " ";
 			edges.clear();
@@ -120,6 +119,8 @@ int main(const int argc, const char * argv[]) {
 				for(auto & a_node : ggraph.geohash_range(ghash)) {
 					for(auto & b : ggraph.adjacent_nodes(a_node.id())) {
 						if (gp.distance_to(a_node.point(), ggraph.node(b).point()) <= 30.0) {
+							roadsegs.insert_node(a_node);
+							roadsegs.insert_node(ggraph.node(b));
 							if (a_node.id() < b)
 								edges.insert(std::pair<uint64_t,uint64_t>(a_node.id(),b));
 							else
@@ -131,6 +132,7 @@ int main(const int argc, const char * argv[]) {
     	}
     	cout << dec << edges.size() << " ";
     	for(auto & an_edge : edges) {
+    		roadsegs.insert_edge(an_edge);
     		cout << "(" << an_edge.first << " - " << an_edge.second << "), ";
     	}
     	cout << endl;
