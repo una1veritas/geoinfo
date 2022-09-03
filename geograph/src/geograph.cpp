@@ -93,6 +93,10 @@ double geopoint::distance_to(const geopoint &q1, const geopoint &q2) const {
 
 void geograph::insert(const uint64_t & id, const double & lat, const double & lon, const vector<uint64_t> & alist) {
 	nodes[id] = geonode(id,lat,lon);
+	topleft.lat = std::max(topleft.lat, lat);
+	topleft.lon = std::min(topleft.lon, lon);
+	bottomright.lat = std::min(bottomright.lat, lat);
+	bottomright.lon = std::max(bottomright.lon, lon);
 	if (adjacents.find(id) == adjacents.end()) {
 		adjacents[id] = std::set<uint64_t>(alist.begin(),alist.end());
 	} else {
@@ -113,6 +117,10 @@ void geograph::insert(const uint64_t & id, const double & lat, const double & lo
 
 void geograph::insert_node(const geograph::geonode & gnode) {
 	nodes[gnode.id()] = gnode;
+	topleft.lat = std::max(topleft.lat, gnode.gpoint.lat);
+	topleft.lon = std::min(topleft.lon, gnode.gpoint.lon);
+	bottomright.lat = std::min(bottomright.lat, gnode.gpoint.lat);
+	bottomright.lon = std::max(bottomright.lon, gnode.gpoint.lon);
 	if (adjacents.find(gnode.id()) == adjacents.end()) {
 		adjacents[gnode.id()] = std::set<uint64_t>();
 	}

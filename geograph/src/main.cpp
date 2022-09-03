@@ -31,54 +31,7 @@ using std::endl;
 #include "geodistance.h"
 
 #include <SDL2/SDL.h>
-//#include <SDL2_gfxPrimitives.h>
-
-struct SDL2Window {
-//private:
-	SDL_Window* window;
-	SDL_Renderer * renderer;
-
-	static constexpr int SCREEN_WIDTH = 1024;
-	static constexpr int SCREEN_HEIGHT = 768;
-
-public:
-	SDL2Window(const string & title,
-			const int & width = SCREEN_WIDTH,
-			const int & height = SCREEN_HEIGHT)
-	: window(NULL), renderer(NULL) {
-		if ( SDL_Init( SDL_INIT_VIDEO ) < 0 ) {
-			cerr << "SDL Error: Initialize failed! " << SDL_GetError() << endl;
-		} else {
-			create_window(title, width, height);
-			create_renderer();
-		}
-	}
-
-	~SDL2Window() {
-		if (renderer)
-			SDL_DestroyRenderer(renderer);
-		if (window)
-			SDL_DestroyWindow( window );
-		SDL_Quit();
-	}
-
-	void create_window(const string & title, const int & width, const int & height) {
-		window = SDL_CreateWindow( title.c_str(),
-				SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-				width, height, SDL_WINDOW_SHOWN );
-		if( !window ) {
-			cerr << "Error: Window could not be created! " << SDL_GetError() << endl;
-		}
-	}
-
-	void create_renderer() {
-		SDL_Renderer * renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
-		if ( !renderer ) {
-			cerr << "Error: Could not create renderer! " << SDL_GetError() << endl;
-		}
-	}
-
-};
+#include <SDL2_gfxPrimitives.h>
 
 vector<string> split(string& input, char delimiter) {
     istringstream stream(input);
@@ -89,6 +42,8 @@ vector<string> split(string& input, char delimiter) {
     }
     return result;
 }
+
+int show_in_sdl_window(const geograph & gg);
 
 int main(int argc, char * argv[]) {
 	ifstream csvf;
@@ -155,7 +110,7 @@ int main(int argc, char * argv[]) {
     csvf.close();
 
     // collect road segments on the map along with the points in the GPS trajectory.
-    geograph roadsegs;
+    geograph roadgraph;
     for(unsigned int i = 0; i < mytrack.size(); ++i) {
     	geopoint & gp = mytrack[i];
     	bingeohash gid = bingeohash(gp.lat, gp.lon,37);
@@ -170,8 +125,8 @@ int main(int argc, char * argv[]) {
 				for(auto & a_node : ggraph.geohash_range(ghash)) {
 					for(auto & b : ggraph.adjacent_nodes(a_node.id())) {
 						if (gp.distance_to(a_node.point(), ggraph.node(b).point()) <= 30.0) {
-							roadsegs.insert_node(a_node);
-							roadsegs.insert_node(ggraph.node(b));
+							roadgraph.insert_node(a_node);
+							roadgraph.insert_node(ggraph.node(b));
 							if (a_node.id() < b)
 								edges.insert(std::pair<uint64_t,uint64_t>(a_node.id(),b));
 							else
@@ -183,56 +138,97 @@ int main(int argc, char * argv[]) {
     	}
     	cout << dec << edges.size() << " ";
     	for(auto & an_edge : edges) {
-    		roadsegs.insert_edge(an_edge);
+    		roadgraph.insert_edge(an_edge);
     		cout << "(" << an_edge.first << " - " << an_edge.second << "), ";
     	}
     	cout << endl;
     }
     cout << "finished." << endl;
-
-    SDL2Window sdl2win("geograph", 1024, 768);
-	bool quit = false;
-	SDL_Event event;
-	while (!quit) {
-		SDL_Delay(10);
-		SDL_PollEvent(&event);
-
-		switch (event.type)	{
-			case SDL_QUIT:
-				quit = true;
-				break;
-			// TODO input handling code goes here
-				/*
-			case SDL_MOUSEBUTTONDOWN:
-				mx0 = event.button.x;
-				my0 = event.button.y;
-				break;
-			case SDL_MOUSEMOTION:
-				mx1 = event.button.x;
-				my1 = event.button.y;
-				break;
-			case SDL_MOUSEBUTTONUP:
-				mx0 = my0 = mx1 = my1 = -1;
-				break;
-				*/
-		}
-		// clear window
-
-		SDL_SetRenderDrawColor(sdl2win.renderer, 192, 192, 192, 255);
-		SDL_RenderClear(sdl2win.renderer);
-
-		// TODO rendering code goes here
-		/*
-		if ( mx0 != -1 and mx1 != -1 ) {
-			filledCircleColor(renderer, mx0, my0, 2, 0xffff0000); // 0xAABBGGRR --- endianness differs?
-		    filledCircleColor(renderer, mx1, my1, 2, 0xffff0000);
-			lineColor(renderer, mx0, my0, mx1, my1, 0xffff0000);
-		}
-		*/
-		// render window
-
-		SDL_RenderPresent(sdl2win.renderer);
-	}
+    show_in_sdl_window(roadgraph);
 
     return EXIT_SUCCESS;
+}
+
+int show_in_sdl_window(const geograph & gg) {
+	int exit_value = EXIT_SUCCESS;
+	SDL_Window* window = NULL;
+	double hscale = double(1024) / gg.width();
+	double vscale = double(768) / gg.height();
+
+	int mx0 = -1, my0 = -1, mx1 = -1, my1 = -1;
+	//Initialize SDL
+	if( SDL_Init( SDL_INIT_VIDEO ) < 0 ) {
+		cerr << "Error: Initializing SDL failed! " << SDL_GetError() << endl;
+		exit_value = EXIT_FAILURE;
+	} else {
+		//Create window
+		window = SDL_CreateWindow( "SDL Tutorial",
+				SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+				1024, 768, SDL_WINDOW_SHOWN );
+		if( !window ) {
+			cerr << "Error: Window could not be created! " << SDL_GetError() << endl;
+			exit_value = EXIT_FAILURE;
+		} else {
+			SDL_Renderer * renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
+			if ( !renderer ) {
+				cerr << "Error: Could not create renderer! " << SDL_GetError() << endl;
+				exit_value = EXIT_FAILURE;
+			} else {
+				bool quit = false;
+				bool update = true;
+				SDL_Event event;
+				while (!quit) {
+					SDL_Delay(10);
+					SDL_PollEvent(&event);
+
+					switch (event.type)	{
+						case SDL_QUIT:
+							quit = true;
+							break;
+						// TODO input handling code goes here
+						case SDL_MOUSEBUTTONDOWN:
+							mx0 = event.button.x;
+							my0 = event.button.y;
+							break;
+						case SDL_MOUSEMOTION:
+							mx1 = event.button.x;
+							my1 = event.button.y;
+							break;
+						case SDL_MOUSEBUTTONUP:
+							mx0 = my0 = mx1 = my1 = -1;
+							update = true;
+							break;
+					}
+
+					// TODO rendering code goes here
+					if ( update ) {
+						// clear window
+						SDL_SetRenderDrawColor(renderer, 242, 242, 242, 255);
+						SDL_RenderClear(renderer);
+
+						int cnt = 0;
+						for(auto itr = gg.cbegin(); itr != gg.cend(); ++itr ) {
+							const geopoint & pt = itr->second.point();
+							int x = (pt.lon - gg.left()) * hscale;
+							int y = (pt.lat - gg.bottom()) * vscale;
+							filledCircleColor(renderer, x, y, 2, 0xff7f0000);
+						}
+
+						// render window
+						SDL_RenderPresent(renderer);
+						update = false;
+					}
+					//filledCircleColor(renderer, mx1, my1, 2, 0xff7f0000);
+
+
+				}
+
+				SDL_DestroyRenderer(renderer);
+			}
+			SDL_DestroyWindow( window );
+		}
+	}
+	SDL_Quit();
+
+	return exit_value;
 }

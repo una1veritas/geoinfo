@@ -89,13 +89,25 @@ private:
 	};
 
 private:
+	geopoint topleft, bottomright;
 	map<uint64_t, geonode> nodes;
 	map<uint64_t,std::set<uint64_t>> adjacents;
 	set<geonode *,geohash_compare> hashes;
 
 public:
+	geograph() : topleft(-100,200), bottomright(100,-200), nodes(), adjacents(), hashes() {}
+
 	unsigned int size() const { return nodes.size(); }
 	const geonode & node(const uint64_t & id) const { return nodes.at(id); }
+	double width() const { return bottomright.lon - topleft.lon; }
+	double height() const { return topleft.lat - bottomright.lat; }
+	double bottom() const { return bottomright.lat; }
+	double left() const { return topleft.lon; }
+
+	std::map<uint64_t,geonode>::const_iterator cbegin() const { return nodes.cbegin(); }
+	std::map<uint64_t,geonode>::const_iterator cend() const { return nodes.cend(); }
+	std::map<uint64_t,geonode>::iterator begin() { return nodes.begin(); }
+	std::map<uint64_t,geonode>::iterator end() { return nodes.end(); }
 
 	const map<uint64_t, geonode> & nodemap() const { return nodes;}
 	void insert(const uint64_t & id, const double & lat, const double & lon, const vector<uint64_t> & alist);
