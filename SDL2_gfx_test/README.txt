@@ -12,6 +12,8 @@ Eclipse では C/C++ General -> Paths and Symbols
 注意) WinMain undefined エラーになるので、ライブラリ mingw32 の追加が必要。
 Includes:
 /msys64/mingw64/include/SDL2
+または #include <SDL2/xxx.h>
+
 Library paths:
 /msys64/mingw64/lib
 Libraries:
@@ -26,3 +28,5 @@ mingw32
 3. GFX のグラフィクスプリミティブ関数 xxxColor の 4 バイト整数での色指定が、
 エンディアンネスのためかバイトオーダーが逆になっているので注意する。
 0xAABBGGRR になる。AA はアルファ値（透明度）
+
+4. main の引数の型を int main(int argc, char * argv[]) にしておかないと、WinMain エラーになる。

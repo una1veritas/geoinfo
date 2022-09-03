@@ -1,11 +1,15 @@
 /*This source code copyrighted by Lazy Foo' Productions (2004-2022)
 and may not be redistributed without written permission.*/
 
-//Using SDL and standard IO
-#include <SDL.h>
-#include <SDL2_gfxPrimitives.h>
-//#include <iostream>
-#include <stdio.h>
+#include <iostream>
+
+using std::cout;
+using std::cerr;
+using std::endl;
+
+//Using SDL
+#include <SDL2/SDL.h>
+#include <SDL2/SDL2_gfxPrimitives.h>
 
 //Screen dimension constants
 const int SCREEN_WIDTH = 640;
@@ -17,24 +21,24 @@ int main( int argc, char* args[] ) {
 	int mx0 = -1, my0 = -1, mx1 = -1, my1 = -1;
 	//Initialize SDL
 	if( SDL_Init( SDL_INIT_VIDEO ) < 0 ) {
-		printf( "Error %s: SDL couldn't initialize! \n", SDL_GetError() );
-		return -1;
+		cerr << "Error: Initializing SDL failed! " << SDL_GetError() << endl;
+		return EXIT_FAILURE;
 	}
 	//Create window
 	window = SDL_CreateWindow( "SDL Tutorial",
 			SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 			SCREEN_WIDTH, SCREEN_HEIGHT, SDL_WINDOW_SHOWN );
 	if( !window ) {
-		printf( "Window could not be created! SDL_Error: %s\n", SDL_GetError() );
-		return -1;
+		cerr << "Error: Window could not be created! " << SDL_GetError() << endl;
+		return EXIT_FAILURE;
 		SDL_Quit();
 	}
 	SDL_Renderer * renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
 	if ( !renderer ) {
-		printf("Error %s: Could not create renderer\n", SDL_GetError());
+		cerr << "Error: Could not create renderer! " << SDL_GetError() << endl;
 		SDL_DestroyWindow( window );
 		SDL_Quit();
-		return -1;
+		return EXIT_FAILURE;
 	}
 	int quit = 0;
 	SDL_Event event;

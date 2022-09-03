@@ -21,6 +21,7 @@
 using std::pair;
 using std::vector;
 using std::cout;
+using std::cerr;
 using std::endl;
 
 #include "bingeohash.h"
@@ -28,6 +29,56 @@ using std::endl;
 
 #include <cmath>
 #include "geodistance.h"
+
+#include <SDL2/SDL.h>
+//#include <SDL2_gfxPrimitives.h>
+
+struct SDL2Window {
+//private:
+	SDL_Window* window;
+	SDL_Renderer * renderer;
+
+	static constexpr int SCREEN_WIDTH = 1024;
+	static constexpr int SCREEN_HEIGHT = 768;
+
+public:
+	SDL2Window(const string & title,
+			const int & width = SCREEN_WIDTH,
+			const int & height = SCREEN_HEIGHT)
+	: window(NULL), renderer(NULL) {
+		if ( SDL_Init( SDL_INIT_VIDEO ) < 0 ) {
+			cerr << "SDL Error: Initialize failed! " << SDL_GetError() << endl;
+		} else {
+			create_window(title, width, height);
+			create_renderer();
+		}
+	}
+
+	~SDL2Window() {
+		if (renderer)
+			SDL_DestroyRenderer(renderer);
+		if (window)
+			SDL_DestroyWindow( window );
+		SDL_Quit();
+	}
+
+	void create_window(const string & title, const int & width, const int & height) {
+		window = SDL_CreateWindow( title.c_str(),
+				SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
+				width, height, SDL_WINDOW_SHOWN );
+		if( !window ) {
+			cerr << "Error: Window could not be created! " << SDL_GetError() << endl;
+		}
+	}
+
+	void create_renderer() {
+		SDL_Renderer * renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
+		if ( !renderer ) {
+			cerr << "Error: Could not create renderer! " << SDL_GetError() << endl;
+		}
+	}
+
+};
 
 vector<string> split(string& input, char delimiter) {
     istringstream stream(input);
@@ -39,7 +90,7 @@ vector<string> split(string& input, char delimiter) {
     return result;
 }
 
-int main(const int argc, const char * argv[]) {
+int main(int argc, char * argv[]) {
 	ifstream csvf;
 
 	if (argc != 3) {
@@ -138,6 +189,50 @@ int main(const int argc, const char * argv[]) {
     	cout << endl;
     }
     cout << "finished." << endl;
+
+    SDL2Window sdl2win("geograph", 1024, 768);
+	bool quit = false;
+	SDL_Event event;
+	while (!quit) {
+		SDL_Delay(10);
+		SDL_PollEvent(&event);
+
+		switch (event.type)	{
+			case SDL_QUIT:
+				quit = true;
+				break;
+			// TODO input handling code goes here
+				/*
+			case SDL_MOUSEBUTTONDOWN:
+				mx0 = event.button.x;
+				my0 = event.button.y;
+				break;
+			case SDL_MOUSEMOTION:
+				mx1 = event.button.x;
+				my1 = event.button.y;
+				break;
+			case SDL_MOUSEBUTTONUP:
+				mx0 = my0 = mx1 = my1 = -1;
+				break;
+				*/
+		}
+		// clear window
+
+		SDL_SetRenderDrawColor(sdl2win.renderer, 192, 192, 192, 255);
+		SDL_RenderClear(sdl2win.renderer);
+
+		// TODO rendering code goes here
+		/*
+		if ( mx0 != -1 and mx1 != -1 ) {
+			filledCircleColor(renderer, mx0, my0, 2, 0xffff0000); // 0xAABBGGRR --- endianness differs?
+		    filledCircleColor(renderer, mx1, my1, 2, 0xffff0000);
+			lineColor(renderer, mx0, my0, mx1, my1, 0xffff0000);
+		}
+		*/
+		// render window
+
+		SDL_RenderPresent(sdl2win.renderer);
+	}
 
     return EXIT_SUCCESS;
 }
