@@ -80,13 +80,14 @@ for trk in gpxroot.iter(gpxroot_namespace+'trk'):
         with open(outfilename, mode='w') as outfile: 
             for trkpt in trkseg:
                 t = trkpt.find(gpxroot_namespace+'time')
-                if t.text.endswith('Z') :
-                    # ISO UTC time
-                    tstr = t.text[:-1] + '+00:00'
+                tstr = t.text
+                print(tstr)
+                if '.' in tstr and '+' in str:
+                    dt = datetime.strptime(tstr, '%Y-%m-%dT%H:%M:%S.%f%zZ')
+                elif '+' in tstr:
+                    dt = datetime.strptime(tstr, '%Y-%m-%dT%H:%M:%S%zZ')
                 else:
-                    #JST?
-                    tstr = t.text[:-1] + '+09:00'
-                dt = datetime.strptime(tstr, '%Y-%m-%dT%H:%M:%S.%f%z')
+                    dt = datetime.strptime(tstr, '%Y-%m-%dT%H:%M:%SZ')
                 dtstr = str(dt)
                 if mjdtime :
                     mjd = datetime2mjd(dt)

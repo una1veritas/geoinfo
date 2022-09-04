@@ -116,6 +116,9 @@ public:
 	const map<uint64_t, geonode> & nodemap() const { return nodes;}
 	void insert(const uint64_t & id, const double & lat, const double & lon, const vector<uint64_t> & alist);
 	void insert_node(const geonode & gnode);
+	void insert_node(const uint64_t & id, const double & lat, const double & lon) {
+		insert_node(geonode(id,lat,lon));
+	}
 	void insert_edge_between(const uint64_t & id0, const uint64_t & id1);
 
 	/*
