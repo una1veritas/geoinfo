@@ -71,6 +71,7 @@ int main( int argc, char* args[] ) {
 
 		// TODO rendering code goes here
 		if ( mx0 != -1 and mx1 != -1 ) {
+			cout << mx1 << ", " << my1 << endl;
 			filledCircleColor(renderer, mx0, my0, 2, 0xffff0000); // 0xAABBGGRR --- endianness differs?
 		    filledCircleColor(renderer, mx1, my1, 2, 0xffff0000);
 			lineColor(renderer, mx0, my0, mx1, my1, 0xffff0000);

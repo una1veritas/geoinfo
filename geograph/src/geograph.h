@@ -8,7 +8,7 @@
 #ifndef GEOGRAPH_H_
 #define GEOGRAPH_H_
 
-
+#include <utility>
 #include "bingeohash.h"
 //#include <cmath>
 //#include "geodistance.h"
@@ -101,8 +101,12 @@ public:
 	const geonode & node(const uint64_t & id) const { return nodes.at(id); }
 	double width() const { return bottomright.lon - topleft.lon; }
 	double height() const { return topleft.lat - bottomright.lat; }
-	double bottom() const { return bottomright.lat; }
-	double left() const { return topleft.lon; }
+	double south() const { return bottomright.lat; }
+	double east() const { return topleft.lon; }
+	double north() const { return topleft.lat; }
+	double west() const { return bottomright.lon; }
+	double eastwest() const;
+	double northsouth() const;
 
 	std::map<uint64_t,geonode>::const_iterator cbegin() const { return nodes.cbegin(); }
 	std::map<uint64_t,geonode>::const_iterator cend() const { return nodes.cend(); }
@@ -112,7 +116,7 @@ public:
 	const map<uint64_t, geonode> & nodemap() const { return nodes;}
 	void insert(const uint64_t & id, const double & lat, const double & lon, const vector<uint64_t> & alist);
 	void insert_node(const geonode & gnode);
-	void insert_edge(const std::pair<uint64_t, uint64_t> & edge);
+	void insert_edge_between(const uint64_t & id0, const uint64_t & id1);
 
 	/*
     vector<pair<binarygeohash,uint64_t>> hashtoid() {

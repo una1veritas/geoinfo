@@ -114,12 +114,10 @@ int main(int argc, char * argv[]) {
     for(unsigned int i = 0; i < mytrack.size(); ++i) {
     	geopoint & gp = mytrack[i];
     	bingeohash gid = bingeohash(gp.lat, gp.lon,37);
-    	cout << gp << " ";
-		std::set<std::pair<uint64_t,uint64_t>> edges;
+    	//cout << gp << " ";
     	for(unsigned int z = 0; z < 2; ++z) {
 			vector<bingeohash> vec = gid.neighbors(z);
-			cout << vec.size() << " ";
-			edges.clear();
+			//cout << vec.size() << " ";
 			for(const bingeohash & ghash : vec) {
 				// binary search algorithm std::range
 				for(auto & a_node : ggraph.geohash_range(ghash)) {
@@ -127,21 +125,14 @@ int main(int argc, char * argv[]) {
 						if (gp.distance_to(a_node.point(), ggraph.node(b).point()) <= 30.0) {
 							roadgraph.insert_node(a_node);
 							roadgraph.insert_node(ggraph.node(b));
-							if (a_node.id() < b)
-								edges.insert(std::pair<uint64_t,uint64_t>(a_node.id(),b));
-							else
-								edges.insert(std::pair<uint64_t,uint64_t>(b,a_node.id()));
+							roadgraph.insert_edge_between(a_node.id(),b);
 						}
 					}
 				}
 			}
     	}
-    	cout << dec << edges.size() << " ";
-    	for(auto & an_edge : edges) {
-    		roadgraph.insert_edge(an_edge);
-    		cout << "(" << an_edge.first << " - " << an_edge.second << "), ";
-    	}
-    	cout << endl;
+    	//cout << dec << edges.size() << " ";
+    	//cout << endl;
     }
     cout << "finished." << endl;
     show_in_sdl_window(roadgraph);
@@ -152,10 +143,19 @@ int main(int argc, char * argv[]) {
 int show_in_sdl_window(const geograph & gg) {
 	int exit_value = EXIT_SUCCESS;
 	SDL_Window* window = NULL;
-	double hscale = double(1024) / gg.width();
-	double vscale = double(768) / gg.height();
 
-	int mx0 = -1, my0 = -1, mx1 = -1, my1 = -1;
+	int winwidth = 1024, winheight = 1024;
+	double aspect = gg.eastwest()/gg.northsouth();
+	double hscale, vscale;
+	if (aspect > 1.0) {
+		hscale = double(winwidth) / gg.width();
+		winheight /= aspect;
+		vscale = double(winheight) / gg.height();
+	} else {
+		vscale = double(winheight) / gg.height();
+		winwidth *= aspect;
+		hscale = double(winwidth) / gg.width();
+	}
 	//Initialize SDL
 	if( SDL_Init( SDL_INIT_VIDEO ) < 0 ) {
 		cerr << "Error: Initializing SDL failed! " << SDL_GetError() << endl;
@@ -164,7 +164,7 @@ int show_in_sdl_window(const geograph & gg) {
 		//Create window
 		window = SDL_CreateWindow( "SDL Tutorial",
 				SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-				1024, 768, SDL_WINDOW_SHOWN );
+				winwidth, winheight, SDL_WINDOW_SHOWN );
 		if( !window ) {
 			cerr << "Error: Window could not be created! " << SDL_GetError() << endl;
 			exit_value = EXIT_FAILURE;
@@ -186,6 +186,7 @@ int show_in_sdl_window(const geograph & gg) {
 							quit = true;
 							break;
 						// TODO input handling code goes here
+							/*
 						case SDL_MOUSEBUTTONDOWN:
 							mx0 = event.button.x;
 							my0 = event.button.y;
@@ -198,6 +199,7 @@ int show_in_sdl_window(const geograph & gg) {
 							mx0 = my0 = mx1 = my1 = -1;
 							update = true;
 							break;
+							*/
 					}
 
 					// TODO rendering code goes here
@@ -206,12 +208,17 @@ int show_in_sdl_window(const geograph & gg) {
 						SDL_SetRenderDrawColor(renderer, 242, 242, 242, 255);
 						SDL_RenderClear(renderer);
 
-						int cnt = 0;
 						for(auto itr = gg.cbegin(); itr != gg.cend(); ++itr ) {
 							const geopoint & pt = itr->second.point();
-							int x = (pt.lon - gg.left()) * hscale;
-							int y = (pt.lat - gg.bottom()) * vscale;
-							filledCircleColor(renderer, x, y, 2, 0xff7f0000);
+							int x0 = (pt.lon - gg.east()) * hscale;
+							int y0 = (gg.north() - pt.lat) * vscale;
+							filledCircleColor(renderer, x0, y0, 2, 0xff7f0000);
+							for(auto & adjid : gg.adjacent_nodes(itr->first)) {
+								int x1 = (gg.node(adjid).point().lon - gg.east()) * hscale;
+								int y1 = (gg.north() - gg.node(adjid).point().lat) * vscale;
+								filledCircleColor(renderer, x1, y1, 2, 0xff7f0000);
+								lineColor(renderer, x0, y0, x1, y1, 0xff7f0000);
+							}
 						}
 
 						// render window

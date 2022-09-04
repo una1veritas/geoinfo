@@ -91,6 +91,16 @@ double geopoint::distance_to(const geopoint &q1, const geopoint &q2) const {
 	return abs(q1.outer_prod_norm(q2, *this)) / q1.distance_to(q2);
 }
 
+double geograph::eastwest() const {
+	const geopoint bottomleft(bottomright.lat,topleft.lon);
+	return bottomleft.distance_to(bottomright);
+}
+
+double geograph::northsouth() const {
+	const geopoint bottomleft(bottomright.lat,topleft.lon);
+	return bottomleft.distance_to(topleft);
+}
+
 void geograph::insert(const uint64_t & id, const double & lat, const double & lon, const vector<uint64_t> & alist) {
 	nodes[id] = geonode(id,lat,lon);
 	topleft.lat = std::max(topleft.lat, lat);
@@ -127,14 +137,13 @@ void geograph::insert_node(const geograph::geonode & gnode) {
 	hashes.insert(&nodes[gnode.id()]);
 }
 
-void geograph::insert_edge(const std::pair<uint64_t, uint64_t> & edge) {
-	if (nodes.find(edge.first) == nodes.end() or nodes.find(edge.second) == nodes.end()) {
-		cerr << "tried to add the edge with undefined end-point(s) " << edge.first << ", " << edge.second << ". "  << endl;
+void geograph::insert_edge_between(const uint64_t & id0, const uint64_t & id1) {
+	if (nodes.find(id0) == nodes.end() or nodes.find(id1) == nodes.end()) {
+		cerr << "tried to add the edge with undefined end-point(s) " << id0 << ", " << id1 << ". "  << endl;
 		return;
 	}
-	adjacents[edge.first].insert(edge.second);
-	adjacents[edge.second].insert(edge.first);
-
+	adjacents[id0].insert(id1);
+	adjacents[id1].insert(id0);
 }
 
 const std::set<uint64_t> & geograph::adjacent_nodes(const uint64_t & id) const {
