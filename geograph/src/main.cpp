@@ -43,6 +43,119 @@ vector<string> split(string& input, char delimiter) {
     return result;
 }
 
+struct SDLWindow {
+	SDL_Window * window;
+	SDL_Renderer * renderer;
+
+	int status;
+	std::string err_msg;
+
+	enum STATUS_CODE{
+		NO_ERR = 0,
+		SDL_INIT_ERR,
+		SDL_CREATEWINDOW_ERR,
+		SDL_CREATERENDERER_ERR,
+	};
+
+	union Color {
+		struct {
+			uint8_t red;
+			uint8_t grn;
+			uint8_t blu;
+			uint8_t alpha;
+		};
+		uint32_t color;
+
+		Color(void)	: red(0), grn(0), blu(0), alpha(0) { }
+		Color(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 0xff)
+		: red(r), grn(g), blu(b), alpha(a) { }
+
+		Color & operator()(uint8_t r, uint8_t g, uint8_t b, uint8_t a = 0xff) {
+			red = r; grn = g; blu = b; alpha = a;
+			return *this;
+		}
+	};
+
+	SDLWindow() : window(NULL), renderer(NULL), status(NO_ERR), err_msg() {
+		init();
+	}
+
+	~SDLWindow() {
+		if (renderer) {
+			SDL_DestroyRenderer(renderer);
+			renderer = NULL;
+		}
+		if (window) {
+			SDL_DestroyWindow(window);
+			window = NULL;
+		}
+		SDL_Quit();
+	}
+
+	bool operator()(void) const {
+		return status == NO_ERR;
+	}
+
+	bool init() {
+		if (SDL_Init( SDL_INIT_VIDEO ) < 0) {
+			err_msg = SDL_GetError();
+			status = SDL_INIT_ERR;
+			return false;
+		}
+		return true;
+	}
+
+	bool open(const std::string & title, const int & w, const int & h) {
+		window = SDL_CreateWindow( title.c_str(),
+				SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, w, h, SDL_WINDOW_SHOWN );
+		if( !window ) {
+			err_msg = SDL_GetError();
+			status = SDL_CREATEWINDOW_ERR;
+			return false;
+		}
+		return true;
+	}
+
+	bool create_renderer() {
+		renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
+		if ( !renderer ) {
+			err_msg = SDL_GetError();
+			status = SDL_CREATERENDERER_ERR;
+			return false;
+		}
+		return true;
+	}
+
+	void render_clear(const Color & c) {
+		SDL_SetRenderDrawColor(renderer, c.red, c.grn, c.blu, c.alpha);
+		SDL_RenderClear(renderer);
+	}
+
+	void render_present() {
+		SDL_RenderPresent(renderer);
+	}
+
+	void draw_line(const int & x0, const int & y0, const int & x1, const int & y1, const uint8_t & w, const Color & c) {
+		if (w <= 1) {
+			lineColor(renderer, x0, y0, x1, y1, c.color);
+		} else {
+			thickLineColor(renderer, x0, y0, x1, y1, w, c.color);
+		}
+	}
+
+	void draw_filledCircle(const int & x, const int & y, const int & r, const Color & c) {
+		filledCircleColor(renderer, x, y, r, c.color);
+	}
+
+	void draw_circle(const int & x, const int & y, const int & r, const Color & c) {
+		circleColor(renderer, x, y, r, c.color);
+	}
+
+	const std::string & last_error() const {
+		return err_msg;
+	}
+};
+
 int show_in_sdl_window(const geograph & gg, const geograph & map, const geograph & track);
 
 int main(int argc, char * argv[]) {
@@ -114,22 +227,32 @@ int main(int argc, char * argv[]) {
     // collect road segments on the map along with the points in the GPS trajectory.
     geograph roadgraph;
     for(unsigned int i = 0; i < mytrack.size(); ++i) {
-    	const geopoint & gp = mytrack.node(i).point();
-    	bingeohash gid = bingeohash(gp.lat, gp.lon,37);
-    	//cout << gp << " ";
+    	const geopoint & curr = mytrack.point(i);
+    	const geopoint & prev = (i > 0) ? mytrack.point(i-1) : mytrack.point(i);
+    	const geopoint & next = (i+1 < mytrack.size()) ? mytrack.point(i+1) : mytrack.point(i);
+    	bingeohash gid = bingeohash(curr.lat, curr.lon,37);
+    	//cout << curr << " ";
+    	std::set<geograph::geonode> prox_nodes;
     	for(unsigned int z = 0; z < 2; ++z) {
 			vector<bingeohash> vec = gid.neighbors(z);
-			//cout << vec.size() << " ";
 			for(const bingeohash & ghash : vec) {
-				// binary search algorithm std::range
-				for(auto & a_node : ggraph.geohash_range(ghash)) {
-					for(auto & b : ggraph.adjacent_nodes(a_node.id())) {
-						if (gp.distance_to(a_node.point(), ggraph.node(b).point()) <= 21.0) {
-							roadgraph.insert_node(a_node);
-							roadgraph.insert_node(ggraph.node(b));
-							roadgraph.insert_edge_between(a_node.id(),b);
-						}
-					}
+				const vector<geograph::geonode> & r = ggraph.geohash_range(ghash);
+				prox_nodes.insert(r.begin(), r.end());
+			}
+    	}
+    	for(auto a : prox_nodes) {
+			for(auto & another_id : ggraph.adjacent_nodes(a.id())) {
+				const geograph::geonode & b = ggraph.node(another_id);
+				geopoint currvec(curr.lat - prev.lat, curr.lon - prev.lon);
+				geopoint abvec(b.point().lat - a.point().lat, b.point().lon - a.point().lon);
+				geopoint nextvec(next.lat - curr.lat, next.lon - curr.lon);
+				double proj0 = geopoint().projection(currvec, abvec);
+				double proj1 = geopoint().projection(nextvec, abvec);
+				cout << proj0 << ", " << proj1 << endl;
+				if (curr.distance_to(a.point(), b.point()) <= 21.0 and (abs(proj0) >= 0.7 or abs(proj1) >= 0.7) ) {
+					roadgraph.insert_node(a);
+					roadgraph.insert_node(b);
+					roadgraph.insert_edge_between(a.id(),b.id());
 				}
 			}
     	}
@@ -142,82 +265,7 @@ int main(int argc, char * argv[]) {
     return EXIT_SUCCESS;
 }
 
-struct SDLWindow {
-	SDL_Window * window;
-	SDL_Renderer * renderer;
 
-	int status;
-	std::string err_msg;
-
-	enum STATUS_CODE{
-		NO_ERR = 0,
-		SDL_INIT_ERR,
-		SDL_CREATEWINDOW_ERR,
-		SDL_CREATERENDERER_ERR,
-	};
-
-	SDLWindow() : window(NULL), renderer(NULL), status(NO_ERR), err_msg() {
-		init();
-	}
-
-	~SDLWindow() {
-		if (renderer) {
-			SDL_DestroyRenderer(renderer);
-			renderer = NULL;
-		}
-		if (window) {
-			SDL_DestroyWindow(window);
-			window = NULL;
-		}
-		SDL_Quit();
-	}
-
-	bool operator()(void) const {
-		return status == NO_ERR;
-	}
-
-	bool init() {
-		if (SDL_Init( SDL_INIT_VIDEO ) < 0) {
-			err_msg = SDL_GetError();
-			status = SDL_INIT_ERR;
-			return false;
-		}
-		return true;
-	}
-
-	bool open(const std::string & title, const int & w, const int & h) {
-		window = SDL_CreateWindow( title.c_str(),
-				SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED, w, h, SDL_WINDOW_SHOWN );
-		if( !window ) {
-			err_msg = SDL_GetError();
-			status = SDL_CREATEWINDOW_ERR;
-			return false;
-		}
-		return true;
-	}
-
-	bool create_renderer() {
-		renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE);
-		if ( !renderer ) {
-			err_msg = SDL_GetError();
-			status = SDL_CREATERENDERER_ERR;
-			return false;
-		}
-		return true;
-	}
-
-	void render_clear(uint8_t r, uint8_t g, uint8_t b, uint8_t a) {
-		SDL_SetRenderDrawColor(renderer, g, g, b, a);
-		SDL_RenderClear(renderer);
-	}
-
-	void render_present() {
-		SDL_RenderPresent(renderer);
-	}
-	const std::string & last_error() const {
-		return err_msg;
-	}
-};
 
 int show_in_sdl_window(const geograph & route, const geograph & map, const geograph & path) {
 	int exit_value = EXIT_SUCCESS;
@@ -270,7 +318,9 @@ int show_in_sdl_window(const geograph & route, const geograph & map, const geogr
 			// TODO rendering code goes here
 			if ( update ) {
 				// clear window
-				sdlwin.render_clear(242,242,242,255);
+				SDLWindow::Color c;
+				c(242, 242, 242);
+				sdlwin.render_clear(c);
 
 				for(auto itr = map.cbegin(); itr!= map.cend(); ++itr) {
 					const geopoint & p = itr->second.point();
@@ -278,12 +328,13 @@ int show_in_sdl_window(const geograph & route, const geograph & map, const geogr
 							and p.lon > route.east() and p.lon < route.west() ) {
 						int x0 = (p.lon - route.east()) * hscale;
 						int y0 = (route.north() - p.lat) * vscale;
-						filledCircleColor(sdlwin.renderer, x0, y0, 1, 0xff000000);
+						c(128,128,128);
+						sdlwin.draw_filledCircle(x0, y0, 1, c);
 						for(auto & adjid : map.adjacent_nodes(itr->first)) {
 							int x1 = (map.node(adjid).point().lon - route.east()) * hscale;
 							int y1 = (route.north() - map.node(adjid).point().lat) * vscale;
-							filledCircleColor(sdlwin.renderer, x1, y1, 1, 0xff000000);
-							lineColor(sdlwin.renderer, x0, y0, x1, y1, 0xff000000);
+							sdlwin.draw_filledCircle(x1, y1, 1, c);
+							sdlwin.draw_line(x0, y0, x1, y1, 1, c);
 						}
 					}
 				}
@@ -291,24 +342,26 @@ int show_in_sdl_window(const geograph & route, const geograph & map, const geogr
 					const geopoint & p = itr->second.point();
 					int x0 = (p.lon - route.east()) * hscale;
 					int y0 = (route.north() - p.lat) * vscale;
-					filledCircleColor(sdlwin.renderer, x0, y0, 2, 0xff7f0000);
+					c(0,0,0x7f);
+					sdlwin.draw_filledCircle(x0, y0, 2, c);
 					for(auto & adjid : path.adjacent_nodes(itr->first)) {
 						int x1 = (path.node(adjid).point().lon - route.east()) * hscale;
 						int y1 = (route.north() - path.node(adjid).point().lat) * vscale;
-						filledCircleColor(sdlwin.renderer, x1, y1, 2, 0x7f0000);
-						thickLineColor(sdlwin.renderer, x0, y0, x1, y1, 1, 0xff7f0000);
+						sdlwin.draw_filledCircle(x1, y1, 2, c);
+						sdlwin.draw_line(x0, y0, x1, y1, 1, c);
 					}
 				}
 				for(auto itr = route.cbegin(); itr != route.cend(); ++itr ) {
 					const geopoint & pt = itr->second.point();
 					int x0 = (pt.lon - route.east()) * hscale;
 					int y0 = (route.north() - pt.lat) * vscale;
-					filledCircleColor(sdlwin.renderer, x0, y0, 2, 0x7f00007f);
+					c(192,64,0,64);
+					sdlwin.draw_filledCircle(x0, y0, 2, c);
 					for(auto & adjid : route.adjacent_nodes(itr->first)) {
 						int x1 = (route.node(adjid).point().lon - route.east()) * hscale;
 						int y1 = (route.north() - route.node(adjid).point().lat) * vscale;
-						filledCircleColor(sdlwin.renderer, x1, y1, 2, 0x7f00007f);
-						thickLineColor(sdlwin.renderer, x0, y0, x1, y1, 3, 0x7f0000f7);
+						sdlwin.draw_filledCircle(x1, y1, 2, c);
+						sdlwin.draw_line(x0, y0, x1, y1, 3, c);
 					}
 				}
 				sdlwin.render_present();

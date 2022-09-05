@@ -100,10 +100,10 @@ def geodist(gp1, gp2):
     #double latdiff = plat - qlat, londiff = plon - qlon;
     latavr = (gp2rad[0] + gp2rad[0]) / 2.0;
 
-    a = 6378137.0           #mode ? 6378137.0 : 6377397.155; // 襍､驕灘濠蠕�
-    #b = 6356752.314140356   #mode ? 6356752.314140356 : 6356078.963; // 讌ｵ蜊雁ｾ�
-    e2 = 0.00669438002301188    #mode ? 0.00669438002301188 : 0.00667436061028297; // 隨ｬ荳�髮｢蠢�邇�^2
-    a1e2 = 6335439.32708317     #mode ? 6335439.32708317 : 6334832.10663254; // 襍､驕謎ｸ翫�ｮ蟄仙壕邱壽峇邇�蜊雁ｾ�
+    a = 6378137.0           #mode ? 6378137.0 : 6377397.155;
+    #b = 6356752.314140356   #mode ? 6356752.314140356 : 6356078.963; 
+    e2 = 0.00669438002301188    #mode ? 0.00669438002301188 : 0.00667436061028297; 
+    a1e2 = 6335439.32708317     #mode ? 6335439.32708317 : 6334832.10663254; 
 
     sin_latavr = math.sin(latavr)
     W2 = 1.0 - e2 * (sin_latavr*sin_latavr)
@@ -169,6 +169,8 @@ if __name__ == '__main__':
                 # else:
                 links[key] = ('highway', value['ref'])
                 #print('highway', value)
+            elif 'natural' in value['tag']:
+                links[key] = ('natural', value['ref'])
 
         for wayid, val in links.items():
             (wayclass, gplist) = val
