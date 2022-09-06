@@ -69,10 +69,10 @@ double geopoint::inner_prod(const geopoint & a, const geopoint & b) const {
 }
 
 double geopoint::projection(const geopoint & a, const geopoint & b) const {
-	double ax = distance_to(geopoint(lat, a.lon));
-	double ay = distance_to(geopoint(a.lat, lon));
-	double bx = distance_to(geopoint(lat, b.lon));
-	double by = distance_to(geopoint(b.lat, lon));
+	double ax = distance_to(geopoint(lat, a.lon)) * (a.lon < lon ? -1 : 1);
+	double ay = distance_to(geopoint(a.lat, lon)) * (a.lat < lat ? -1 : 1);
+	double bx = distance_to(geopoint(lat, b.lon)) * (b.lon < lon ? -1 : 1);
+	double by = distance_to(geopoint(b.lat, lon)) * (a.lat < lat ? -1 : 1);
 	double alen2 = ax*ax + ay*ay;
 	double blen2 = bx*bx + by*by;
 	if (alen2 == 0 or blen2 == 0)
