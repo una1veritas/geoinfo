@@ -156,7 +156,7 @@ struct SDLWindow {
 	}
 };
 
-int show_in_sdl_window(const geograph & gg, const geograph & map, const geograph & track);
+int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track);
 
 int main(int argc, char * argv[]) {
 	ifstream csvf;
@@ -263,17 +263,20 @@ int main(int argc, char * argv[]) {
     	//cout << endl;
     }
     cout << "finished." << endl;
-    show_in_sdl_window(std::vector<std::set<uint64pair>> , ggraph, mytrack);
+    show_in_sdl_window(ggraph, mytrack);
 
     return EXIT_SUCCESS;
 }
 
-
-
-int show_in_sdl_window(const std::vector<std::set<uint64pair>> & route, const geograph & map, const geograph & path) {
+int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track) {
 	int exit_value = EXIT_SUCCESS;
 	SDLWindow sdlwin;
 	int winwidth = 1024, winheight = 1024;
+	struct {
+		double north, south, east, west;
+	} track_bbox {track[0].lat, track[0].lat, track[0].lon, track[0].lon};
+	double bbox_width;
+	double bbox_height;
 	double aspect = route.eastwest()/route.northsouth();
 	double hscale, vscale;
 	if (aspect > 1.0) {
@@ -341,15 +344,15 @@ int show_in_sdl_window(const std::vector<std::set<uint64pair>> & route, const ge
 						}
 					}
 				}
-				for(auto itr = path.cbegin(); itr != path.cend(); ++itr ) {
+				for(auto itr = track.cbegin(); itr != track.cend(); ++itr ) {
 					const geopoint & p = itr->second.point();
 					int x0 = (p.lon - route.east()) * hscale;
 					int y0 = (route.north() - p.lat) * vscale;
 					c(0,0,0x7f);
 					sdlwin.draw_filledCircle(x0, y0, 2, c);
-					for(auto & adjid : path.adjacent_nodes(itr->first)) {
-						int x1 = (path.node(adjid).point().lon - route.east()) * hscale;
-						int y1 = (route.north() - path.node(adjid).point().lat) * vscale;
+					for(auto & adjid : track.adjacent_nodes(itr->first)) {
+						int x1 = (track.node(adjid).point().lon - route.east()) * hscale;
+						int y1 = (route.north() - track.node(adjid).point().lat) * vscale;
 						sdlwin.draw_filledCircle(x1, y1, 2, c);
 						sdlwin.draw_line(x0, y0, x1, y1, 1, c);
 					}
