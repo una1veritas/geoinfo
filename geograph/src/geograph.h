@@ -40,6 +40,8 @@ struct geopoint {
 	}
 };
 
+typedef std::pair<uint64_t,uint64_t> uint64pair;
+
 struct geograph {
 public:
 	struct geonode {

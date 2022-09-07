@@ -30,7 +30,7 @@ using std::endl;
 #include <cmath>
 #include "geodistance.h"
 
-#include <SDL2/SDL.h>
+#include <SDL.h>
 #include <SDL2_gfxPrimitives.h>
 
 vector<string> split(string& input, char delimiter) {
@@ -211,25 +211,25 @@ int main(int argc, char * argv[]) {
 		cerr << "open a trajectory file '" << argv[2] << "' failed." << endl;
 		exit(EXIT_FAILURE);
 	}
-	geograph mytrack;
+
+	std::vector<geopoint> mytrack;
     while (getline(csvf, line)) {
         vector<string> strvec = split(line, ',');
         if (strvec.size() < 2) {
         	cerr << "insufficient parameters for a point." << endl;
         	continue;
         }
-        mytrack.insert_node(mytrack.size(), stod(strvec[2]), stod(strvec[3]));
-        if (mytrack.size() > 1)
-        	mytrack.insert_edge_between(mytrack.size()-2, mytrack.size()-1);
+        mytrack.push_back(geopoint(stod(strvec[2]), stod(strvec[3])));
     }
     csvf.close();
 
     // collect road segments on the map along with the points in the GPS trajectory.
-    geograph roadgraph;
+    std::vector<std::set<uint64pair>> proxedges;
     for(unsigned int i = 0; i < mytrack.size(); ++i) {
-    	const geopoint & curr = mytrack.point(i);
-    	const geopoint & prev = (i > 0) ? mytrack.point(i-1) : mytrack.point(i);
-    	const geopoint & next = (i+1 < mytrack.size()) ? mytrack.point(i+1) : mytrack.point(i);
+    	proxedges.push_back(std::set<uint64pair>());
+    	const geopoint & curr = mytrack[i];
+    	const geopoint & prev = (i > 0) ? mytrack[i-1] : mytrack[i];
+    	const geopoint & next = (i+1 < mytrack.size()) ? mytrack[i+1] : mytrack[i];
     	bingeohash gid = bingeohash(curr.lat, curr.lon,37);
     	//cout << curr << " ";
     	std::set<geograph::geonode> prox_nodes;
@@ -240,19 +240,22 @@ int main(int argc, char * argv[]) {
 				prox_nodes.insert(r.begin(), r.end());
 			}
     	}
+    	const double delta = 21.0;
     	for(auto a : prox_nodes) {
-			for(auto & another_id : ggraph.adjacent_nodes(a.id())) {
-				const geograph::geonode & b = ggraph.node(another_id);
+			for(auto & b_id : ggraph.adjacent_nodes(a.id())) {
+				const geograph::geonode & b = ggraph.node(b_id);
 				geopoint currvec(curr.lat - prev.lat, curr.lon - prev.lon);
 				geopoint abvec(b.point().lat - a.point().lat, b.point().lon - a.point().lon);
 				geopoint nextvec(next.lat - curr.lat, next.lon - curr.lon);
 				double proj0 = geopoint().projection(currvec, abvec);
 				double proj1 = geopoint().projection(nextvec, abvec);
 				cout << proj0 << ", " << proj1 << endl;
-				if (curr.distance_to(a.point(), b.point()) <= 21.0 and (abs(proj0) >= 0.7 or abs(proj1) >= 0.7) ) {
-					roadgraph.insert_node(a);
-					roadgraph.insert_node(b);
-					roadgraph.insert_edge_between(a.id(),b.id());
+				if (curr.distance_to(a.point()) <= delta and curr.distance_to(b.point()) <= delta) {
+					proxedges[i].insert(uint64pair(a.id(),b.id()));
+					continue;
+				}
+				if (curr.distance_to(a.point(), b.point()) <= delta and (abs(proj0) >= 0.7 or abs(proj1) >= 0.7) ) {
+					proxedges[i].insert(uint64pair(a.id(),b.id()));
 				}
 			}
     	}
@@ -260,14 +263,14 @@ int main(int argc, char * argv[]) {
     	//cout << endl;
     }
     cout << "finished." << endl;
-    show_in_sdl_window(roadgraph, ggraph, mytrack);
+    show_in_sdl_window(std::vector<std::set<uint64pair>> , ggraph, mytrack);
 
     return EXIT_SUCCESS;
 }
 
 
 
-int show_in_sdl_window(const geograph & route, const geograph & map, const geograph & path) {
+int show_in_sdl_window(const std::vector<std::set<uint64pair>> & route, const geograph & map, const geograph & path) {
 	int exit_value = EXIT_SUCCESS;
 	SDLWindow sdlwin;
 	int winwidth = 1024, winheight = 1024;
