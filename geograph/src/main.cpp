@@ -231,17 +231,20 @@ int main(int argc, char * argv[]) {
     	const geopoint & curr = mytrack[i];
     	const geopoint & prev = (i > 0) ? mytrack[i-1] : mytrack[i];
     	const geopoint & next = (i+1 < mytrack.size()) ? mytrack[i+1] : mytrack[i];
+    	bingeohash ghash = bingeohash(curr.lat, curr.lon,37);
+		vector<bingeohash> ghashes = ghash.neighbors(1);
+		std::set<geograph::geonode> approx;
+		for(const bingeohash & ghash : ghashes) {
+			cout << ghash << ", ";
+			const vector<geograph::geonode> & r = ggraph.geohash_range(ghash);
+			approx.insert(r.begin(), r.end());
+		}
+		cout << endl;
     	/*
-    	bingeohash gid = bingeohash(curr.lat, curr.lon,37);
     	//cout << curr << " ";
     	std::set<geograph::geonode> prox_nodes;
     	for(unsigned int z = 0; z < 2; ++z) {
-			vector<bingeohash> vec = gid.neighbors(z);
-			for(const bingeohash & ghash : vec) {
-				const vector<geograph::geonode> & r = ggraph.geohash_range(ghash);
-				prox_nodes.insert(r.begin(), r.end());
-			}
-    	}
+   	}
     	const double delta = 21.0;
     	for(auto a : prox_nodes) {
 			for(auto & b_id : ggraph.adjacent_nodes(a.id())) {

@@ -250,41 +250,40 @@ public:
 		g.hash |= precision();
 		return g;
 	}
-	vector<bingeohash> neighbors(const int zone) const {
+	vector<bingeohash> neighbors(const int maxzone) const {
 		vector<bingeohash> neighbors;
-		if (zone == 0) {
-			neighbors.push_back(*this);
-			return neighbors;
-		}
-		bingeohash current(*this);
-		//cout << "center: " << lat << ", " << lon << "; ";
-		int side = (zone<<1) + 1;
-		int inner = ((zone - 1)<<1) + 1;
-		// starts from upper left
-		int mvdir;
-		for(int i = 0; i < zone; ++i) {
-			current = current.north_side();
-			current = current.west_side();
-		}
-		for(int i = inner*inner; i < side*side; ++i) {
-			neighbors.push_back(current);
-			mvdir = ((i-inner*inner)/(side-1)) % 4 ;
-			//cout << i << " " << mvdir << ": " << gplat << ", " << gplon << "; ";
-			switch(mvdir) {
-			case 0: // r
-				current = current.east_side();
-				break;
-			case 1: // d
-				current = current.south_side();
-				break;
-			case 2: // l
-				current = current.west_side();
-				break;
-			case 3: // u
+		neighbors.push_back(*this);
+		for(int zone = 1; zone <= maxzone; ++zone) {
+			bingeohash current(*this);
+			//cout << "center: " << lat << ", " << lon << "; ";
+			int side = (zone<<1) + 1;
+			int inner = ((zone - 1)<<1) + 1;
+			// starts from upper left
+			int mvdir;
+			for(int i = 0; i < zone; ++i) {
 				current = current.north_side();
+				current = current.west_side();
 			}
+			for(int i = inner*inner; i < side*side; ++i) {
+				neighbors.push_back(current);
+				mvdir = ((i-inner*inner)/(side-1)) % 4 ;
+				//cout << i << " " << mvdir << ": " << gplat << ", " << gplon << "; ";
+				switch(mvdir) {
+				case 0: // r
+					current = current.east_side();
+					break;
+				case 1: // d
+					current = current.south_side();
+					break;
+				case 2: // l
+					current = current.west_side();
+					break;
+				case 3: // u
+					current = current.north_side();
+				}
+			}
+			//cout << endl;
 		}
-		//cout << endl;
 		return neighbors;
 	}
 
