@@ -40,7 +40,7 @@ struct geopoint {
 	}
 };
 
-typedef std::pair<uint64_t,uint64_t> uint64pair;
+typedef std::pair<uint64_t,uint64_t> idpair;
 
 struct geograph {
 public:

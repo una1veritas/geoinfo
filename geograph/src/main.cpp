@@ -223,14 +223,15 @@ int main(int argc, char * argv[]) {
     }
     csvf.close();
 
-    /*
-    // collect road segments on the map along with the points in the GPS trajectory.
-    std::vector<std::set<uint64pair>> proxedges;
+
+    // collect a sequence of road segments along with the points of the track.
+    std::vector<std::set<idpair>> roadsegseq;
     for(unsigned int i = 0; i < mytrack.size(); ++i) {
-    	proxedges.push_back(std::set<uint64pair>());
+    	roadsegseq.push_back(std::set<idpair>());
     	const geopoint & curr = mytrack[i];
     	const geopoint & prev = (i > 0) ? mytrack[i-1] : mytrack[i];
     	const geopoint & next = (i+1 < mytrack.size()) ? mytrack[i+1] : mytrack[i];
+    	/*
     	bingeohash gid = bingeohash(curr.lat, curr.lon,37);
     	//cout << curr << " ";
     	std::set<geograph::geonode> prox_nodes;
@@ -262,9 +263,10 @@ int main(int argc, char * argv[]) {
     	}
     	//cout << dec << edges.size() << " ";
     	//cout << endl;
+    	 *
+    	 */
     }
     cout << "finished." << endl;
-    */
     show_in_sdl_window(ggraph, mytrack);
 
     return EXIT_SUCCESS;
