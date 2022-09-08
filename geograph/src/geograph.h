@@ -106,14 +106,14 @@ public:
 	unsigned int size() const { return nodes.size(); }
 	const geonode & node(const uint64_t & id) const { return nodes.at(id); }
 	const geopoint & point(const uint64_t & id) const { return nodes.at(id).point(); }
-	double width() const { return bottomright.lon - topleft.lon; }
-	double height() const { return topleft.lat - bottomright.lat; }
-	double south() const { return bottomright.lat; }
-	double east() const { return topleft.lon; }
-	double north() const { return topleft.lat; }
-	double west() const { return bottomright.lon; }
-	double eastwest() const;
-	double northsouth() const;
+	//double width() const { return bottomright.lon - topleft.lon; }
+	//double height() const { return topleft.lat - bottomright.lat; }
+	//double south() const { return bottomright.lat; }
+	//double east() const { return topleft.lon; }
+	//double north() const { return topleft.lat; }
+	//double west() const { return bottomright.lon; }
+	//double eastwest() const;
+	//double northsouth() const;
 
 	std::map<uint64_t,geonode>::const_iterator cbegin() const { return nodes.cbegin(); }
 	std::map<uint64_t,geonode>::const_iterator cend() const { return nodes.cend(); }

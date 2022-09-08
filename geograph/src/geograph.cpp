@@ -103,6 +103,7 @@ double geopoint::distance_to(const geopoint &q1, const geopoint &q2) const {
 	return abs(q1.outer_prod_norm(q2, *this)) / q1.distance_to(q2);
 }
 
+/*
 double geograph::eastwest() const {
 	const geopoint bottomleft(bottomright.lat,topleft.lon);
 	return bottomleft.distance_to(bottomright);
@@ -112,7 +113,7 @@ double geograph::northsouth() const {
 	const geopoint bottomleft(bottomright.lat,topleft.lon);
 	return bottomleft.distance_to(topleft);
 }
-
+*/
 void geograph::insert(const uint64_t & id, const double & lat, const double & lon, const vector<uint64_t> & alist) {
 	nodes[id] = geonode(id,lat,lon);
 	topleft.lat = std::max(topleft.lat, lat);
