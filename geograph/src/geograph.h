@@ -27,11 +27,19 @@ struct geopoint {
 		return  bingeohash(lat, lon, precision);
 	}
 
+	geopoint operator+(const geopoint & q) const {
+		return geopoint(lat+q.lat, lon+q.lon);
+	}
+	geopoint operator-(const geopoint & q) const {
+		return geopoint(lat-q.lat, lon-q.lon);
+	}
+
 	double distance_to(const geopoint & q) const;
 	double distance_to(const geopoint &q1, const geopoint &q2) const;
 	double inner_prod(const geopoint & a, const geopoint & b) const;
 	double outer_prod_norm(const geopoint & a, const geopoint & b) const;
 	double projection(const geopoint & a, const geopoint & b) const;
+
 
 	double vector_norm() const { return geopoint().distance_to(*this); }
 
