@@ -156,7 +156,7 @@ struct SDLWindow {
 	}
 };
 
-int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track);
+int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track, const std::vector<std::set<std::pair<uint64_t,uint64_t>>> & roadsegs);
 
 int main(int argc, char * argv[]) {
 	ifstream csvf;
@@ -225,28 +225,22 @@ int main(int argc, char * argv[]) {
 
 
     // collect a sequence of road segments along with the points of the track.
-    std::vector<std::set<idpair>> roadsegseq;
+    std::vector<std::set<std::pair<uint64_t,uint64_t>>> roadsegseq;
     for(unsigned int i = 0; i < mytrack.size(); ++i) {
-    	roadsegseq.push_back(std::set<idpair>());
+    	roadsegseq.push_back(std::set<std::pair<uint64_t,uint64_t>>());
     	const geopoint & curr = mytrack[i];
     	const geopoint & prev = (i > 0) ? mytrack[i-1] : mytrack[i];
     	const geopoint & next = (i+1 < mytrack.size()) ? mytrack[i+1] : mytrack[i];
     	bingeohash ghash = bingeohash(curr.lat, curr.lon,37);
 		vector<bingeohash> ghashes = ghash.neighbors(1);
-		std::set<geograph::geonode> approx;
+		std::set<geograph::geonode> neighbors;
 		for(const bingeohash & ghash : ghashes) {
-			cout << ghash << ", ";
+			//cout << ghash << ", ";
 			const vector<geograph::geonode> & r = ggraph.geohash_range(ghash);
-			approx.insert(r.begin(), r.end());
+			neighbors.insert(r.begin(), r.end());
 		}
-		cout << endl;
-    	/*
-    	//cout << curr << " ";
-    	std::set<geograph::geonode> prox_nodes;
-    	for(unsigned int z = 0; z < 2; ++z) {
-   	}
     	const double delta = 21.0;
-    	for(auto a : prox_nodes) {
+    	for(auto a : neighbors) {
 			for(auto & b_id : ggraph.adjacent_nodes(a.id())) {
 				const geograph::geonode & b = ggraph.node(b_id);
 				geopoint currvec(curr.lat - prev.lat, curr.lon - prev.lon);
@@ -254,28 +248,31 @@ int main(int argc, char * argv[]) {
 				geopoint nextvec(next.lat - curr.lat, next.lon - curr.lon);
 				double proj0 = geopoint().projection(currvec, abvec);
 				double proj1 = geopoint().projection(nextvec, abvec);
-				cout << proj0 << ", " << proj1 << endl;
-				if (curr.distance_to(a.point()) <= delta and curr.distance_to(b.point()) <= delta) {
-					proxedges[i].insert(uint64pair(a.id(),b.id()));
-					continue;
+				//cout << proj0 << ", " << proj1 << endl;
+				if ((curr.distance_to(a.point()) <= delta and prev.distance_to(b.point()) <= delta)
+						or (curr.distance_to(a.point()) <= delta and next.distance_to(b.point()) <= delta)) {
+					if (a.id() < b.id())
+						roadsegseq[i].insert(std::pair<uint64_t,uint64_t>(a.id(),b.id()));
+					else if (b.id() < a.id())
+						roadsegseq[i].insert(std::pair<uint64_t,uint64_t>(b.id(),a.id()));
+					cout << a.id() << ", " << b.id() << endl;
 				}
+				/*
 				if (curr.distance_to(a.point(), b.point()) <= delta and (abs(proj0) >= 0.7 or abs(proj1) >= 0.7) ) {
 					proxedges[i].insert(uint64pair(a.id(),b.id()));
 				}
+				*/
 			}
     	}
-    	//cout << dec << edges.size() << " ";
-    	//cout << endl;
-    	 *
-    	 */
+    	cout << roadsegseq[i].size() << endl;
     }
     cout << "finished." << endl;
-    show_in_sdl_window(ggraph, mytrack);
+    show_in_sdl_window(ggraph, mytrack, roadsegseq);
 
     return EXIT_SUCCESS;
 }
 
-int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track) {
+int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track, const std::vector<std::set<std::pair<uint64_t,uint64_t>>> & roadsegs) {
 	int exit_value = EXIT_SUCCESS;
 	SDLWindow sdlwin;
 	int winwidth = 1024, winheight = 1024;
@@ -378,23 +375,14 @@ int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track
 						sdlwin.draw_filledCircle(x1, y1, 2, c);
 						sdlwin.draw_line(x0, y0, x1, y1, 1, c);
 					}
-				}
 
-				/*
-				for(auto itr = route.cbegin(); itr != route.cend(); ++itr ) {
-					const geopoint & pt = itr->second.point();
-					int x0 = (pt.lon - route.east()) * hscale;
-					int y0 = (route.north() - pt.lat) * vscale;
-					c(192,64,0,64);
-					sdlwin.draw_filledCircle(x0, y0, 2, c);
-					for(auto & adjid : route.adjacent_nodes(itr->first)) {
-						int x1 = (route.node(adjid).point().lon - route.east()) * hscale;
-						int y1 = (route.north() - route.node(adjid).point().lat) * vscale;
-						sdlwin.draw_filledCircle(x1, y1, 2, c);
-						sdlwin.draw_line(x0, y0, x1, y1, 3, c);
+					for(auto & e : roadsegs[i]) {
+						const geopoint & a = map.point(e.first), & b = map.point(e.second);
+						cout << a << ", " << b << endl;
 					}
 				}
-				*/
+
+
 				sdlwin.render_present();
 				update = false;
 			}
