@@ -231,7 +231,7 @@ int main(int argc, char * argv[]) {
     	const geopoint & curr = mytrack[i];
     	const geopoint & prev = (i > 0) ? mytrack[i-1] : mytrack[i];
     	const geopoint & next = (i+1 < mytrack.size()) ? mytrack[i+1] : mytrack[i];
-    	bingeohash ghash = bingeohash(curr.lat, curr.lon,37);
+    	bingeohash ghash = curr.geohash(37);
 		vector<bingeohash> ghashes = ghash.neighbors(1);
 		std::set<geograph::geonode> neighbors;
 		for(const bingeohash & ghash : ghashes) {
@@ -246,8 +246,9 @@ int main(int argc, char * argv[]) {
 				geopoint currvec(prev, curr);
 				geopoint abvec(a.point(), b.point());
 				geopoint nextvec(curr, next);
-				double proj0 = prev.projection(curr, geopoint(a.point(),b.point()));
-				double proj1 = curr.projection(next, geopoint(a.point(),b.point()));
+				// 経路の断片と道の断片の擬似的な射影（なす角）
+				double proj0 = prev.projection(curr, prev+(b.point() - a.point()));
+				double proj1 = curr.projection(next, curr+(b.point() - a.point()));
 				//cout << proj0 << ", " << proj1 << endl;
 				if ((curr.distance_to(a.point()) <= delta and prev.distance_to(b.point()) <= delta)
 						or (curr.distance_to(a.point()) <= delta and next.distance_to(b.point()) <= delta)) {
@@ -255,7 +256,7 @@ int main(int argc, char * argv[]) {
 						roadsegseq[i].insert(std::pair<uint64_t,uint64_t>(a.id(),b.id()));
 					else if (b.id() < a.id())
 						roadsegseq[i].insert(std::pair<uint64_t,uint64_t>(b.id(),a.id()));
-					cout << a.id() << ", " << b.id() << endl;
+					//cout << a.id() << ", " << b.id() << endl;
 				}
 				if (curr.distance_to(a.point(), b.point()) <= delta and (abs(proj0) >= 0.7 or abs(proj1) >= 0.7) ) {
 					if (a.id() < b.id())
@@ -266,7 +267,7 @@ int main(int argc, char * argv[]) {
 
 			}
     	}
-    	cout << roadsegseq[i].size() << endl;
+    	//cout << roadsegseq[i].size() << endl;
     }
     cout << "finished." << endl;
     show_in_sdl_window(ggraph, mytrack, roadsegseq);
@@ -385,7 +386,7 @@ int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track
 						int y0 = (north_lat - a.lat) * vscale;
 						int x1 = (b.lon - east_lon) * hscale;
 						int y1 = (north_lat - b.lat) * vscale;
-						c(0x96,0,0,96);
+						c(96,96,0,96);
 						sdlwin.draw_line(x0, y0, x1, y1, 3, c);
 					}
 				}
