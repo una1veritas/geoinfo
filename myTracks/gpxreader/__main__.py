@@ -82,12 +82,12 @@ for trk in gpxroot.iter(gpxroot_namespace+'trk'):
                 t = trkpt.find(gpxroot_namespace+'time')
                 tstr = t.text
                 print(tstr)
-                if '.' in tstr and '+' in str:
+                if '.' in tstr and '+' in tstr:
                     dt = datetime.strptime(tstr, '%Y-%m-%dT%H:%M:%S.%f%zZ')
                 elif '+' in tstr:
                     dt = datetime.strptime(tstr, '%Y-%m-%dT%H:%M:%S%zZ')
                 else:
-                    dt = datetime.strptime(tstr, '%Y-%m-%dT%H:%M:%SZ')
+                    dt = datetime.strptime(tstr, '%Y-%m-%dT%H:%M:%S.%fZ')
                 dtstr = str(dt)
                 if mjdtime :
                     mjd = datetime2mjd(dt)
