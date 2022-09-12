@@ -7,8 +7,8 @@
  *   c++14 or later
  */
 
-#ifndef BINGEOHASH_H
-#define BINGEOHASH_H
+#ifndef BGEOHASH_H
+#define BGEOHASH_H
 
 #include <iostream>
 #include <sstream>
@@ -19,7 +19,7 @@
 
 using namespace std;
 
-struct bingeohash {
+struct bgeohash {
 private:
 	uint64_t hash;
 
@@ -32,23 +32,23 @@ private:
 	static constexpr char * char_map_16 = (char *) "0123456789ABCDEF";
 
 public:
-	bingeohash(void) : hash(0) {}
+	bgeohash(void) : hash(0) {}
 
-	bingeohash(const uint64_t & num) {
+	bgeohash(const uint64_t & num) {
 		unsigned int prec = num & 0xff;
 		prec = (prec < 56 ? prec : 56);
 		hash = (num & (0xffffffffffffffff << (64 - prec))) | prec;
 	}
 
-	bingeohash(const uint64_t & num, unsigned int prec) {
+	bgeohash(const uint64_t & num, unsigned int prec) {
 		prec = (prec < 56 ? prec : 56);
 		hash = (num & (0xffffffffffffffff << (64 - prec))) | (prec & 0xff);
 	}
 
-	bingeohash(const bingeohash & bghash) : hash(bghash.hash) {}
+	bgeohash(const bgeohash & bghash) : hash(bghash.hash) {}
 
 	// encode
-	bingeohash(const double &lat, const double &lon,	const unsigned int & precision = 20) {
+	bgeohash(const double &lat, const double &lon,	const unsigned int & precision = 20) {
 		hash = 0;
 		unsigned int prec = (precision < 56 ? precision : 56);
 		if (lat <= 90.0 && lat >= -90.0 && lon <= 180.0 && lon >= -180.0) {
@@ -122,12 +122,12 @@ public:
 		return str;
 	}
 
-	friend ostream & operator<<(ostream & out, const bingeohash & num) {
+	friend ostream & operator<<(ostream & out, const bgeohash & num) {
 		out << hex << setw(16) << setfill('0') << num.hash;
 		return out;
 	}
 
-	friend bool operator<(const bingeohash & a, const bingeohash & b) {
+	friend bool operator<(const bgeohash & a, const bgeohash & b) {
 		unsigned int prec = min(a.precision(), b.precision());
 		uint64_t mask = 0xffffffffffffffff << (64 - prec);
 		return (a.hash & mask) < (b.hash & mask);
@@ -195,8 +195,8 @@ public:
 		return interval;
 	}
 
-	bingeohash north_side() const {
-		bingeohash g(*this);
+	bgeohash north_side() const {
+		bgeohash g(*this);
 		uint64_t uintval = 1<<(64 - precision());
 		if ((precision() & 1) != 0)
 			uintval <<= 1;
@@ -209,8 +209,8 @@ public:
 		return g;
 	}
 
-	bingeohash south_side() const {
-		bingeohash g(*this);
+	bgeohash south_side() const {
+		bgeohash g(*this);
 		uint64_t uintval = 1<<(64 - precision());
 		if ((precision() & 1) != 0)
 			uintval <<= 1;
@@ -223,8 +223,8 @@ public:
 		return g;
 	}
 
-	bingeohash east_side() const {
-		bingeohash g(*this);
+	bgeohash east_side() const {
+		bgeohash g(*this);
 		uint64_t uintval = 2<<(64 - precision());
 		if ((precision() & 1) != 0)
 			uintval >>= 1;
@@ -237,8 +237,8 @@ public:
 		return g;
 	}
 
-	bingeohash west_side() const {
-		bingeohash g(*this);
+	bgeohash west_side() const {
+		bgeohash g(*this);
 		uint64_t uintval = 2<<(64 - precision());
 		if ((precision() & 1) != 0)
 			uintval >>= 1;
@@ -250,11 +250,11 @@ public:
 		g.hash |= precision();
 		return g;
 	}
-	vector<bingeohash> neighbors(const int maxzone) const {
-		vector<bingeohash> neighbors;
+	vector<bgeohash> neighbors(const int maxzone) const {
+		vector<bgeohash> neighbors;
 		neighbors.push_back(*this);
 		for(int zone = 1; zone <= maxzone; ++zone) {
-			bingeohash current(*this);
+			bgeohash current(*this);
 			//cout << "center: " << lat << ", " << lon << "; ";
 			int side = (zone<<1) + 1;
 			int inner = ((zone - 1)<<1) + 1;

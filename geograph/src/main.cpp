@@ -7,12 +7,12 @@
 //============================================================================
 
 #include <iostream>
+#include <iomanip>
 #include <fstream>
 #include <string>
 #include <vector>
 #include <set>
 #include <map>
-#include <iomanip>
 #include <algorithm>
 
 #include <stdexcept>
@@ -24,14 +24,14 @@ using std::cout;
 using std::cerr;
 using std::endl;
 
-#include "bingeohash.h"
+#include "bgeohash.h"
 #include "geograph.h"
 
 #include <cmath>
 #include "geodistance.h"
 
-#include <SDL.h>
-#include <SDL2_gfxPrimitives.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL2_gfxPrimitives.h>
 
 vector<string> split(string& input, char delimiter) {
     istringstream stream(input);
@@ -233,10 +233,10 @@ int main(int argc, char * argv[]) {
     	const geopoint & curr = mytrack[i];
     	const geopoint & prev = (i > 0) ? mytrack[i-1] : mytrack[i];
     	const geopoint & next = (i+1 < mytrack.size()) ? mytrack[i+1] : mytrack[i];
-    	bingeohash ghash = curr.geohash(37);
-		vector<bingeohash> ghashes = ghash.neighbors(1);
+    	bgeohash ghash = curr.geohash(37);
+		vector<bgeohash> ghashes = ghash.neighbors(1);
 		std::set<geograph::geonode> neighbors;
-		for(const bingeohash & ghash : ghashes) {
+		for(const bgeohash & ghash : ghashes) {
 			//cout << ghash << ", ";
 			const vector<geograph::geonode> & r = ggraph.geohash_range(ghash);
 			neighbors.insert(r.begin(), r.end());
@@ -280,36 +280,48 @@ int main(int argc, char * argv[]) {
 int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track, const std::vector<std::set<std::pair<uint64_t,uint64_t>>> & roadsegs) {
 	int exit_value = EXIT_SUCCESS;
 	SDLWindow sdlwin;
-	int winwidth = 1024, winheight = 1024;
+	SDL_Rect winrect = { 0, 0, 1024, 1024 };
+	//int winwidth = 1024, winheight = 1024;
 
-	double north_lat = track[0].lat, south_lat = track[0].lat;
-	double east_lon = track[0].lon, west_lon = track[0].lon;
+	struct {
+		double east, west, south, north;
+
+		double width() const {
+			return geopoint(south, east).distance_to(geopoint(south,west));
+		}
+		double height() const {
+			return geopoint(south, east).distance_to(geopoint(north,east));
+		}
+		bool contains(const geopoint & p) const {
+			return  (p.lat >= south) and (p.lat <= north)
+					and (p.lon >= east) and (p.lon <= west);
+		}
+	} maprect = { track[0].lon,track[0].lon,track[0].lat,track[0].lat },
+	  viewrect = { 0,0,0,0 };
+
 	for(auto & p : track) {
-		south_lat = std::min(south_lat, p.lat);
-		north_lat = std::max(north_lat, p.lat);
-		east_lon = std::min(east_lon, p.lon);
-		west_lon = std::max(west_lon, p.lon);
+		maprect.east = std::min(maprect.east, p.lon);
+		maprect.west = std::max(maprect.west, p.lon);
+		maprect.south = std::min(maprect.south , p.lat);
+		maprect.north = std::max(maprect.north, p.lat);
 	}
-	double area_width  = geopoint(south_lat, east_lon).distance_to(geopoint(south_lat,west_lon));
-	double area_height = geopoint(south_lat, east_lon).distance_to(geopoint(north_lat,east_lon));
-	double aspect = area_width / area_height;
+	double aspect = maprect.width() / maprect.height();
 	double hscale, vscale;
 	if (aspect > 1.0) {
-		hscale = double(winwidth) / (west_lon - east_lon);
-		winheight /= aspect;
-		vscale = double(winheight) / (north_lat - south_lat);
+		hscale = double(winrect.w) / (maprect.west - maprect.east);
+		winrect.h /= aspect;
+		vscale = double(winrect.h) / (maprect.north - maprect.south);
 	} else {
-		vscale = double(winheight) / (north_lat - south_lat);
-		winwidth *= aspect;
-		hscale = double(winwidth) / (west_lon - east_lon);
+		vscale = double(winrect.h) / (maprect.north - maprect.south);
+		winrect.w *= aspect;
+		hscale = double(winrect.w) / (maprect.west - maprect.east);
 	}
-	//cout << area_width << ", " << area_height << ", " << hscale << ", " << vscale << endl;
-	//cout << winwidth << ", " << winheight << endl;
-	if ( !sdlwin() or !sdlwin.open("Geograph", winwidth, winheight)
+	cout << hscale << ", " << vscale << endl;
+	if ( !sdlwin() or !sdlwin.open("Geograph", winrect.w, winrect.h)
 			or !sdlwin.create_renderer() ) {
 		cerr << "Error: " << sdlwin.last_error() << endl;
 		exit_value = EXIT_FAILURE;
-} else {
+	} else {
 		bool quit = false;
 		bool update = true;
 		bool show_track = true;
@@ -348,18 +360,17 @@ int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track
 
 				for(auto itr = map.cbegin(); itr!= map.cend(); ++itr) {
 					const geopoint & p = itr->second.point();
-					if (p.lat > south_lat and p.lat < north_lat
-							and p.lon > east_lon and p.lon < west_lon ) {
-						int x0 = (p.lon - east_lon) * hscale;
-						int y0 = (north_lat - p.lat) * vscale;
+					if ( maprect.contains(p) ) {
+						int x0 = (p.lon - maprect.east) * hscale;
+						int y0 = (maprect.north - p.lat) * vscale;
 						//cout << p << " " << hscale << " " << vscale << endl;
 
 						c(192,192,192);
 						c2(64,64,64);
 						sdlwin.draw_filledCircle(x0, y0, 1, c2);
 						for(auto & adjid : map.adjacent_nodes(itr->first)) {
-							int x1 = (map.node(adjid).point().lon - east_lon) * hscale;
-							int y1 = (north_lat - map.node(adjid).point().lat) * vscale;
+							int x1 = (map.node(adjid).point().lon - maprect.east) * hscale;
+							int y1 = (maprect.north - map.node(adjid).point().lat) * vscale;
 							sdlwin.draw_filledCircle(x1, y1, 1, c2);
 							sdlwin.draw_line(x0, y0, x1, y1, 1, c);
 							//cout << x0 << ", " << y0 << "; " << x1 << ", " << y1 << endl;
@@ -369,23 +380,23 @@ int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track
 
 				if ( show_track ) {
 					for(unsigned int i = 0; i < track.size(); ++i ) {
-						int x0 = (track[i].lon - east_lon) * hscale;
-						int y0 = (north_lat - track[i].lat) * vscale;
+						int x0 = (track[i].lon - maprect.east) * hscale;
+						int y0 = (maprect.north - track[i].lat) * vscale;
 						c(0,0,0x7f);
 						sdlwin.draw_filledCircle(x0, y0, 2, c);
 						if (i != 0) {
-							int x1 = (track[i-1].lon - east_lon) * hscale;
-							int y1 = (north_lat - track[i-1].lat) * vscale;
+							int x1 = (track[i-1].lon - maprect.east) * hscale;
+							int y1 = (maprect.north - track[i-1].lat) * vscale;
 							sdlwin.draw_filledCircle(x1, y1, 2, c);
 							sdlwin.draw_line(x0, y0, x1, y1, 1, c);
 						}
 						for(auto & e : roadsegs[i]) {
 							const geopoint & a = map.point(e.first), & b = map.point(e.second);
 							//cout << a << ", " << b << endl;
-							int x0 = (a.lon - east_lon) * hscale;
-							int y0 = (north_lat - a.lat) * vscale;
-							int x1 = (b.lon - east_lon) * hscale;
-							int y1 = (north_lat - b.lat) * vscale;
+							int x0 = (a.lon - maprect.east) * hscale;
+							int y0 = (maprect.north - a.lat) * vscale;
+							int x1 = (b.lon - maprect.east) * hscale;
+							int y1 = (maprect.north - b.lat) * vscale;
 							c(160,128,0,96);
 							sdlwin.draw_line(x0, y0, x1, y1, 3, c);
 						}

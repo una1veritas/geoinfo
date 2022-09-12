@@ -9,7 +9,8 @@
 #define GEOGRAPH_H_
 
 #include <utility>
-#include "bingeohash.h"
+
+#include "bgeohash.h"
 //#include <cmath>
 //#include "geodistance.h"
 
@@ -23,8 +24,8 @@ struct geopoint {
 
 	geopoint(const geopoint & p, const geopoint & q) : lat(q.lat - p.lat), lon(q.lon - p.lon) {	}
 
-	bingeohash geohash(const int & precision = 40) const {
-		return  bingeohash(lat, lon, precision);
+	bgeohash geohash(const int & precision = 40) const {
+		return  bgeohash(lat, lon, precision);
 	}
 
 	geopoint operator+(const geopoint & q) const {
@@ -57,7 +58,7 @@ public:
 	struct geonode {
 		uint64_t osmid;
 		geopoint gpoint;
-		bingeohash geohash;
+		bgeohash geohash;
 
 		static constexpr int prec = 40;
 
@@ -71,13 +72,13 @@ public:
 		}
 
 		// dummy for a search key
-		geonode(const bingeohash & hash) : osmid(0), gpoint(0,0), geohash(hash) { }
+		geonode(const bgeohash & hash) : osmid(0), gpoint(0,0), geohash(hash) { }
 
 		//~geonode() {}
 
 		const uint64_t & id() const { return osmid; }
 		const geopoint & point() const { return gpoint; }
-		const bingeohash & bingeohash() const { return geohash; }
+		const bgeohash & bingeohash() const { return geohash; }
 
 		bool operator<(const geonode & b) const {
 			return osmid < b.osmid;
@@ -158,7 +159,7 @@ public:
     // all the edges having id as an end point.
     std::set<std::pair<uint64_t,uint64_t>> adjacent_edges(const uint64_t & id) const;
 
-    std::vector<geonode> geohash_range(const bingeohash & ghash);
+    std::vector<geonode> geohash_range(const bgeohash & ghash);
 
 	friend std::ostream & operator<<(std::ostream & out, const geograph & gg) {
 		for(const auto & a_pair : gg.nodes) {

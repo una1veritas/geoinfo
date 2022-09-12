@@ -19,7 +19,7 @@
 using std::cout;
 using std::endl;
 
-#include "bingeohash.h"
+#include "bgeohash.h"
 #include "geograph.h"
 
 #define DEG2RAD(x)  ((std::numbers::pi / 180.0) * (x))
@@ -182,7 +182,7 @@ std::set<std::pair<uint64_t,uint64_t>> geograph::adjacent_edges(const uint64_t &
 }
 
 
-std::vector<geograph::geonode> geograph::geohash_range(const bingeohash & ghash) {
+std::vector<geograph::geonode> geograph::geohash_range(const bgeohash & ghash) {
 	vector<geograph::geonode> tmp;
 	geograph::geonode key(ghash);
 	set<geograph::geonode*>::const_iterator lb = hashes.lower_bound(&key);
