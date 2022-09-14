@@ -176,14 +176,14 @@ struct MapRect {
 	}
 
 	double width_meter() const {
-		return geopoint(south, east).distance_to(geopoint(south,west));
+		return geopoint((north+south)/2, east).distance_to(geopoint((north+south)/2,west));
 	}
 
 	double height_meter() const {
 		return geopoint(south, east).distance_to(geopoint(north,east));
 	}
 
-	void enlarge_bbox(const geopoint & p) {
+	void include_inside(const geopoint & p) {
 		east = std::min(east, p.lon);
 		west = std::max(west, p.lon);
 		south = std::min(south , p.lat);
@@ -224,8 +224,9 @@ int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track
 	MapRect viewrect = { 0,0,0,0 };
 
 	for(auto & p : track)
-		maprect.enlarge_bbox(p);
+		maprect.include_inside(p);
 
+	cout << maprect.width_meter() << ", " << maprect.height_meter() << endl;
 	double aspect = maprect.width_meter() / maprect.height_meter();
 	double hscale, vscale;
 	if (aspect > 1.0) {
@@ -235,6 +236,7 @@ int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track
 		worldrect.h = WINDOWSIZE;
 		worldrect.w = WINDOWSIZE * aspect;
 	}
+	// pixel per degree
 	vscale = double(worldrect.h) / (maprect.north - maprect.south);
 	hscale = double(worldrect.w) / (maprect.west - maprect.east);
 	viewrect.north = maprect.north;
@@ -253,6 +255,7 @@ int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track
 		bool quit = false;
 		bool update = true;
 		bool show_track = true;
+		bool dragging = false;
 		SDL_Event event;
 		while (!quit) {
 			SDL_Delay(10);
@@ -266,28 +269,35 @@ int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track
 				case SDL_MOUSEMOTION:
 					mx1 = event.button.x;
 					my1 = event.button.y;
+					if (dragging) {
+						cout << mx1 << ",  " << my1 << endl;
+					}
 					break;
 				case SDL_MOUSEBUTTONDOWN:
 					if (show_track == true ) {
 						show_track = false;
 						update = true;
 					}
+					dragging = true; // start dragging
 					mx0 = event.button.x;
 					my0 = event.button.y;
 					mx1 = mx0; my1 = my0;
 					break;
 				case SDL_MOUSEBUTTONUP:
 					if (mx0 != mx1 or my0 != my1) {
-						double mratex = double(mx1 - mx0) / winrect.w;
-						cout << mratex << ": " << viewrect.width_longitude() * mratex << endl;
-						viewrect.east -= viewrect.width_longitude() * mratex;
-						viewrect.west -= viewrect.width_longitude() * mratex;
+						double diff_h = (mx1 - mx0) / hscale;
+						double diff_v = (my1 - my0) / vscale;
+						viewrect.east -= diff_h;
+						viewrect.west -= diff_h;
+						viewrect.north += diff_v;
+						viewrect.south += diff_v;
 						update = true;
 					}
 					if ( show_track == false ) {
 						show_track = true;
 						update = true;
 					}
+					dragging = false; // finish dragging
 					break;
 			}
 
