@@ -165,7 +165,30 @@ int main(int argc, char * argv[]) {
 }
 
 struct GeoRect {
-	double east, west, south, north;
+	double north, east, south, west;
+
+	GeoRect(const double & n, const double e, const double s, const double w) :
+		north(n), east(e), south(s), west(w) { }
+
+	GeoRect(const GeoRect & georect) :
+		north(georect.north),
+		east(georect.east),
+		south(georect.south),
+		west(georect.west) { }
+
+	GeoRect & operator()(const double & n, const double e, const double s, const double w) {
+		north = n;
+		east = e;
+		south = s;
+		west = w;
+		return *this;
+	}
+
+	GeoRect & shift(const double & lat, const double & lon) {
+		north += lat; south += lat;
+		east += lon; west += lon;
+		return * this;
+	}
 
 	double width_longitude() const {
 		return west - east;
@@ -220,7 +243,7 @@ int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track
 	SDL_Rect winrect = { 0, 0, WINDOWSIZE, WINDOWSIZE };
 	SDL_Rect worldrect = { 0, 0, 0, 0 };
 
-	GeoRect maprect = { track[0].lon,track[0].lon,track[0].lat,track[0].lat };
+	GeoRect maprect = { track[0].lat,track[0].lon,track[0].lat,track[0].lon };
 	GeoRect viewrect = { 0,0,0,0 };
 
 	for(auto & p : track)
@@ -239,11 +262,10 @@ int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track
 	// pixel per degree
 	vscale = double(worldrect.h) / (maprect.north - maprect.south);
 	hscale = double(worldrect.w) / (maprect.west - maprect.east);
-	viewrect.north = maprect.north;
-	viewrect.east = maprect.east;
-	viewrect.south = maprect.north - double(worldrect.h) / vscale;
-	viewrect.west = maprect.east + double(worldrect.w) / hscale;
-	cout << hscale << ", " << vscale << endl;
+	viewrect(maprect.north, maprect.east,
+			maprect.north - double(worldrect.h) / vscale,
+			maprect.east + double(worldrect.w) / hscale);
+	cout << "hscale = " << hscale << ", vscale = " << vscale << endl;
 	if ( (SDL_Init( SDL_INIT_VIDEO ) < 0)
 			or !(window = SDL_CreateWindow( "Geograph", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
 					winrect.w, winrect.h, SDL_WINDOW_SHOWN ))
@@ -273,7 +295,7 @@ int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track
 						mx1 = event.button.x;
 						my1 = event.button.y;
 						update = true;
-						cout << mx1 << ",  " << my1 << endl;
+						//cout << mx1 << ",  " << my1 << endl;
 					}
 					break;
 				case SDL_MOUSEBUTTONDOWN:
@@ -291,10 +313,7 @@ int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track
 						diff_h = (mx1 - mx0) / hscale;
 						diff_v = (my1 - my0) / vscale;
 						mx0 = mx1; my0 = my1;
-						viewrect.east -= diff_h;
-						viewrect.west -= diff_h;
-						viewrect.north += diff_v;
-						viewrect.south += diff_v;
+						viewrect.shift(diff_v, -diff_h);
 						update = true;
 					}
 					if ( show_track == false ) {
@@ -317,10 +336,7 @@ int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track
 				diff_h = (mx1 - mx0) / hscale;
 				diff_v = (my1 - my0) / vscale;
 				GeoRect drawrect(viewrect);
-				drawrect.east -= diff_h;
-				drawrect.west -= diff_h;
-				drawrect.north += diff_v;
-				drawrect.south += diff_v;
+				drawrect.shift(diff_v, -diff_h);
 
 				for(auto itr = map.cbegin(); itr!= map.cend(); ++itr) {
 					const geopoint & p = itr->second.point();
