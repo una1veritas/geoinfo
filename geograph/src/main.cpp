@@ -164,31 +164,30 @@ int main(int argc, char * argv[]) {
     return EXIT_SUCCESS;
 }
 
-struct GeoRect {
-	double north, east, south, west;
+struct MapRect {
+	double east, west, south, north;
 
-	double longitude() const {
+	double width_longitude() const {
 		return west - east;
 	}
 
-	double latitude() const {
+	double height_latitude() const {
 		return north - south;
 	}
 
-	double width() const {
-		double mid = (north+south)/2;
-		return geopoint(mid, east).distance_to(geopoint(mid, west));
+	double width_meter() const {
+		return geopoint((north+south)/2, east).distance_to(geopoint((north+south)/2,west));
 	}
 
-	double height() const {
-		return geopoint(south, east).distance_to(geopoint(north, east));
+	double height_meter() const {
+		return geopoint(south, east).distance_to(geopoint(north,east));
 	}
 
-	void set_inside(const geopoint & p) {
-		north = std::max(north, p.lat);
+	void include_inside(const geopoint & p) {
 		east = std::min(east, p.lon);
-		south = std::min(south , p.lat);
 		west = std::max(west, p.lon);
+		south = std::min(south , p.lat);
+		north = std::max(north, p.lat);
 	}
 
 	bool contains(const geopoint & p) const {
@@ -198,6 +197,8 @@ struct GeoRect {
 };
 
 int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track, const std::vector<std::set<std::pair<uint64_t,uint64_t>>> & roadsegs) {
+	SDL_Window * window;
+	SDL_Renderer * renderer;
 	union Color {
 		struct {
 			uint8_t r;
@@ -208,29 +209,25 @@ int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track
 		uint32_t color;
 
 		Color() : r(0), g(0), b(0), a(0xff) {}
-
 		Color(uint8_t red, uint8_t grn, uint8_t blu, uint8_t alpha = 0xff) : r(red), g(grn), b(blu), a(alpha) {}
-
 		Color & operator()(uint8_t red, uint8_t grn, uint8_t blu, uint8_t alpha = 0xff) {
 			r = red; g = grn; b = blu; a = alpha;
 			return *this;
 		}
-	};
-	SDL_Window * window;
-	SDL_Renderer * renderer;
+	} c, c2;
 	int exit_value = EXIT_SUCCESS;
 	constexpr unsigned int WINDOWSIZE = 1024;
 	SDL_Rect winrect = { 0, 0, WINDOWSIZE, WINDOWSIZE };
 	SDL_Rect worldrect = { 0, 0, 0, 0 };
 
-	GeoRect maprect = { track[0].lon,track[0].lon,track[0].lat,track[0].lat };
-	GeoRect viewrect = { 0,0,0,0 };
+	MapRect maprect = { track[0].lon,track[0].lon,track[0].lat,track[0].lat };
+	MapRect viewrect = { 0,0,0,0 };
 
 	for(auto & p : track)
-		maprect.set_inside(p);
+		maprect.include_inside(p);
 
-	cout << maprect.width() << ", " << maprect.height() << endl;
-	double aspect = maprect.width() / maprect.height();
+	cout << maprect.width_meter() << ", " << maprect.height_meter() << endl;
+	double aspect = maprect.width_meter() / maprect.height_meter();
 	double hscale, vscale;
 	if (aspect > 1.0) {
 		worldrect.h = WINDOWSIZE;
@@ -255,8 +252,6 @@ int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track
 		exit_value = EXIT_FAILURE;
 	} else {
 		int mx0 = 0, my0 = 0, mx1 = 0, my1 = 0;
-		double diff_h = 0, diff_v = 0;
-		Color c, c2;
 		bool quit = false;
 		bool update = true;
 		bool show_track = true;
@@ -272,10 +267,10 @@ int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track
 					break;
 				// TODO input handling code goes here
 				case SDL_MOUSEMOTION:
-					if (dragging and (mx1 != event.button.x or my1 != event.button.y) ) {
-						mx1 = event.button.x;
-						my1 = event.button.y;
-						update = true;
+					mx1 = event.button.x;
+					my1 = event.button.y;
+					if (dragging) {
+						cout << mx1 << ",  " << my1 << endl;
 					}
 					break;
 				case SDL_MOUSEBUTTONDOWN:
@@ -290,13 +285,12 @@ int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track
 					break;
 				case SDL_MOUSEBUTTONUP:
 					if (mx0 != mx1 or my0 != my1) {
-						diff_h = (mx1 - mx0) / hscale;
-						diff_v = (my1 - my0) / vscale;
+						double diff_h = (mx1 - mx0) / hscale;
+						double diff_v = (my1 - my0) / vscale;
 						viewrect.east -= diff_h;
 						viewrect.west -= diff_h;
 						viewrect.north += diff_v;
 						viewrect.south += diff_v;
-						mx0 = mx1; my0 = my1;
 						update = true;
 					}
 					if ( show_track == false ) {
@@ -315,28 +309,19 @@ int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track
 				SDL_SetRenderDrawColor(renderer, c.r, c.g, c.b, c.a);
 				SDL_RenderClear(renderer);
 
-				// tweak the view rect
-				diff_h = (mx1 - mx0) / hscale;
-				diff_v = (my1 - my0) / vscale;
-				GeoRect drawrect(viewrect);
-				drawrect.east -= diff_h;
-				drawrect.west -= diff_h;
-				drawrect.north += diff_v;
-				drawrect.south += diff_v;
-
 				//cout << mx0 << ", " << my0 << "; " << mx1 << ", " << my1 << endl;
 				for(auto itr = map.cbegin(); itr!= map.cend(); ++itr) {
 					const geopoint & p = itr->second.point();
-					if ( drawrect.contains(p) ) {
-						int x0 = (p.lon - drawrect.east) * hscale;
-						int y0 = (drawrect.north - p.lat) * vscale;
+					if ( viewrect.contains(p) ) {
+						int x0 = (p.lon - viewrect.east) * hscale;
+						int y0 = (viewrect.north - p.lat) * vscale;
 						//cout << p << " " << hscale << " " << vscale << endl;
 						c(192,192,192);
 						c2(64,64,64);
 						filledCircleColor(renderer, x0, y0, 1, c.color);
 						for(auto & adjid : map.adjacent_nodes(itr->first)) {
-							int x1 = (map.node(adjid).point().lon - drawrect.east) * hscale;
-							int y1 = (drawrect.north - map.node(adjid).point().lat) * vscale;
+							int x1 = (map.node(adjid).point().lon - viewrect.east) * hscale;
+							int y1 = (viewrect.north - map.node(adjid).point().lat) * vscale;
 							filledCircleColor(renderer, x1, y1, 1, c2.color);
 							lineColor(renderer, x0, y0, x1, y1, c.color);
 							//cout << x0 << ", " << y0 << "; " << x1 << ", " << y1 << endl;
@@ -346,24 +331,24 @@ int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track
 
 				if ( show_track ) {
 					for(unsigned int i = 0; i < track.size(); ++i ) {
-						if ( drawrect.contains(track[i]) ) {
-							int x0 = (track[i].lon - drawrect.east) * hscale;
-							int y0 = (drawrect.north - track[i].lat) * vscale;
+						if ( viewrect.contains(track[i]) ) {
+							int x0 = (track[i].lon - viewrect.east) * hscale;
+							int y0 = (viewrect.north - track[i].lat) * vscale;
 							c(0,0,0x7f);
 							filledCircleColor(renderer, x0, y0, 2, c.color);
 							if (i != 0) {
-								int x1 = (track[i-1].lon - drawrect.east) * hscale;
-								int y1 = (drawrect.north - track[i-1].lat) * vscale;
+								int x1 = (track[i-1].lon - viewrect.east) * hscale;
+								int y1 = (viewrect.north - track[i-1].lat) * vscale;
 								filledCircleColor(renderer, x0, y0, 2, c.color);
 								lineColor(renderer, x0, y0, x1, y1, c.color);
 							}
 							for(auto & e : roadsegs[i]) {
 								const geopoint & a = map.point(e.first), & b = map.point(e.second);
 								//cout << a << ", " << b << endl;
-								int x0 = (a.lon - drawrect.east) * hscale;
-								int y0 = (drawrect.north - a.lat) * vscale;
-								int x1 = (b.lon - drawrect.east) * hscale;
-								int y1 = (drawrect.north - b.lat) * vscale;
+								int x0 = (a.lon - viewrect.east) * hscale;
+								int y0 = (viewrect.north - a.lat) * vscale;
+								int x1 = (b.lon - viewrect.east) * hscale;
+								int y1 = (viewrect.north - b.lat) * vscale;
 								c(160,128,0,96);
 								thickLineColor(renderer, x0, y0, x1, y1, 3, c.color);
 							}
