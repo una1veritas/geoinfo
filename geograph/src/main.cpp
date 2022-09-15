@@ -220,8 +220,8 @@ struct GeoRect {
 };
 
 int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track, const std::vector<std::set<std::pair<uint64_t,uint64_t>>> & roadsegs) {
-	SDL_Window * window;
-	SDL_Renderer * renderer;
+	SDL_Window * window = NULL;
+	SDL_Renderer * renderer = NULL;
 	union Color {
 		struct {
 			uint8_t r;
