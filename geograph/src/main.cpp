@@ -190,11 +190,11 @@ struct GeoRect {
 		return * this;
 	}
 
-	double width_longitude() const {
+	double width() const {
 		return west - east;
 	}
 
-	double height_latitude() const {
+	double height() const {
 		return north - south;
 	}
 
@@ -204,6 +204,10 @@ struct GeoRect {
 
 	double height_meter() const {
 		return geopoint(south, east).distance_to(geopoint(north,east));
+	}
+
+	geopoint center() const {
+		return geopoint((north+south)/2, (east+west)/2);
 	}
 
 	void include_inside(const geopoint & p) {
