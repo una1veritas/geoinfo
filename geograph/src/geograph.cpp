@@ -56,22 +56,6 @@ double geopoint::distance_to(const geopoint & q) const {
     return sqrt((t1*t1) + (t2*t2));
 }
 
-double geopoint::distance_x(const geopoint & v) const {
-	double dist = distance_to(geopoint(lat, v.lon));
-	if (v.lon >= lon)
-		return dist;
-	else
-		return -dist;
-}
-
-double geopoint::distance_y(const geopoint & v) const {
-	double dist = distance_to(geopoint(v.lat, lon));
-	if (v.lat >= lat)
-		return dist;
-	else
-		return -dist;
-}
-
 double geopoint::inner_prod(const geopoint & a, const geopoint & b) const {
 	double ax = distance_to(geopoint(lat, a.lon));
 	double ay = distance_to(geopoint(a.lat, lon));

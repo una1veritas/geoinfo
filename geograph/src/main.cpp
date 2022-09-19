@@ -34,25 +34,70 @@ using std::set;
 #include <SDL2/SDL.h>
 #include <SDL2/SDL2_gfxPrimitives.h>
 
-struct DoubleVec {
+#define sign(x) ((x) > 0 ? 1 : ((x) == 0 ? 0: -1))
+
+struct CartCoord {
 	double x, y;
 
-	DoubleVec() : x(0), y(0) {}
-	DoubleVec(const double & xval, const double & yval) : x(xval), y(yval) {}
+	// origin
+	CartCoord() : x(0), y(0) {}
 
-	DoubleVec operator-(const DoubleVec & b) const {
-		return DoubleVec(b.x - x, b.y - y);
+	CartCoord(const double & xval, const double & yval) : x(xval), y(yval) {}
+
+	CartCoord(const geopoint & org, const geopoint & dst) {
+		x = org.distance_to(geopoint(org.lat, dst.lon));
+		y = org.distance_to(geopoint(dst.lat, org.lon));
+		if (dst.lon < org.lon)
+			x = -x;
+		if (dst.lat < org.lat)
+			y = -y;
 	}
 
-	double operator*(const DoubleVec & b) const {
-		return x * b.x + y * b.y;
+	static bool crossing(const CartCoord & a, const CartCoord & b, const CartCoord & c, const CartCoord & d) {
+		return (sign(a.outer_prod(b, c)) * sign(b.outer_prod(a,d)) > 0)
+				and (sign(c.outer_prod(d, a)) * sign(d.outer_prod(c,b)) > 0);
 	}
 
-	double norm() const {
-		return sqrt(x*x + y*y);
+	static double distance_between(const CartCoord & a, const CartCoord & b, const CartCoord & c, const CartCoord & d) {
+		if ( crossing(a,b,c,d) )
+			return 0;
+		return std::min(a.distance_to(c,d), b.distance_to(c,d));
 	}
 
-	friend std::ostream & operator<<(std::ostream & out, const DoubleVec & v) {
+	static double cosine(const CartCoord & a, const CartCoord & b, const CartCoord & c, const CartCoord & d) {
+		return ((b.x - a.x) * (d.x - c.x) + (b.y - a.y) * (d.y - c.y)) / (a.distance_to(b) * c.distance_to(d));
+	}
+
+	CartCoord operator-(const CartCoord & b) const {
+		return CartCoord(b.x - x, b.y - y);
+	}
+
+	double distance_to(const CartCoord & b) const {
+		return sqrt((b.x - x)*(b.x - x) + (b.y - y)*(b.y - y));
+	}
+
+	double projection_on(const CartCoord & a, const CartCoord & b) const {
+		return ((x - a.x) * (b.x - a.x) + (y - a.y) * (b.y - a.y)) / a.distance_to(b);
+	}
+
+	// the norm of outer product around *this
+	double outer_prod(const CartCoord & a, const CartCoord & b) const {
+		double ax = a.x - x, ay = a.y - y;
+		double bx = b.x - x, by = b.y - y;
+		return  (ax * by) - (ay * bx);
+	}
+
+	double distance_to(const CartCoord & p, const CartCoord & q) const {
+		double dp = p.distance_to(*this);
+		double dq = q.distance_to(*this);
+		if ( this->projection_on(p, q) < 0 or this->projection_on(q, p) < 0 ) {
+			// outer of both p and q
+			return std::min(dp, dq);
+		}
+		return abs(p.outer_prod(q, *this))/p.distance_to(q);
+	}
+
+	friend std::ostream & operator<<(std::ostream & out, const CartCoord & v) {
 		out << "(" << std::setw(3) << v.x << ", " << v.y << ") ";
 		return out;
 	}
@@ -141,58 +186,39 @@ int main(int argc, char * argv[]) {
     // collect a sequence of road segments along with the points of the track.
     vector<set<pair<uint64_t,uint64_t>>> roadseq;
     set<geograph::geonode> cneighbors, xneighbors;
-    const DoubleVec cv;
-    DoubleVec nv, av, bv;
+    CartCoord pc, pn, pa, pb;
     for(unsigned int i = 0; i < mytrack.size() - 1; ++i) {
     	roadseq.push_back(set<pair<uint64_t,uint64_t>>());
     	const geopoint & curr = mytrack[i];
     	const geopoint & next = mytrack[i+1];
 
     	bgeohash currhash = curr.geohash(37);
-    	for(const bgeohash & hash : currhash.neighbors(1)) {
+    	for(const bgeohash & hash : currhash.neighbors(2)) {
 			const vector<geograph::geonode> & r = ggraph.geohash_range(hash);
 			cneighbors.insert(r.begin(), r.end());
     	}
     	bgeohash nexthash = next.geohash(37);
-    	for(const bgeohash & hash : nexthash.neighbors(1)) {
+    	for(const bgeohash & hash : nexthash.neighbors(2)) {
 			const vector<geograph::geonode> & r = ggraph.geohash_range(hash);
 			xneighbors.insert(r.begin(), r.end());
     	}
     	const double delta = 21.0;
     	cneighbors.merge(xneighbors);
-		nv = DoubleVec(curr.distance_x(next), curr.distance_y(next));
+    	pc = CartCoord(curr, curr);
+		pn = CartCoord(curr, next);
 		for(const auto & a : cneighbors) {
 			for(auto & b_id : ggraph.adjacent_nodes(a.id())) {
 				const geograph::geonode & b = ggraph.node(b_id);
 				const uint64_t & a_id = a.id();
-				if ( curr.distance_to(a.point()) <= delta ) {
-					av = DoubleVec(curr.distance_x(a.point()), curr.distance_y(a.point()));
-					bv = DoubleVec(curr.distance_x(b.point()), curr.distance_y(b.point()));
-					DoubleVec abv = bv - av;
-					cout << nv << " " << nv.norm() << ", " << av << endl;
-					double prj = (nv * av)/nv.norm();
-					double el = (abv * nv)/nv.norm();
-					if ( prj < 0 and el > 0 and el - abs(prj) > 0) {
-						if (std::min(el - abs(prj), nv.norm()) / nv.norm() > 0.5) {
-							if (a_id < b_id)
-								roadseq[i].insert(pair<uint64_t,uint64_t>(a_id, b_id));
-							else
-								roadseq[i].insert(pair<uint64_t,uint64_t>(b_id, a_id));
-						}
-					} else {
-
-					}
-				}
-				if ((curr.distance_to(a.point()) <= delta and
-					next.distance_to(b.point()) <= delta) or
-					(curr.distance_to(b.point()) <= delta and
-					next.distance_to(a.point()) <= delta)) {
+				pa = CartCoord(curr, a.point());
+				pb = CartCoord(curr, b.point());
+				if ( CartCoord::cosine(pc, pn, pa, pb) > 0.7 and
+						CartCoord::distance_between(pc, pn, pa, pb) <= delta ) {
 					if (a_id < b_id)
 						roadseq[i].insert(pair<uint64_t,uint64_t>(a_id, b_id));
 					else
 						roadseq[i].insert(pair<uint64_t,uint64_t>(b_id, a_id));
 				}
-
 			}
     	}
     }
