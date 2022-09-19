@@ -193,12 +193,12 @@ int main(int argc, char * argv[]) {
     	const geopoint & next = mytrack[i+1];
 
     	bgeohash currhash = curr.geohash(37);
-    	for(const bgeohash & hash : currhash.neighbors(2)) {
+    	for(const bgeohash & hash : currhash.neighbors(3)) {
 			const vector<geograph::geonode> & r = ggraph.geohash_range(hash);
 			cneighbors.insert(r.begin(), r.end());
     	}
     	bgeohash nexthash = next.geohash(37);
-    	for(const bgeohash & hash : nexthash.neighbors(2)) {
+    	for(const bgeohash & hash : nexthash.neighbors(3)) {
 			const vector<geograph::geonode> & r = ggraph.geohash_range(hash);
 			xneighbors.insert(r.begin(), r.end());
     	}
