@@ -3,8 +3,8 @@ PROJECT_ROOT = $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 BUILD_MODE = debug
 BUILD_PLATHOME = MACOS
 
-TARGET = geograph.exe
-OBJS = main.o geograph.o
+TARGET = SDL_test.exe
+OBJS = SDL_test.o
 
 ifeq ($(BUILD_MODE),debug)
 	CFLAGS += -g
