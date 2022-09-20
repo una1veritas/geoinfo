@@ -37,14 +37,13 @@ struct geopoint {
 
 	double distance_to(const geopoint & q) const;
 	double distance_to(const geopoint &q1, const geopoint &q2) const;
+
 	double inner_prod(const geopoint & a, const geopoint & b) const;
 	double outer_prod_norm(const geopoint & a, const geopoint & b) const;
 	double projection(const geopoint & a, const geopoint & b) const;
 
 
 	double vector_norm() const { return geopoint().distance_to(*this); }
-
-
 
 	friend ostream & operator<<(ostream & out, const geopoint & p) {
 		out << " (" << fixed << setprecision(7) << p.lat << ","

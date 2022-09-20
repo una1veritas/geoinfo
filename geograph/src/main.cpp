@@ -18,11 +18,12 @@
 #include <stdexcept>
 #include <cinttypes>
 
-using std::pair;
 using std::vector;
 using std::cout;
 using std::cerr;
 using std::endl;
+using std::pair;
+using std::set;
 
 #include "bgeohash.h"
 #include "geograph.h"
@@ -32,6 +33,75 @@ using std::endl;
 
 #include <SDL2/SDL.h>
 #include <SDL2/SDL2_gfxPrimitives.h>
+
+#define sign(x) ((x) > 0 ? 1 : ((x) == 0 ? 0: -1))
+
+struct CartCoord {
+	double x, y;
+
+	// origin
+	CartCoord() : x(0), y(0) {}
+
+	CartCoord(const double & xval, const double & yval) : x(xval), y(yval) {}
+
+	CartCoord(const geopoint & org, const geopoint & dst) {
+		x = org.distance_to(geopoint(org.lat, dst.lon));
+		y = org.distance_to(geopoint(dst.lat, org.lon));
+		if (dst.lon < org.lon)
+			x = -x;
+		if (dst.lat < org.lat)
+			y = -y;
+	}
+
+	static bool crossing(const CartCoord & a, const CartCoord & b, const CartCoord & c, const CartCoord & d) {
+		return (sign(a.outer_prod(b, c)) * sign(b.outer_prod(a,d)) > 0)
+				and (sign(c.outer_prod(d, a)) * sign(d.outer_prod(c,b)) > 0);
+	}
+
+	static double distance_between(const CartCoord & a, const CartCoord & b, const CartCoord & c, const CartCoord & d) {
+		if ( crossing(a,b,c,d) )
+			return 0;
+		return std::min(a.distance_to(c,d), b.distance_to(c,d));
+	}
+
+	static double cosine(const CartCoord & a, const CartCoord & b, const CartCoord & c, const CartCoord & d) {
+		return ((b.x - a.x) * (d.x - c.x) + (b.y - a.y) * (d.y - c.y)) / (a.distance_to(b) * c.distance_to(d));
+	}
+
+	CartCoord operator-(const CartCoord & b) const {
+		return CartCoord(b.x - x, b.y - y);
+	}
+
+	double distance_to(const CartCoord & b) const {
+		return sqrt((b.x - x)*(b.x - x) + (b.y - y)*(b.y - y));
+	}
+
+	double projection_on(const CartCoord & a, const CartCoord & b) const {
+		return ((x - a.x) * (b.x - a.x) + (y - a.y) * (b.y - a.y)) / a.distance_to(b);
+	}
+
+	// the norm of outer product around *this
+	double outer_prod(const CartCoord & a, const CartCoord & b) const {
+		double ax = a.x - x, ay = a.y - y;
+		double bx = b.x - x, by = b.y - y;
+		return  (ax * by) - (ay * bx);
+	}
+
+	double distance_to(const CartCoord & p, const CartCoord & q) const {
+		double dp = p.distance_to(*this);
+		double dq = q.distance_to(*this);
+		if ( this->projection_on(p, q) < 0 or this->projection_on(q, p) < 0 ) {
+			// outer of both p and q
+			return std::min(dp, dq);
+		}
+		return abs(p.outer_prod(q, *this))/p.distance_to(q);
+	}
+
+	friend std::ostream & operator<<(std::ostream & out, const CartCoord & v) {
+		out << "(" << std::setw(3) << v.x << ", " << v.y << ") ";
+		return out;
+	}
+};
 
 vector<string> split(string& input, char delimiter) {
     istringstream stream(input);
@@ -101,7 +171,7 @@ int main(int argc, char * argv[]) {
 		exit(EXIT_FAILURE);
 	}
 
-	std::vector<geopoint> mytrack;
+	vector<geopoint> mytrack;
     while (getline(csvf, line)) {
         vector<string> strvec = split(line, ',');
         if (strvec.size() < 2) {
@@ -114,52 +184,47 @@ int main(int argc, char * argv[]) {
 
 
     // collect a sequence of road segments along with the points of the track.
-    std::vector<std::set<std::pair<uint64_t,uint64_t>>> roadsegseq;
-    for(unsigned int i = 0; i < mytrack.size(); ++i) {
-    	roadsegseq.push_back(std::set<std::pair<uint64_t,uint64_t>>());
+    vector<set<pair<uint64_t,uint64_t>>> roadseq;
+    set<geograph::geonode> cneighbors, xneighbors;
+    CartCoord pc, pn, pa, pb;
+    for(unsigned int i = 0; i < mytrack.size() - 1; ++i) {
+    	roadseq.push_back(set<pair<uint64_t,uint64_t>>());
     	const geopoint & curr = mytrack[i];
-    	const geopoint & prev = (i > 0) ? mytrack[i-1] : mytrack[i];
-    	const geopoint & next = (i+1 < mytrack.size()) ? mytrack[i+1] : mytrack[i];
-    	bgeohash ghash = curr.geohash(37);
-		vector<bgeohash> ghashes = ghash.neighbors(1);
-		std::set<geograph::geonode> neighbors;
-		for(const bgeohash & ghash : ghashes) {
-			//cout << ghash << ", ";
-			const vector<geograph::geonode> & r = ggraph.geohash_range(ghash);
-			neighbors.insert(r.begin(), r.end());
-		}
+    	const geopoint & next = mytrack[i+1];
+
+    	bgeohash currhash = curr.geohash(37);
+    	for(const bgeohash & hash : currhash.neighbors(3)) {
+			const vector<geograph::geonode> & r = ggraph.geohash_range(hash);
+			cneighbors.insert(r.begin(), r.end());
+    	}
+    	bgeohash nexthash = next.geohash(37);
+    	for(const bgeohash & hash : nexthash.neighbors(3)) {
+			const vector<geograph::geonode> & r = ggraph.geohash_range(hash);
+			xneighbors.insert(r.begin(), r.end());
+    	}
     	const double delta = 21.0;
-    	for(auto a : neighbors) {
+    	cneighbors.merge(xneighbors);
+    	pc = CartCoord(curr, curr);
+		pn = CartCoord(curr, next);
+		for(const auto & a : cneighbors) {
 			for(auto & b_id : ggraph.adjacent_nodes(a.id())) {
 				const geograph::geonode & b = ggraph.node(b_id);
-				geopoint currvec(prev, curr);
-				geopoint abvec(a.point(), b.point());
-				geopoint nextvec(curr, next);
-				// 経路の断片と道の断片の擬似的な射影（なす角）
-				double proj0 = prev.projection(curr, prev+(b.point() - a.point()));
-				double proj1 = curr.projection(next, curr+(b.point() - a.point()));
-				//cout << proj0 << ", " << proj1 << endl;
-				if ((curr.distance_to(a.point()) <= delta and prev.distance_to(b.point()) <= delta)
-						or (curr.distance_to(a.point()) <= delta and next.distance_to(b.point()) <= delta)) {
-					if (a.id() < b.id())
-						roadsegseq[i].insert(std::pair<uint64_t,uint64_t>(a.id(),b.id()));
-					else if (b.id() < a.id())
-						roadsegseq[i].insert(std::pair<uint64_t,uint64_t>(b.id(),a.id()));
-					//cout << a.id() << ", " << b.id() << endl;
+				const uint64_t & a_id = a.id();
+				pa = CartCoord(curr, a.point());
+				pb = CartCoord(curr, b.point());
+				if ( CartCoord::cosine(pc, pn, pa, pb) > 0.7 and
+						CartCoord::distance_between(pc, pn, pa, pb) <= delta ) {
+					if (a_id < b_id)
+						roadseq[i].insert(pair<uint64_t,uint64_t>(a_id, b_id));
+					else
+						roadseq[i].insert(pair<uint64_t,uint64_t>(b_id, a_id));
 				}
-				if (curr.distance_to(a.point(), b.point()) <= delta and (abs(proj0) >= 0.7 or abs(proj1) >= 0.7) ) {
-					if (a.id() < b.id())
-						roadsegseq[i].insert(std::pair<uint64_t,uint64_t>(a.id(),b.id()));
-					else if (b.id() < a.id())
-						roadsegseq[i].insert(std::pair<uint64_t,uint64_t>(b.id(),a.id()));
-				}
-
 			}
     	}
-    	//cout << roadsegseq[i].size() << endl;
     }
     cout << "finished." << endl;
-    show_in_sdl_window(ggraph, mytrack, roadsegseq);
+
+    show_in_sdl_window(ggraph, mytrack, roadseq);
 
     return EXIT_SUCCESS;
 }
@@ -190,11 +255,11 @@ struct GeoRect {
 		return * this;
 	}
 
-	double width_longitude() const {
+	double width() const {
 		return west - east;
 	}
 
-	double height_latitude() const {
+	double height() const {
 		return north - south;
 	}
 
@@ -204,6 +269,10 @@ struct GeoRect {
 
 	double height_meter() const {
 		return geopoint(south, east).distance_to(geopoint(north,east));
+	}
+
+	geopoint center() const {
+		return geopoint((north+south)/2, (east+west)/2);
 	}
 
 	void include_inside(const geopoint & p) {
@@ -358,18 +427,16 @@ int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track
 				}
 
 				if ( show_track ) {
-					for(unsigned int i = 0; i < track.size(); ++i ) {
+					for(unsigned int i = 0; i < track.size() - 1; ++i ) {
 						if ( drawrect.contains(track[i]) ) {
 							int x0 = (track[i].lon - drawrect.east) * hscale;
 							int y0 = (drawrect.north - track[i].lat) * vscale;
 							c(0,0,0x7f);
 							filledCircleColor(renderer, x0, y0, 2, c.color);
-							if (i != 0) {
-								int x1 = (track[i-1].lon - drawrect.east) * hscale;
-								int y1 = (drawrect.north - track[i-1].lat) * vscale;
-								filledCircleColor(renderer, x0, y0, 2, c.color);
-								lineColor(renderer, x0, y0, x1, y1, c.color);
-							}
+							int x1 = (track[i+1].lon - drawrect.east) * hscale;
+							int y1 = (drawrect.north - track[i+1].lat) * vscale;
+							filledCircleColor(renderer, x0, y0, 2, c.color);
+							lineColor(renderer, x0, y0, x1, y1, c.color);
 							for(auto & e : roadsegs[i]) {
 								const geopoint & a = map.point(e.first), & b = map.point(e.second);
 								//cout << a << ", " << b << endl;
