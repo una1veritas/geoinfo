@@ -337,7 +337,7 @@ int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track
 	cout << "hscale = " << hscale << ", vscale = " << vscale << endl;
 	if ( (SDL_Init( SDL_INIT_VIDEO ) < 0)
 			or !(window = SDL_CreateWindow( "Geograph", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-					winrect.w, winrect.h, SDL_WINDOW_SHOWN ))
+					winrect.w, winrect.h, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE))
 			or !(renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE)) ) {
 		cerr << "Error: " << SDL_GetError() << endl;
 		exit_value = EXIT_FAILURE;
