@@ -184,11 +184,11 @@ int main(int argc, char * argv[]) {
 
 
     // collect a sequence of road segments along with the points of the track.
-    vector<set<pair<uint64_t,uint64_t>>> roadseq;
+    vector<set<pair<uint64_t,uint64_t>>> edgeseq;
     set<geograph::geonode> cneighbors, xneighbors;
     CartCoord pc, pn, pa, pb;
     for(unsigned int i = 0; i < mytrack.size() - 1; ++i) {
-    	roadseq.push_back(set<pair<uint64_t,uint64_t>>());
+    	edgeseq.push_back(set<pair<uint64_t,uint64_t>>());
     	const geopoint & curr = mytrack[i];
     	const geopoint & next = mytrack[i+1];
 
@@ -215,16 +215,16 @@ int main(int argc, char * argv[]) {
 				if ( CartCoord::cosine(pc, pn, pa, pb) > 0.7 and
 						CartCoord::distance_between(pc, pn, pa, pb) <= delta ) {
 					if (a_id < b_id)
-						roadseq[i].insert(pair<uint64_t,uint64_t>(a_id, b_id));
+						edgeseq[i].insert(pair<uint64_t,uint64_t>(a_id, b_id));
 					else
-						roadseq[i].insert(pair<uint64_t,uint64_t>(b_id, a_id));
+						edgeseq[i].insert(pair<uint64_t,uint64_t>(b_id, a_id));
 				}
 			}
     	}
     }
     cout << "finished." << endl;
 
-    show_in_sdl_window(ggraph, mytrack, roadseq);
+    show_in_sdl_window(ggraph, mytrack, edgeseq);
 
     return EXIT_SUCCESS;
 }
@@ -240,6 +240,20 @@ struct GeoRect {
 		east(georect.east),
 		south(georect.south),
 		west(georect.west) { }
+
+	GeoRect(const vector<geopoint> & vec) {
+		if (vec.size() == 0) {
+			north = 0, east = 0, south = 0, west = 0;
+		} else {
+			north = vec[0].lat, east = vec[0].lon, south = vec[0].lat, west = vec[0].lon;
+		}
+		for(const auto & p : vec) {
+			east = std::min(east, p.lon);
+			west = std::max(west, p.lon);
+			south = std::min(south , p.lat);
+			north = std::max(north, p.lat);
+		}
+	}
 
 	GeoRect & operator()(const double & n, const double e, const double s, const double w) {
 		north = n;
@@ -275,12 +289,14 @@ struct GeoRect {
 		return geopoint((north+south)/2, (east+west)/2);
 	}
 
-	void include_inside(const geopoint & p) {
+	/*
+	void set_inside(const geopoint & p) {
 		east = std::min(east, p.lon);
 		west = std::max(west, p.lon);
 		south = std::min(south , p.lat);
 		north = std::max(north, p.lat);
 	}
+	*/
 
 	bool contains(const geopoint & p) const {
 		return  (p.lat >= south) and (p.lat <= north)
@@ -307,35 +323,28 @@ int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track
 			return *this;
 		}
 	} c, c2;
-	int exit_value = EXIT_SUCCESS;
+
 	constexpr unsigned int WINDOWSIZE = 1024;
-	SDL_Rect winrect = { 0, 0, WINDOWSIZE, WINDOWSIZE };
-	SDL_Rect worldrect = { 0, 0, 0, 0 };
+	int winheight = WINDOWSIZE, winwidth = WINDOWSIZE;
+	GeoRect traj_area(track);
+	GeoRect viewarea = { 0,0,0,0 };
 
-	GeoRect maprect = { track[0].lat,track[0].lon,track[0].lat,track[0].lon };
-	GeoRect viewrect = { 0,0,0,0 };
-
-	for(auto & p : track)
-		maprect.include_inside(p);
-
-	cout << maprect.width_meter() << ", " << maprect.height_meter() << endl;
-	double aspect = maprect.width_meter() / maprect.height_meter();
-	double hscale, vscale;
-	worldrect.h = winrect.h;
-	worldrect.w = winrect.h * aspect;
+	//cout << traj_area.width_meter() << ", " << traj_area.height_meter() << endl;
+	double aspect = traj_area.width_meter() / traj_area.height_meter();
 	// pixel per degree
-	vscale = double(worldrect.h) / (maprect.north - maprect.south);
-	hscale = double(worldrect.w) / (maprect.west - maprect.east);
-	viewrect(maprect.north, maprect.east,
-			maprect.north - double(winrect.h) / vscale,
-			maprect.east + double(winrect.w) / hscale);
+	double vscale = double(WINDOWSIZE) / (traj_area.north - traj_area.south);
+	double hscale = double(WINDOWSIZE) * aspect / (traj_area.west - traj_area.east);
+	viewarea(traj_area.north,
+			traj_area.east,
+			traj_area.north - double(winheight) / vscale,
+			traj_area.east + double(winwidth) / hscale);
 	cout << "hscale = " << hscale << ", vscale = " << vscale << endl;
 	if ( (SDL_Init( SDL_INIT_VIDEO ) < 0)
 			or !(window = SDL_CreateWindow( "Geograph", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
-					winrect.w, winrect.h, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE))
+					winwidth, winheight, SDL_WINDOW_SHOWN | SDL_WINDOW_RESIZABLE))
 			or !(renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_SOFTWARE)) ) {
 		cerr << "Error: " << SDL_GetError() << endl;
-		exit_value = EXIT_FAILURE;
+		return EXIT_FAILURE;
 	} else {
 		int mx0 = 0, my0 = 0, mx1 = 0, my1 = 0;
 		double diff_h = 0, diff_v = 0;
@@ -377,7 +386,7 @@ int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track
 						diff_h = (mx1 - mx0) / hscale;
 						diff_v = (my1 - my0) / vscale;
 						mx0 = mx1; my0 = my1;
-						viewrect.shift(diff_v, -diff_h);
+						viewarea.shift(diff_v, -diff_h);
 						update = true;
 					}
 					if ( show_track == false ) {
@@ -392,15 +401,15 @@ int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track
 					// after the succeeding resize.
 					switch (event.window.event) {
 					case SDL_WINDOWEVENT_SIZE_CHANGED:
-						winrect.w = event.window.data1;
-						winrect.h = event.window.data2;
+						winwidth = event.window.data1;
+						winheight = event.window.data2;
 						//cout << "CHANGED " << winrect.h << ", " << winrect.w << endl;
-						break;
-					case SDL_WINDOWEVENT_RESIZED:
+						//break;
+					//case SDL_WINDOWEVENT_RESIZED:
 						update = true;
 						//cout << "RESIZED" << endl;
-						viewrect.south = viewrect.north - double(winrect.h) / vscale;
-						viewrect.west = viewrect.east + double(winrect.w) / hscale;
+						viewarea.south = viewarea.north - double(winheight) / vscale;
+						viewarea.west = viewarea.east + double(winwidth) / hscale;
 						break;
 					}
 				break;
@@ -417,7 +426,7 @@ int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track
 				// tweak the view rect
 				diff_h = (mx1 - mx0) / hscale;
 				diff_v = (my1 - my0) / vscale;
-				GeoRect drawrect(viewrect);
+				GeoRect drawrect(viewarea);
 				drawrect.shift(diff_v, -diff_h);
 
 				for(auto itr = map.cbegin(); itr!= map.cend(); ++itr) {
@@ -478,5 +487,5 @@ int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track
 		window = NULL;
 	}
 	SDL_Quit();
-	return exit_value;
+	return EXIT_SUCCESS;
 }
