@@ -321,19 +321,14 @@ int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track
 	cout << maprect.width_meter() << ", " << maprect.height_meter() << endl;
 	double aspect = maprect.width_meter() / maprect.height_meter();
 	double hscale, vscale;
-	if (aspect > 1.0) {
-		worldrect.h = WINDOWSIZE;
-		worldrect.w = WINDOWSIZE * aspect;
-	} else {
-		worldrect.h = WINDOWSIZE;
-		worldrect.w = WINDOWSIZE * aspect;
-	}
+	worldrect.h = winrect.h;
+	worldrect.w = winrect.h * aspect;
 	// pixel per degree
 	vscale = double(worldrect.h) / (maprect.north - maprect.south);
 	hscale = double(worldrect.w) / (maprect.west - maprect.east);
 	viewrect(maprect.north, maprect.east,
-			maprect.north - double(worldrect.h) / vscale,
-			maprect.east + double(worldrect.w) / hscale);
+			maprect.north - double(winrect.h) / vscale,
+			maprect.east + double(winrect.w) / hscale);
 	cout << "hscale = " << hscale << ", vscale = " << vscale << endl;
 	if ( (SDL_Init( SDL_INIT_VIDEO ) < 0)
 			or !(window = SDL_CreateWindow( "Geograph", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
@@ -391,6 +386,24 @@ int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track
 					}
 					dragging = false; // finish dragging
 					break;
+				case SDL_WINDOWEVENT:
+					// resize function is still incomplete;
+					// map-drawing of enlarged area is postponed
+					// after the succeeding resize.
+					switch (event.window.event) {
+					case SDL_WINDOWEVENT_SIZE_CHANGED:
+						winrect.w = event.window.data1;
+						winrect.h = event.window.data2;
+						//cout << "CHANGED " << winrect.h << ", " << winrect.w << endl;
+						break;
+					case SDL_WINDOWEVENT_RESIZED:
+						update = true;
+						//cout << "RESIZED" << endl;
+						viewrect.south = viewrect.north - double(winrect.h) / vscale;
+						viewrect.west = viewrect.east + double(winrect.w) / hscale;
+						break;
+					}
+				break;
 			}
 
 			// TODO rendering code goes here
