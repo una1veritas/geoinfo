@@ -1,12 +1,10 @@
 /.metadata/
 *.o
 *.exe
-giajxml/xmlreader/__pycache__/__main__.cpython-39.pyc
 *.pyc
 *.pyc
-
+*.d
 .DS_Store
 *.osm*
-geograph/tex/binarygeohash.synctex.gz
-geograph/tex/binarygeohash.log
-geograph/tex/binarygeohash.aux
+*.synctex.gz
+*.aux
