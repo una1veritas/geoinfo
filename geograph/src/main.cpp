@@ -64,6 +64,28 @@ struct CartCoord {
 		return std::min(a.distance_to(c,d), b.distance_to(c,d));
 	}
 
+	static double length_along(CartCoord a, CartCoord b, CartCoord c, CartCoord d) {
+		CartCoord ab = b - a;
+		CartCoord cd = d - c;
+		double inprod_ab_cd = ab.x * cd.x + ab.y * cd.y;
+		if ( inprod_ab_cd < 0 ) { // swap c and d to make c -> d being same direction with a -> b
+			std::swap(c, d);
+			inprod_ab_cd = -inprod_ab_cd;
+		}
+		if (inprod_ab_cd == 0)
+			return 0;
+		if ( c.projection_on(a, b) < 0 and d.projection_on(a, b) < 0 ) {
+			// c and d are outside of a-b
+			return a.distance_to(b);
+		} else if ( c.projection_on(a, b) < 0 ) {
+			return std::min(inprod_ab_cd / a.distance_to(b) - c.projection_on(a, b), a.distance_to(b));
+		} else if ( d.projection_on(b, a) < 0 ) {
+			return std::min(inprod_ab_cd / a.distance_to(b) - d.projection_on(b, a), a.distance_to(b));
+		} else {
+			return inprod_ab_cd / a.distance_to(b);
+		}
+	}
+
 	static double cosine(const CartCoord & a, const CartCoord & b, const CartCoord & c, const CartCoord & d) {
 		return ((b.x - a.x) * (d.x - c.x) + (b.y - a.y) * (d.y - c.y)) / (a.distance_to(b) * c.distance_to(d));
 	}
@@ -212,7 +234,8 @@ int main(int argc, char * argv[]) {
 				const uint64_t & a_id = a.id();
 				pa = CartCoord(curr, a.point());
 				pb = CartCoord(curr, b.point());
-				if ( CartCoord::cosine(pc, pn, pa, pb) > 0.7 and
+				if (  CartCoord::cosine(pc, pn, pa, pb) > 0.7 and
+						CartCoord::length_along(pc, pn, pa, pb) / pa.distance_to(pb) >= 0.3 and
 						CartCoord::distance_between(pc, pn, pa, pb) <= delta ) {
 					if (a_id < b_id)
 						edgeseq[i].insert(pair<uint64_t,uint64_t>(a_id, b_id));
