@@ -18,12 +18,12 @@ ifeq ($(PLATHOME),macos)
 	LIBDIRS = -L/usr/local/lib
 	LIBRARIES = -lSDL2main -lSDL2 -lSDL2_gfx
 	CXXFLAGS += -std=c++20
-else ifeq ($(BUILD_PLATHOME),mingw64)
+else ifeq ($(PLATHOME),mingw64)
 #	INCLUDEDIRS = -I/usr/local/include/SDL2
 	LIBDIRS = -L/msys64/mingw64/lib
 	LIBRARIES = -lmingw32 -lSDL2main -lSDL2 -lSDL2_gfx
 	CXXFLAGS += -std=c++2a
-else ifeq ($(BUILD_PLATHOME),ubuntu22)
+else ifeq ($(PLATHOME),ubuntu22)
 	INCLUDEDIRS = 
 	LIBDIRS = 
 	LIBRARIES = -lSDL2main -lSDL2 -lSDL2_gfx
