@@ -27,7 +27,7 @@ else ifeq ($(PLATHOME),ubuntu22)
 	INCLUDEDIRS = 
 	LIBDIRS = 
 	LIBRARIES = -lSDL2main -lSDL2 -lSDL2_gfx
-	CXXFLAGS += -std=c++2a
+	CXXFLAGS += -std=c++2b
 endif
 
 all:	$(TARGET)
