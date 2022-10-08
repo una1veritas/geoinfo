@@ -162,80 +162,6 @@ int main(int argc, char * argv[]) {
     return EXIT_SUCCESS;
 }
 
-struct GeoRect {
-	double north, east, south, west;
-
-	GeoRect(const double & n, const double e, const double s, const double w) :
-		north(n), east(e), south(s), west(w) { }
-
-	GeoRect(const GeoRect & georect) :
-		north(georect.north),
-		east(georect.east),
-		south(georect.south),
-		west(georect.west) { }
-
-	GeoRect(const vector<geopoint> & vec) {
-		if (vec.size() == 0) {
-			north = 0, east = 0, south = 0, west = 0;
-		} else {
-			north = vec[0].lat, east = vec[0].lon, south = vec[0].lat, west = vec[0].lon;
-		}
-		for(const auto & p : vec) {
-			east = std::min(east, p.lon);
-			west = std::max(west, p.lon);
-			south = std::min(south, p.lat);
-			north = std::max(north, p.lat);
-		}
-	}
-
-	GeoRect & operator()(const double & n, const double e, const double s, const double w) {
-		north = n;
-		east = e;
-		south = s;
-		west = w;
-		return *this;
-	}
-
-	GeoRect & shift(const double & lat, const double & lon) {
-		north += lat; south += lat;
-		east += lon; west += lon;
-		return * this;
-	}
-
-	double width() const {
-		return west - east;
-	}
-
-	double height() const {
-		return north - south;
-	}
-
-	double width_meter() const {
-		return geopoint((north+south)/2, east).distance_to(geopoint((north+south)/2,west));
-	}
-
-	double height_meter() const {
-		return geopoint(south, east).distance_to(geopoint(north,east));
-	}
-
-	geopoint center() const {
-		return geopoint((north+south)/2, (east+west)/2);
-	}
-
-	/*
-	void set_inside(const geopoint & p) {
-		east = std::min(east, p.lon);
-		west = std::max(west, p.lon);
-		south = std::min(south , p.lat);
-		north = std::max(north, p.lat);
-	}
-	*/
-
-	bool contains(const geopoint & p) const {
-		return  (p.lat >= south) and (p.lat <= north)
-				and (p.lon >= east) and (p.lon <= west);
-	}
-};
 
 int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track, const std::vector<std::set<std::pair<uint64_t,uint64_t>>> & roadsegs) {
 	constexpr unsigned int WINDOW_MIN_WIDTH = 1024;
@@ -264,11 +190,12 @@ int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track
 		unsigned int w, h;
 	} winrect = {WINDOW_MIN_WIDTH, WINDOW_MIN_HEIGHT};
 
-	GeoRect traj_area(track);
+	georect area(track);
 	//cout << traj_area.width_meter() << ", " << traj_area.height_meter() << endl;
-	double aspect = traj_area.width_meter() / traj_area.height_meter();
 	// pixel per degree
 	double vscale = double(WINDOW_MIN_HEIGHT) / (area.north - area.south);
+	double hscale = double(WINDOW_MIN_HEIGHT) * area.aspect_ratio() / (area.west - area.east);
+	georect viewarea(area);
 	cout << "hscale = " << hscale << ", vscale = " << vscale << endl;
 	if ( (SDL_Init( SDL_INIT_VIDEO ) < 0)
 			or !(window = SDL_CreateWindow( "Geograph", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
@@ -357,7 +284,7 @@ int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track
 				// tweak the view rect
 				diff_h = (mx1 - mx0) / hscale;
 				diff_v = (my1 - my0) / vscale;
-				GeoRect drawrect(viewarea);
+				georect drawrect(viewarea);
 				drawrect.shift(diff_v, -diff_h);
 
 				for(auto itr = map.cbegin(); itr!= map.cend(); ++itr) {
