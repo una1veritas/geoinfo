@@ -268,9 +268,7 @@ int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track
 	//cout << traj_area.width_meter() << ", " << traj_area.height_meter() << endl;
 	double aspect = traj_area.width_meter() / traj_area.height_meter();
 	// pixel per degree
-	double vscale = double(WINDOW_MIN_HEIGHT) / (traj_area.north - traj_area.south);
-	double hscale = double(WINDOW_MIN_HEIGHT) * aspect / (traj_area.west - traj_area.east);
-	GeoRect viewarea(traj_area);
+	double vscale = double(WINDOW_MIN_HEIGHT) / (area.north - area.south);
 	cout << "hscale = " << hscale << ", vscale = " << vscale << endl;
 	if ( (SDL_Init( SDL_INIT_VIDEO ) < 0)
 			or !(window = SDL_CreateWindow( "Geograph", SDL_WINDOWPOS_UNDEFINED, SDL_WINDOWPOS_UNDEFINED,
