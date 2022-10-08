@@ -1,38 +1,17 @@
-PROJECT_ROOT = $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
-BUILD_MODE = debug
-BUILD_PLATHOME = MACOS
+CFLAGS += -g
+INCLUDEDIRS = 
+LIBDIRS = -L/usr/local/lib
+LIBRARIES = -lSDL2main -lSDL2 -lSDL2_gfx
+CXXFLAGS += -std=c++2b
 
-TARGET = SDL_test.exe
-OBJS = SDL_test.o
-
-ifeq ($(BUILD_MODE),debug)
-	CFLAGS += -g
-	CXXFLAGS += -std=c++20
-else ifeq ($(BUILD_MODE),run)
-	CFLAGS += -O2
-	CXXFLAGS += -std=c++20
-else
-	$(error Specify correct build mode $(BUILD_MODE) not supported by this Makefile)
-endif
-
-ifeq ($(BUILD_PLATHOME),MACOS)
-	INCLUDEDIRS = -I/usr/local/include/SDL2
-	LIBDIRS = -L/usr/local/lib
-	LIBRARIES = -lSDL2main -lSDL2 -lSDL2_gfx
-else ifeq ($(BUILD_PLATHOME),WINDOWS)
-	INCLUDEDIRS = -I/usr/local/include/SDL2
-	LIBDIRS = 
-	LIBRARIES = -lSDL2main -lSDL2 -lSDL2_gfx
-else
-	$(error Specify correct build mode $(BUILD_PLATHOME) not supported by this Makefile)
-endif
+TARGET = geograph.exe
+OBJS = SDL_gfx_test.o
 
 all:	$(TARGET)
 
 $(TARGET):	$(OBJS)
 	$(CXX) -o $@ $^  $(LIBDIRS) $(LIBRARIES)
-
 
 %.o:	$(PROJECT_ROOT)src/%.cpp
 	$(CXX) -c $(CFLAGS) $(CXXFLAGS) $(CPPFLAGS) -o $@ $< $(INCLUDEDIRS) 
