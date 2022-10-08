@@ -52,6 +52,76 @@ struct geopoint {
 	}
 };
 
+struct georect {
+	double north, east, south, west;
+
+	georect(const double & n, const double e, const double s, const double w) :
+		north(n), east(e), south(s), west(w) { }
+
+	georect(const georect & georect) :
+		north(georect.north),
+		east(georect.east),
+		south(georect.south),
+		west(georect.west) { }
+
+	georect(const vector<geopoint> & vec) {
+		if (vec.size() == 0) {
+			north = 0, east = 0, south = 0, west = 0;
+		} else {
+			north = vec[0].lat, east = vec[0].lon, south = vec[0].lat, west = vec[0].lon;
+		}
+		for(const auto & p : vec) {
+			east = std::min(east, p.lon);
+			west = std::max(west, p.lon);
+			south = std::min(south, p.lat);
+			north = std::max(north, p.lat);
+		}
+	}
+
+	georect & operator()(const double & n, const double e, const double s, const double w) {
+		north = n;
+		east = e;
+		south = s;
+		west = w;
+		return *this;
+	}
+
+	georect & shift(const double & lat, const double & lon) {
+		north += lat; south += lat;
+		east += lon; west += lon;
+		return * this;
+	}
+
+	double width_degree() const {
+		return west - east;
+	}
+
+	double height_degree() const {
+		return north - south;
+	}
+
+	double width_meter() const {
+		return geopoint((north+south)/2, east).distance_to(geopoint((north+south)/2,west));
+	}
+
+	double height_meter() const {
+		return geopoint(south, east).distance_to(geopoint(north,east));
+	}
+
+	geopoint center() const {
+		return geopoint((north+south)/2, (east+west)/2);
+	}
+
+	double aspect_ratio() const {
+		return width_meter()/height_meter();
+	}
+
+	bool contains(const geopoint & p) const {
+		return  (p.lat >= south) and (p.lat <= north)
+				and (p.lon >= east) and (p.lon <= west);
+	}
+};
+
 struct geograph {
 public:
 	struct geonode {

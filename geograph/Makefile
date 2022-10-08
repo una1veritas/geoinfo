@@ -30,6 +30,11 @@ else ifeq ($(PLATHOME),ubuntu22)
 	CXXFLAGS += -std=c++2b
 endif
 
+showcomment:
+	@echo "Use make PLATHOME=ubuntu22 or =mingw64 or=macos command to build executable."
+	@echo "commands: clean, all"
+	@echo
+	
 all:	$(TARGET)
 
 $(TARGET):	$(OBJS)
