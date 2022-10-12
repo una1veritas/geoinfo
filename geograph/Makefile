@@ -32,7 +32,7 @@ showcomment:
 	@echo "Use make PLATHOME=ubuntu22 or =mingw64 or=macos command to build executable."
 	@echo "commands: clean, all"
 	@echo
-	
+
 all:	$(TARGET)
 
 $(TARGET):	$(OBJS)
@@ -41,7 +41,7 @@ $(TARGET):	$(OBJS)
 %.o:	$(PROJECT_ROOT)src/%.cpp
 	$(CXX) -c $(CFLAGS) $(CXXFLAGS) $(CPPFLAGS) -o $@ $< $(INCLUDEDIRS) 
 
-%.o:	$(PROJECT_ROOT)%.c
+%.o:	$(PROJECT_ROOT)src/%.c
 	$(CC) -c $(CFLAGS) $(CPPFLAGS) -o $@ $<
 
 clean:
