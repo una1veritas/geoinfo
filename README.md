@@ -27,21 +27,19 @@ pacman -S mingw-w64-x86_64-toolchain
 mingw-w64-x86_64-gcc-ada-12.2.0-3-any.pkg.tar.zst.sig
 mingw-w64-x86_64-libgccjit-12.2.0-3-any.pkg.tar.zst.sig
 についてダウンロードでエラーがでた場合でも、ada と ccjit は使わないので
+
 mingw-w64-x86_64-gcc 
 等必要なものがインストールされるまでリトライします。
+
 （何度やろうがインストールされたものはパッケージ管理されているので問題ない。）
 
-コマンド
-make
-gcc
-g++
-等を引数なしで実行して、（コマンドが見つからない　エラーではなく）
+コマンド make, gcc, g++ 等を引数なしで実行して、（コマンドが見つからない　エラーではなく）
 コマンドのエラー（no input file 等）が返ってくることで、
-インストールされたことを確認できます
+インストールされたことで確認できます
 
 この段階で、シェルで簡単な C プログラムをコンパイルできることや、
 make ができることを確認できます。
-emacs エディタ１（デカい）を使いたければ、
+emacs エディタ（デカい）を使いたければ、
 pacman -S mingw-w64-x86_64-emacs
 でインストールできます。
 
@@ -52,6 +50,7 @@ pacman -S mingw-w64-x86_64-emacs
 メニューから MSYS2 MINGW64 シェルを開き、以下を実行します。
 
 pacman -S mingw-w64-x86_64-SDL2
+
 pacman -S mingw-w64-x86_64-SDL2_gfx
 
 ※ SDL2 ではない SDL（SDL のバージョン 1）を間違ってインストールしないこと。
@@ -61,6 +60,7 @@ pacman -S mingw-w64-x86_64-SDL2_gfx
 にインストールされます。
 
 ls /mingw64/include/SDL2/
+
 ls /mingw64/lib/libSDL2*
 
 等で確認できます。
@@ -70,7 +70,9 @@ ls /mingw64/lib/libSDL2*
 この段階で、SDL2_test プロジェクトや SDL2_gfx_test プロジェクト、geograph プロジェクト
 は手動でコンパイルできます。
 例）
+
 $ cd /C/Users/Sin\ Shimozono/Documents/Projects/geoinfo/SDL2_gfx_test/
+
 $ g++ -std=c++2a -O0 -g3 -o SDL_gfx_test.exe ./src/SDL_gfx_test.cpp -lmingw32 -lSDL2main -lSDL2 -lSDL2_gfx
 
 （成功。./SDL_gfx_test.exe で実行できる。）
@@ -97,11 +99,14 @@ C/C++ Build のサブメニュー Tool Chain Editor、
 C/C++ General のサブメニュー Paths and Symbols の Libraries ペーン
 の内容を、このディレクトリに放り込んだ .jpg 画像のように入力／選択します。
 これらは Makefile で書くのと同じ内容です。
+
 （パスはインクルード、ライブラリどちらにも必要ありませんでした。）
 
 ソースコードは GitHub から最新のものをダウンロードしてください。
 インクルードファイルは以下のように指定されています。
+
 #include <SDL2/SDL.h>
+
 #include <SDL2/SDL2_gfxPrimitives.h>
 
 以上
