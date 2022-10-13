@@ -1,12 +1,37 @@
+#PROJECT_ROOT = $(dir $(abspath $(lastword $(MAKEFILE_LIST))))
 
-CFLAGS += -g
-INCLUDEDIRS = 
-LIBDIRS = -L/usr/local/lib
-LIBRARIES = -lSDL2main -lSDL2 -lSDL2_gfx
-CXXFLAGS += -std=c++2b
+BUILD_MODE = debug
 
-TARGET = geograph.exe
-OBJS = SDL_gfx_test.o
+TARGET = SDL2_test.exe
+OBJS = SDL2_test.o
+
+ifeq ($(BUILD_MODE),debug)
+	CFLAGS += -g
+else ifeq ($(BUILD_MODE),run)
+	CFLAGS += -O2
+else
+	$(error Specify correct build mode $(BUILD_MODE) not supported by this Makefile)
+endif
+
+ifeq ($(PLATHOME),macos)
+#	INCLUDEDIRS = -I/usr/local/include/SDL2
+	LIBDIRS = -L/usr/local/lib
+	LIBRARIES = -lSDL2main -lSDL2 -lSDL2_gfx
+	CXXFLAGS += -std=c++20
+else ifeq ($(PLATHOME),mingw64)
+	LIBRARIES = -lmingw32 -lSDL2main -lSDL2 -lSDL2_gfx
+	CXXFLAGS += -std=c++2a
+else ifeq ($(PLATHOME),ubuntu22)
+	INCLUDEDIRS = 
+	LIBDIRS = 
+	LIBRARIES = -lSDL2main -lSDL2 -lSDL2_gfx
+	CXXFLAGS += -std=c++2b
+endif
+
+showcomment:
+	@echo "Use make PLATHOME=ubuntu22 or =mingw64 or=macos command to build executable."
+	@echo "commands: clean, all"
+	@echo
 
 all:	$(TARGET)
 
@@ -16,8 +41,8 @@ $(TARGET):	$(OBJS)
 %.o:	$(PROJECT_ROOT)src/%.cpp
 	$(CXX) -c $(CFLAGS) $(CXXFLAGS) $(CPPFLAGS) -o $@ $< $(INCLUDEDIRS) 
 
-%.o:	$(PROJECT_ROOT)%.c
-	$(CC) -c $(CFLAGS) $(CPPFLAGS) -o $@ $<
+%.o:	$(PROJECT_ROOT)src/%.c
+	$(CC) -c $(CFLAGS) -o $@ $< $(INCLUDEDIRS)
 
 clean:
-	rm -fr geograph.exe $(OBJS)
+	rm -fr SDL2_test.exe $(OBJS)

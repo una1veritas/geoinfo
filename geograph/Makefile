@@ -19,8 +19,6 @@ ifeq ($(PLATHOME),macos)
 	LIBRARIES = -lSDL2main -lSDL2 -lSDL2_gfx
 	CXXFLAGS += -std=c++20
 else ifeq ($(PLATHOME),mingw64)
-#	INCLUDEDIRS = -I/usr/local/include/SDL2
-	LIBDIRS = -L/msys64/mingw64/lib
 	LIBRARIES = -lmingw32 -lSDL2main -lSDL2 -lSDL2_gfx
 	CXXFLAGS += -std=c++2a
 else ifeq ($(PLATHOME),ubuntu22)
@@ -34,7 +32,7 @@ showcomment:
 	@echo "Use make PLATHOME=ubuntu22 or =mingw64 or=macos command to build executable."
 	@echo "commands: clean, all"
 	@echo
-	
+
 all:	$(TARGET)
 
 $(TARGET):	$(OBJS)
@@ -43,7 +41,7 @@ $(TARGET):	$(OBJS)
 %.o:	$(PROJECT_ROOT)src/%.cpp
 	$(CXX) -c $(CFLAGS) $(CXXFLAGS) $(CPPFLAGS) -o $@ $< $(INCLUDEDIRS) 
 
-%.o:	$(PROJECT_ROOT)%.c
+%.o:	$(PROJECT_ROOT)src/%.c
 	$(CC) -c $(CFLAGS) $(CPPFLAGS) -o $@ $<
 
 clean:
