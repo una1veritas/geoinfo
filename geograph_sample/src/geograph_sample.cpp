@@ -7,8 +7,10 @@
 //============================================================================
 
 #include <iostream>
+#include <fstream>
 #include <iomanip>
 #include <map>
+#include <set>
 
 #include "geograph.h"
 #include "bgeohash.h"
@@ -29,8 +31,8 @@ vector<string> split(string& input, char delimiter) {
 int main(int argc, char * argv[]) {
 	ifstream csvf;
 
-	if (argc != 3) {
-		cerr << "usage: command [geograph csv file name]" << endl;
+	if (argc < 2) {
+		cerr << "usage: command map-file_name]" << endl;
 		exit(EXIT_FAILURE);
 	}
 
@@ -51,7 +53,7 @@ int main(int argc, char * argv[]) {
 		uint64_t id = stoull(strvec[0]);
 		double lat = stod(strvec[1]);
 		double lon = stod(strvec[2]);
-        std::vector<uint64_t> adjacents;
+        vector<uint64_t> adjacents;
         for(unsigned int i = 3; i < strvec.size(); ++i)
         	adjacents.push_back(stoull(strvec[i]));
         ggraph.insert(id, lat, lon, adjacents);
@@ -59,17 +61,27 @@ int main(int argc, char * argv[]) {
     }
     csvf.close();
 
-    cout << "goegraph node size = " << std::dec << ggraph.size() << endl;
+    cout << "goegraph node size = " << dec << ggraph.size() << endl;
 
 	// show some entries.
     int count = 0;
-    for(const auto & a_pair : ggraph.nodemap()) {
-    	cout << a_pair.second << endl;
+    for(auto itr = ggraph.cbegin(); itr != ggraph.cend(); ++itr) {
+    	uint64_t id = itr->first;
+    	geograph::geonode node = itr->second;
+    	cout << "id " << dec << id << " node " << node << endl;
     	count += 1;
     	if (count > 100) {
     		cout << "..." << endl;
     		break;
     	}
+    }
+    cout << endl;
+
+    uint64_t target_id = 772366981;
+    cout << "from geopoint " << target_id << " at　coordinate " << ggraph.point(target_id) << endl;
+    for(auto itr = ggraph.adjacent_nodes(target_id).cbegin();
+    		itr != ggraph.adjacent_nodes(target_id).cend(); ++itr) {
+    	cout << "distance to " << dec << *itr << ": " << ggraph.point(target_id).distance_to(ggraph.point(*itr)) << endl;
     }
     cout << endl;
 
