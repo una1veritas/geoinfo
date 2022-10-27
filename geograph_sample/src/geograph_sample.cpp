@@ -32,7 +32,7 @@ int main(int argc, char * argv[]) {
 	ifstream csvf;
 
 	if (argc < 2) {
-		cerr << "usage: command [command(.exe) map-file name]" << endl;
+		cerr << "usage: command map-file_name]" << endl;
 		exit(EXIT_FAILURE);
 	}
 
@@ -77,11 +77,11 @@ int main(int argc, char * argv[]) {
     }
     cout << endl;
 
-    uint64_t target_id = 772366979;
-    cout << "ids of adjacent nodes to " << dec << target_id << endl;
+    uint64_t target_id = 772366981;
+    cout << "from geopoint " << target_id << " at　coordinate " << ggraph.point(target_id) << endl;
     for(auto itr = ggraph.adjacent_nodes(target_id).cbegin();
     		itr != ggraph.adjacent_nodes(target_id).cend(); ++itr) {
-    	cout << dec << *itr << ": distance from target_id" << ggraph.point(target_id).distance_to(ggraph.point(*itr)) << endl;
+    	cout << "distance to " << dec << *itr << ": " << ggraph.point(target_id).distance_to(ggraph.point(*itr)) << endl;
     }
     cout << endl;
 
