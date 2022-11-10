@@ -65,83 +65,88 @@ int main(int argc, char * argv[]) {
 
     cout << "goegraph node size = " << dec << ggraph.size() << endl;
 
-    set<uint64_t> nodes;
+    set<uint64_t> vertices;  // the set of OSM IDs.
     for(auto itr = ggraph.cbegin(); itr != ggraph.end(); ++itr) {
-    	nodes.insert(itr->first);
+    	vertices.insert(itr->first);
     }
 
-    cout << "nodes (swet of ids) size = " << dec << nodes.size() << endl;
+    cout << "vertices (swet of ids) size = " << dec << vertices.size() << endl;
 
     geopoint start_coord(33.651759, 130.672120);
     geopoint goal_coord(33.644224, 130.693827);
-    // find the nearest end-point
+
+    // find the nearest points corresponds to the start and the goal.
     double dist_start = std::numeric_limits<double>::infinity();
-    uint64_t id_start = 0;
+    uint64_t osmid_start = 0;
     double dist_goal = std::numeric_limits<double>::infinity();
-    uint64_t id_goal = 0;
+    uint64_t osmid_goal = 0;
     double d;
-    for (auto & id : nodes) {
-    	const geopoint & pt = ggraph.node(id).point();
+    for (auto & osmid : vertices) {
+    	const geopoint & pt = ggraph.node(osmid).point();
     	d = pt.distance_to(start_coord);
     	if (d < dist_start) {
     		dist_start = d;
-    		id_start = id;
-    		cout << "id_start = " << id_start << " dist_start = " << dist_start << endl;
+    		osmid_start = osmid;
+    		cout << "osmid_start = " << osmid_start << " dist_start = " << dist_start << endl;
     	}
     	d = pt.distance_to(goal_coord);
     	if (d < dist_goal) {
     		dist_goal = d;
-    		id_goal = id;
-    		cout << "id_goal = " << id_goal << " dist_goal = " << dist_goal << endl;
+    		osmid_goal = osmid;
+    		cout << "osmid_goal = " << osmid_goal << " dist_goal = " << dist_goal << endl;
     	}
     }
-    cout << "start point = " << ggraph.node(id_start) << " index " << std::dec << id_start << endl;
-    cout << "goal point = " << ggraph.node(id_goal) << " index " << std::dec << id_goal << endl;
+    cout << "start point = " << ggraph.node(osmid_start) << " id " << std::dec << osmid_start << endl;
+    cout << "goal point = " << ggraph.node(osmid_goal) << " id " << std::dec << osmid_goal << endl;
 
-    set<unsigned long> rem;
-    for(unsigned long i = 0; i < nodes.size(); ++i)
-    	rem.insert(i);
-    double el[nodes.size()];
-    for(unsigned long i = 0; i < nodes.size(); ++i) {
-    	el[i] = std::numeric_limits<double>::infinity();
+    // Dijkstra's algorithm to compute the length of shortest path to the nodes
+    //
+    // use vertices as the set (V - P) of remained (still not visited) vertices.
+    // label (mapping) from vertices to the distance of the shortest path.
+    map<uint64_t, double> el;
+    for(const auto & osmid : vertices) {
+    	el[osmid] = std::numeric_limits<double>::infinity();  // initialize as +infinity
     }
 
-    int c = 0;
-    el[id_start] = 0;
-    while ( rem.size() > 0 ) {
+    //int c = 0;
+    el[osmid_start] = 0;
+    while ( vertices.size() > 0 ) {
+    	// find the point u to which the path is shortest
     	double elmin = std::numeric_limits<double>::infinity();
     	unsigned long u = 0;
-    	for(const auto & ix : rem) {
-    		if (el[ix] < elmin) {
-    			u = ix;
-    			elmin = el[ix];
+    	for(const auto & osmid : vertices) {
+    		if (el[osmid] < elmin) {
+    			u = osmid;
+    			elmin = el[osmid];
     		}
     	}
-    	cout << "u = " << u << endl;
-    	rem.erase(u);
-    	for( const auto & v : ggraph.adjacent_nodes(nodes[u].id()) ) {
-    		if ( rem.contains(v) ) {
-    			cout << "v = " << v << endl;
-    			double dist_uv = nodes[u].point().distance_to(nodes[v].point());
+    	//cout << "u = " << u << endl;
+    	vertices.erase(u);  // the dist. of the shortest path to u is determined.
+    	if (u == 0)
+    		break; // unreachable points?
+    	if (u == osmid_goal)
+    		break;
+    	// for each point adjacent to u and in vertices
+    	for(const auto & v : ggraph.adjacent_nodes(u) ) {
+    		if ( vertices.contains(v) ) {  // C++20
+    			//cout << "v = " << v << endl;
+    			double dist_uv = ggraph.node(u).point().distance_to(ggraph.node(v).point());
     			if ( el[v] > el[u] + dist_uv ) {
     				el[v] = el[u] + dist_uv;
     			}
     		}
     	}
-    	c++;
-    	if (c > 100)
-    		break;
-    	cout << "rem size = " << rem.size() << endl;
+    	//c++;
+    	//if (c > 100)
+    	//	break;
+    	//cout << "vertices size = " << vertices.size() << " determined distance = " << el[u] << endl;
     }
 
-    /*
-    uint64_t target_id = 772366981;
-    cout << "from geopoint " << target_id << " at　coordinate " << ggraph.point(target_id) << endl;
-    for(auto itr = ggraph.adjacent_nodes(target_id).cbegin();
-    		itr != ggraph.adjacent_nodes(target_id).cend(); ++itr) {
-    	cout << "distance to " << dec << *itr << ": " << ggraph.point(target_id).distance_to(ggraph.point(*itr)) << endl;
-    }
-    cout << endl;
-*/
+    // find the shortest path from the start to the goal by back-tracking
+
+    vector<uint64_t> path;
+    path.push_back(osmid_goal);
+
+    cout << "distance from the start to the goal is " << el[osmid_goal] << endl;
     return EXIT_SUCCESS;
 }
