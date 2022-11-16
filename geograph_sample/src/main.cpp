@@ -70,32 +70,14 @@ int main(int argc, char * argv[]) {
     	vertices.insert(itr->first);
     }
 
-    cout << "vertices (swet of ids) size = " << dec << vertices.size() << endl;
+    cout << "vertices size = " << dec << vertices.size() << endl;
 
     geopoint start_coord(33.651759, 130.672120);
     geopoint goal_coord(33.644224, 130.693827);
 
     // find the nearest points corresponds to the start and the goal.
-    double dist_start = std::numeric_limits<double>::infinity();
-    uint64_t osmid_start = 0;
-    double dist_goal = std::numeric_limits<double>::infinity();
-    uint64_t osmid_goal = 0;
-    double d;
-    for (auto & osmid : vertices) {
-    	const geopoint & pt = ggraph.node(osmid).point();
-    	d = pt.distance_to(start_coord);
-    	if (d < dist_start) {
-    		dist_start = d;
-    		osmid_start = osmid;
-    		cout << "osmid_start = " << osmid_start << " dist_start = " << dist_start << endl;
-    	}
-    	d = pt.distance_to(goal_coord);
-    	if (d < dist_goal) {
-    		dist_goal = d;
-    		osmid_goal = osmid;
-    		cout << "osmid_goal = " << osmid_goal << " dist_goal = " << dist_goal << endl;
-    	}
-    }
+    uint64_t osmid_start = ggraph.node_nearest_to(start_coord).id();
+	uint64_t osmid_goal = ggraph.node_nearest_to(goal_coord).id();
     cout << "start point = " << ggraph.node(osmid_start) << " id " << std::dec << osmid_start << endl;
     cout << "goal point = " << ggraph.node(osmid_goal) << " id " << std::dec << osmid_goal << endl;
 

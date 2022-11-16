@@ -195,6 +195,8 @@ public:
 	//double eastwest() const;
 	//double northsouth() const;
 
+	const geonode & node_nearest_to(const geopoint & pt);
+
 	std::map<uint64_t,geonode>::const_iterator cbegin() const { return nodes.cbegin(); }
 	std::map<uint64_t,geonode>::const_iterator cend() const { return nodes.cend(); }
 	std::map<uint64_t,geonode>::iterator begin() { return nodes.begin(); }

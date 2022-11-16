@@ -192,3 +192,16 @@ std::vector<geograph::geonode> geograph::geohash_range(const bgeohash & ghash) {
 	}
 	return tmp;
 }
+const geograph::geonode & geograph::node_nearest_to(const geopoint & pt) {
+    double dist = std::numeric_limits<double>::infinity();
+    geograph::geonode & nearest = nodes.begin()->second;
+    for (const auto & a_pair : nodes) {
+    	const geopoint & a_point = a_pair.second.point();
+    	double d = a_point.distance_to(pt);
+    	if (d < dist) {
+    		dist = d;
+    		nearest = a_pair.second;
+    	}
+    }
+    return nearest;
+}
