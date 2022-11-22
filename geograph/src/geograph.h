@@ -124,9 +124,6 @@ struct georect {
 
 struct geograph {
 public:
-
-	// geograph のノードを表すデータ型．OSM データでの ID，地理座標値，ビット長 prec の二進 GeoHash からなる．
-	// 比較演算子 < == は OSM ID についての比較
 	struct geonode {
 		uint64_t osmid;
 		geopoint gpoint;
@@ -186,55 +183,25 @@ private:
 public:
 	geograph() : topleft(-100,200), bottomright(100,-200), nodes(), adjacents(), hashes() {}
 
-	// ノード数を返す
 	unsigned int size() const { return nodes.size(); }
-
-	// ノードへのアクセスを OSM ID で得る．
 	const geonode & node(const uint64_t & id) const { return nodes.at(id); }
-
-	// OSM ID でノードの座標へのアクセスを直接得る
 	const geopoint & point(const uint64_t & id) const { return nodes.at(id).point(); }
-	//double width() const { return bottomright.lon - topleft.lon; }
-	//double height() const { return topleft.lat - bottomright.lat; }
-	//double south() const { return bottomright.lat; }
-	//double east() const { return topleft.lon; }
-	//double north() const { return topleft.lat; }
-	//double west() const { return bottomright.lon; }
-	//double eastwest() const;
-	//double northsouth() const;
 
-	// ノードへのイテレータ begin, end を pair<uint64_t, geonode> として返す
+	const geonode & node_nearest_to(const geopoint & pt);
+
 	std::map<uint64_t,geonode>::const_iterator cbegin() const { return nodes.cbegin(); }
 	std::map<uint64_t,geonode>::const_iterator cend() const { return nodes.cend(); }
 	std::map<uint64_t,geonode>::iterator begin() { return nodes.begin(); }
 	std::map<uint64_t,geonode>::iterator end() { return nodes.end(); }
 
 	const map<uint64_t, geonode> & nodemap() const { return nodes;}
-
-	// id, 座標値，隣接リストを指定してノードを追加する
 	void insert(const uint64_t & id, const double & lat, const double & lon, const vector<uint64_t> & alist);
-
 	void insert_node(const geonode & gnode);
 	void insert_node(const uint64_t & id, const double & lat, const double & lon) {
 		insert_node(geonode(id,lat,lon));
 	}
-
-	// id によってノードの間に辺を追加する
 	void insert_edge_between(const uint64_t & id0, const uint64_t & id1);
 
-	/*
-    vector<pair<binarygeohash,uint64_t>> hashtoid() {
-    	vector<pair<binarygeohash,uint64_t>> hash2id;
-    	for(auto itr = nodes.begin(); itr != nodes.end(); ++itr) {
-    		hash2id.push_back(pair<binarygeohash,uint64_t>(itr->geohash,itr->osmid));
-    	}
-    	std::sort(hash2id.begin(), hash2id.end(),
-    			[](const pair<binarygeohash,uint64_t> & a, const pair<binarygeohash,uint64_t> & b)
-				{ return a.first < b.first; }
-    	);
-    	return hash2id;
-    }
-    */
 
     // all the nodes being adjacent to id.
     const std::set<uint64_t> & adjacent_nodes(const uint64_t & id) const;
@@ -242,7 +209,6 @@ public:
     // all the edges having id as an end point.
     std::set<std::pair<uint64_t,uint64_t>> adjacent_edges(const uint64_t & id) const;
 
-    // 二進化 GeoHash の範囲内のノードを vector で得る
     std::vector<geonode> geohash_range(const bgeohash & ghash);
 
 	friend std::ostream & operator<<(std::ostream & out, const geograph & gg) {

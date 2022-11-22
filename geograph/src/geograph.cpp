@@ -164,7 +164,11 @@ void geograph::insert_edge_between(const uint64_t & id0, const uint64_t & id1) {
 }
 
 const std::set<uint64_t> & geograph::adjacent_nodes(const uint64_t & id) const {
-	return adjacents.at(id);
+	static std::set<uint64_t> emptyset;
+	if (adjacents.contains(id)) {
+		return adjacents.at(id);
+	}
+	return emptyset;
 }
 
 
@@ -191,4 +195,17 @@ std::vector<geograph::geonode> geograph::geohash_range(const bgeohash & ghash) {
 		tmp.push_back(**lb);
 	}
 	return tmp;
+}
+const geograph::geonode & geograph::node_nearest_to(const geopoint & pt) {
+    double dist = std::numeric_limits<double>::infinity();
+    geograph::geonode & nearest = nodes.begin()->second;
+    for (const auto & a_pair : nodes) {
+    	const geopoint & a_point = a_pair.second.point();
+    	double d = a_point.distance_to(pt);
+    	if (d < dist) {
+    		dist = d;
+    		nearest = a_pair.second;
+    	}
+    }
+    return nearest;
 }
