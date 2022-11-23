@@ -1,0 +1,80 @@
+\documentclass[11pt]{jsarticle}
+\usepackage{setspace}
+\usepackage{multicol}
+\usepackage{latexsym}
+\usepackage{mathrsfs}
+\usepackage{url}
+\usepackage{ascmac}
+\usepackage[dvipdfmx]{graphicx}
+\usepackage{theorem}
+%\usepackage{marginfix}
+\usepackage{framed}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\lhead{Binary Geohash}
+\rhead{Binary Geohash}
+
+\input{A4}
+\setlength{\topmargin}{-0.5in}
+\setlength{\textwidth}{5.6in}
+\setlength{\textheight}{8.8in}
+\setlength{\oddsidemargin}{0in}
+%\setlength{\evensidemargin}{0in}
+\setlength{\marginparwidth}{1in}
+
+\usepackage{theorem}
+\renewcommand{\baselinestretch}{1.1}
+\setlength{\parskip}{0.25ex}
+\renewcommand{\arraystretch}{0.95}
+
+\title{GeoTree}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{定義}
+
+バイナリーコード $h \in\{0,1\}^*$ は GeoHash の二進表記で地球上の緯度，経度で指定される領域 $[-90, 90] \times [-180, 180)$ 内の矩形領域を精度 1 ビット単位で指定する．
+
+\[
+\left[ {\lfloor{i/2}\rfloor}*\frac{180}{2^{\lfloor{n/2}\rfloor}} -90, ({\lfloor{i/2}\rfloor}+1)*\frac{180}{2^{\lfloor{n/2}\rfloor}} -90 \right]
+\times 
+\]
+
+集合ノード $v_S=(h, S)$ は，GeoHash のバイナリーコード $h$ と $h$ が定める領域 $[a_\mathrm{min}, a_\mathrm{max}) \times [g_\mathrm{min}, g_\mathrm{max}) \subseteq [-90, 90) \times [-180, 180)$ 内の座標点の集合 $S$ の組である．
+分割ノード $v_d = (h, d, \mathit{left}, \mathit{right})$ は，以下の 4 つ組である．
+\begin{enumerate}
+\item
+GeoHash のバイナリーコード $h$. 
+\item
+分割値 $d_h \in R$．
+
+ただし，$h$ の精度（ビット長）を $l$ とすると，$l$ が偶数（0 を含む）ならば，$d_h$ は
+$h$ が表す矩形領域の中央を東西に二等分する経線の経度であり，
+$l$ が奇数であれば $d_h$ は $h$ の領域を南北に二等分する緯線の緯度である．
+\item
+左の子への参照，および右の子への参照．
+
+ただし左の子および右の子は，それぞれ葉，内部ノード，もしくは空のいずれかである．
+\end{enumerate}
+
+\begin{defn}[GeoTree]
+GeoTree は，集合ノードを葉とし，分割ノードを内部ノードしとする根付き二分木で，以下を満たすものをいう．
+\begin{itemize}
+\item[i)]
+根ノード $r$ は長さ $0$ のバイナリーコード $h(r) = \varepsilon$ を持つ．
+\item[ii)]
+根以外のすべてのノード $v \neq r$ について，そのバイナリーコードの長さは親 $\mathit{parent}(v)$ のバイナリーコード 
+$h(\mathit{parent}(v))$ の長さより 1 だけ長い．
+\item[iii)]
+左の子のバイナリーコードが表す領域は，その親のバイナリーコードが表す部分領域の第１分割領域，すなわち親の分割値によって生じる東または北の領域であり，
+右の子のバイナリーコードが表す領域は，その親のバイナリーコードが表す部分領域の第2分割領域，すなわち西または南の領域である．
+\end{itemize}
+\end{defn}
+
+子への参照が空である場合，そこには空集合を持つ集合ノード $v_\emptyset$ があると見なすことができる．
+
+\end{document}
