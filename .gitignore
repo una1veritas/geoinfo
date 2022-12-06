@@ -8,3 +8,5 @@
 *.osm*
 *.synctex.gz
 *.aux
+
+/.settings/
