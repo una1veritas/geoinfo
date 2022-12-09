@@ -10,3 +10,4 @@
 *.aux
 
 /.settings/
+.cproject
