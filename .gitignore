@@ -9,4 +9,5 @@
 *.synctex.gz
 *.aux
 
-/.settings/
+.settings/
+.cproject
