@@ -24,7 +24,7 @@ int main() {
 	cout << "string binary form: " << geohash::bincode(hashcode) << endl;
 	cout << "int (binary) value: " << hex << geohash::binvalue(hashcode) << endl;
 
-	bgeohash bhash(lat, lon, 7*5);
+	bgeohash bhash(geohash::binvalue(hashcode), 7*5);
 	cout << "bgeohash code: " << bhash << endl;
 	cout << "geohash in binary: " << hex << bhash.location() << endl;
 	uint64_t intval = bhash.location();

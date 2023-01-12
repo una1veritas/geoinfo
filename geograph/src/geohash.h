@@ -101,42 +101,46 @@ namespace geohash {
 	    }
 	};
 
+	uint64_t binvalue(const string & hash) {
+		uint64_t value = 0;
+		if ( hash.length() == 0 )
+			return value;
+		for(unsigned int pos = 0; pos < hash.length(); ++pos) {
+			int cval = char_revmap(hash[pos]);
+			if (cval < 0) break;
+			for(unsigned int i = 0; i < 5; ++i) {
+				value <<= 1;
+				value |= (cval & 0x10) ? 1 : 0;
+				cval <<= 1;
+			}
+		}
+		value <<= (64 - hash.length() * 5);
+		return value;
+	}
+
 	string bincode(const string & hash) {
 		string binary;
 		for(unsigned int pos = 0; pos < hash.length(); ++pos) {
-			int val = char_revmap(hash[pos]);
-			if (val < 0) break;
+			int cval = char_revmap(hash[pos]);
+			if (cval < 0) break;
 			for(unsigned int i = 0; i < 5; ++i) {
-				binary += (val & 0x10) ? "1" : "0";
-				val <<= 1;
+				binary += (cval & 0x10) ? "1" : "0";
+				cval <<= 1;
 			}
 		}
 		return binary;
 	}
 
-	uint64_t binary(const string & hash) {
-		uint64_t binvalue = 0;
-		for(unsigned int pos = 0; pos < hash.length(); ++pos) {
-			int val = char_revmap(hash[pos]);
-			if (val < 0) break;
-			for(unsigned int i = 0; i < 5; ++i) {
-				binvalue <<= 1;
-				binvalue |= (val & 0x10) ? 1 : 0;
-				val <<= 1;
-			}
-		}
-		binvalue <<= (63 - hash.length*5);
-		return binvalue;
-	}
-
-	string encode(const double & lat, const double & lng, int precision = 8) {
+	string encode(const double & lat, const double & lng, int length = 8) {
 		static char hash[12];
-		if (precision < 1 || precision > 12)
-			precision = 6;
+		if (length < 1 )
+			length = 1;
+		else if (length > 12)
+			length = 12;
 		if (lat <= 90.0 && lat >= -90.0 && lng <= 180.0 && lng >= -180.0) {
-			hash[precision] = '\0';
+			hash[length] = '\0';
 
-			precision *= 5.0;
+			length *= 5.0;
 
 			interval lat_interval(MAX_LAT, MIN_LAT);
 			interval lng_interval(MAX_LONG, MIN_LONG);
@@ -146,7 +150,7 @@ namespace geohash {
 			int is_even = 1;
 			unsigned int hashChar = 0;
 			int i;
-			for (i = 1; i <= precision; i++) {
+			for (i = 1; i <= length; i++) {
 				if (is_even) {
 					intv = &lng_interval;
 					coord = lng;
