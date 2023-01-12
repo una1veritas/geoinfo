@@ -50,7 +50,7 @@ namespace geohash {
 	static constexpr char *even_borders[] = {(char *) "prxz", (char *) "bcfguvyz", (char *) "028b", (char *) "0145hjnp"};
 	static constexpr char *odd_borders[] = {(char *) "bcfguvyz", (char *) "prxz", (char *) "0145hjnp", (char *) "028b"};
 
-	static int char_revmap(const char c) {
+	int char_revmap(const char c) {
 		int result = -1;
 		if (c < '9' + 1) {
 			//"0123456789"
@@ -63,7 +63,7 @@ namespace geohash {
 		return result;
 	}
 
-	static int index(const char c, const string & str) {
+	int index(const char c, const string & str) {
 	    for(unsigned int i = 0; i < str.length(); i++) {
 	        if (c == str[i])
 	        	return i;
@@ -101,20 +101,37 @@ namespace geohash {
 	    }
 	};
 
-	static string bincode(const string & hash) {
+	uint64_t binvalue(const string & hash) {
+		uint64_t value = 0;
+		if ( hash.length() == 0 )
+			return value;
+		for(unsigned int pos = 0; pos < hash.length(); ++pos) {
+			int cval = char_revmap(hash[pos]);
+			if (cval < 0) break;
+			for(unsigned int i = 0; i < 5; ++i) {
+				value <<= 1;
+				value |= (cval & 0x10) ? 1 : 0;
+				cval <<= 1;
+			}
+		}
+		value <<= (64 - hash.length() * 5);
+		return value;
+	}
+
+	string bincode(const string & hash) {
 		string binary;
 		for(unsigned int pos = 0; pos < hash.length(); ++pos) {
-			int val = char_revmap(hash[pos]);
-			if (val < 0) break;
+			int cval = char_revmap(hash[pos]);
+			if (cval < 0) break;
 			for(unsigned int i = 0; i < 5; ++i) {
-				binary += (val & 0x10) ? "1" : "0";
-				val <<= 1;
+				binary += (cval & 0x10) ? "1" : "0";
+				cval <<= 1;
 			}
 		}
 		return binary;
 	}
 
-	static string encode(const double & lat, const double & lng, int length = 8) {
+	string encode(const double & lat, const double & lng, int length = 8) {
 		static char hash[12];
 		if (length < 1 )
 			length = 1;
@@ -161,7 +178,7 @@ namespace geohash {
 		return string(hash);
 	}
 
-	static coordbox decode(const string & hash) {
+	coordbox decode(const string & hash) {
 		coordbox box = { 0.0, 0.0, 0.0, 0.0 };
 
 		if (hash.length() > 0) {
@@ -209,7 +226,7 @@ namespace geohash {
 		DIRECTION_END = 8,
 	};
 
-	static vector<string> neighbors(const string & hash, const int zone) {
+	vector<string> neighbors(const string & hash, const int zone) {
 		vector<string> codes;
 		if (zone < 1) {
 			codes.push_back(hash);

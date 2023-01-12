@@ -50,7 +50,7 @@ namespace geohash {
 	static constexpr char *even_borders[] = {(char *) "prxz", (char *) "bcfguvyz", (char *) "028b", (char *) "0145hjnp"};
 	static constexpr char *odd_borders[] = {(char *) "bcfguvyz", (char *) "prxz", (char *) "0145hjnp", (char *) "028b"};
 
-	static int char_revmap(const char c) {
+	int char_revmap(const char c) {
 		int result = -1;
 		if (c < '9' + 1) {
 			//"0123456789"
@@ -63,7 +63,7 @@ namespace geohash {
 		return result;
 	}
 
-	static int index(const char c, const string & str) {
+	int index(const char c, const string & str) {
 	    for(unsigned int i = 0; i < str.length(); i++) {
 	        if (c == str[i])
 	        	return i;
@@ -101,7 +101,7 @@ namespace geohash {
 	    }
 	};
 
-	static string bincode(const string & hash) {
+	string bincode(const string & hash) {
 		string binary;
 		for(unsigned int pos = 0; pos < hash.length(); ++pos) {
 			int val = char_revmap(hash[pos]);
@@ -114,7 +114,22 @@ namespace geohash {
 		return binary;
 	}
 
-	static string encode(const double & lat, const double & lng, int precision = 8) {
+	uint64_t binary(const string & hash) {
+		uint64_t binvalue = 0;
+		for(unsigned int pos = 0; pos < hash.length(); ++pos) {
+			int val = char_revmap(hash[pos]);
+			if (val < 0) break;
+			for(unsigned int i = 0; i < 5; ++i) {
+				binvalue <<= 1;
+				binvalue |= (val & 0x10) ? 1 : 0;
+				val <<= 1;
+			}
+		}
+		binvalue <<= (63 - hash.length*5);
+		return binvalue;
+	}
+
+	string encode(const double & lat, const double & lng, int precision = 8) {
 		static char hash[12];
 		if (precision < 1 || precision > 12)
 			precision = 6;
@@ -159,7 +174,7 @@ namespace geohash {
 		return string(hash);
 	}
 
-	static coordbox decode(const string & hash) {
+	coordbox decode(const string & hash) {
 		coordbox box = { 0.0, 0.0, 0.0, 0.0 };
 
 		if (hash.length() > 0) {
@@ -207,7 +222,7 @@ namespace geohash {
 		DIRECTION_END = 8,
 	};
 
-	static vector<string> neighbors(const string & hash, const int zone) {
+	vector<string> neighbors(const string & hash, const int zone) {
 		vector<string> codes;
 		if (zone < 1) {
 			codes.push_back(hash);

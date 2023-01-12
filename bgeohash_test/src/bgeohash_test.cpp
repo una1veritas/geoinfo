@@ -21,6 +21,8 @@ int main() {
 
 	string hashcode = geohash::encode(lat, lon, 7);
 	cout << "geohash code: " << hashcode << endl;
+	cout << "string binary form: " << geohash::bincode(hashcode) << endl;
+	cout << "int (binary) value: " << hex << geohash::binvalue(hashcode) << endl;
 
 	bgeohash bhash(lat, lon, 7*5);
 	cout << "bgeohash code: " << bhash << endl;
