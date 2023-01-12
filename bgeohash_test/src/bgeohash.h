@@ -98,6 +98,17 @@ public:
 		return hash & 0xffffffffffffff00;
 	}
 
+	bgeohash & refine_bit(const int lastbit) {
+		int prec = precision();
+		if (prec < 56) {
+			prec += 1;
+			set_precision(prec);
+			uint64_t bit = (lastbit ? 1 : 0);
+			hash |= bit<<(64-prec);
+		}
+		return *this;
+	}
+
 	operator uint64_t() const {
 		return hash;
 	}
@@ -124,7 +135,12 @@ public:
 	}
 
 	friend ostream & operator<<(ostream & out, const bgeohash & num) {
-		out << hex << setw(16) << setfill('0') << num.hash;
+		out << "(";
+		for(unsigned int i = 0; i < num.precision(); i += 4) {
+			out << hex << ((num.hash>>(60-i))&0x0f) ;
+		}
+		out << ", " << num.precision();
+		out << ") ";
 		return out;
 	}
 
