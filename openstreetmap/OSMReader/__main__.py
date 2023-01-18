@@ -17,19 +17,15 @@ def getobject(xml):
     '''
     Get objects from .osm file into a JSON-like python dict.
     '''
-    objects = dict()
     # considers only the following three objects
-    objects['node'] = dict()
-    objects['way'] = dict()
-    objects['relation'] = dict()
+    objects = { 'node':{}, 'way': {}, 'relation': {}}
     for ch in xml:
         if ch.tag == 'node' :
             (lat, lon) = (float(ch.attrib['lat']), float(ch.attrib['lon']))
             objects[ch.tag][int(ch.attrib['id'])] = (lat, lon)
-                # print(ch.tag, ch.attrib)
-                # for t in ch:
-                #     if t.tag == 'tag' :
-                #         print(t.attrib['k'], t.attrib['v'])
+            for t in ch:
+                if t.tag == 'tag' :
+                    print(t.tag)
         elif ch.tag == 'way' :
             refs = list()
             tags = dict()
