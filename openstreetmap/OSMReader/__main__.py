@@ -18,14 +18,29 @@ def getobject(xml):
     Get objects from .osm file into a JSON-like python dict.
     '''
     # considers only the following three objects
-    objects = { 'node':{}, 'way': {}, 'relation': {}}
+    objects = { 'node':{}, 'way': {}, 'relation': {}, 'facility': {}}
     for ch in xml:
         if ch.tag == 'node' :
             (lat, lon) = (float(ch.attrib['lat']), float(ch.attrib['lon']))
             objects[ch.tag][int(ch.attrib['id'])] = (lat, lon)
+            info = {'id': int(ch.attrib['id'])}
             for t in ch:
                 if t.tag == 'tag' :
-                    print(t.tag)
+                    if t.attrib['k'] == 'shop' or t.attrib['k'] == 'name' :
+                        info[t.attrib['k']] = t.attrib['v']
+            if 'shop' in info :
+                objects['facility'][info['id']] = ['shop:'+info['shop'], 'name:'+info['name']]
+            elif 'leisure' in info :
+                print('leisure')
+                objects['facility'][info['id']] = ['leisure:'+info['leisure']]
+                if 'name' in info :
+                    objects['facility'][info['id']].append('name:'+info['name'])
+            elif 'amenity' in info :
+                print('amenity')
+                objects['facility'][info['id']] = ['amenity:'+info['amenity']]
+                if 'name' in info :
+                    objects['facility'][info['id']].append('name:'+info['name'])
+                
         elif ch.tag == 'way' :
             refs = list()
             tags = dict()
@@ -35,6 +50,26 @@ def getobject(xml):
                 elif t.tag == 'tag':
                     tags[t.attrib['k']] = t.attrib['v']
             objects[ch.tag][int(ch.attrib['id'])] = {'tag': tags, 'ref': refs}
+            info = {'id': int(ch.attrib['id'])}
+            for t in ch:
+                if t.tag == 'tag' :
+                    if t.attrib['k'] == 'shop' or t.attrib['k'] == 'name' :
+                        info[t.attrib['k']] = t.attrib['v']
+            if 'shop' in info :
+                objects['facility'][info['id']] = ['shop:'+info['shop']]
+                if 'name' in info :
+                    objects['facility'][info['id']].append('name:'+info['name'])
+            elif 'leisure' in info :
+                print('leisure')
+                objects['facility'][info['id']] = ['leisure:'+info['leisure']]
+                if 'name' in info :
+                    objects['facility'][info['id']].append('name:'+info['name'])
+            elif 'amenity' in info :
+                print('amenity')
+                objects['facility'][info['id']] = ['amenity:'+info['amenity']]
+                if 'name' in info :
+                    objects['facility'][info['id']].append('name:'+info['name'])
+
         elif ch.tag == 'relation' :
             members = [ t.attrib for t in ch if t.tag == 'member']
             #print('members = ', members)
@@ -95,17 +130,17 @@ def geodist(gp1, gp2):
     gp2rad = (deg2rad(gp2[0]), deg2rad(gp2[1]));
     #double latdiff = plat - qlat, londiff = plon - qlon;
     latavr = (gp2rad[0] + gp2rad[0]) / 2.0;
-
+    
     a = 6378137.0           #mode ? 6378137.0 : 6377397.155;
     #b = 6356752.314140356   #mode ? 6356752.314140356 : 6356078.963; 
     e2 = 0.00669438002301188    #mode ? 0.00669438002301188 : 0.00667436061028297; 
     a1e2 = 6335439.32708317     #mode ? 6335439.32708317 : 6334832.10663254; 
-
+    
     sin_latavr = math.sin(latavr)
     W2 = 1.0 - e2 * (sin_latavr*sin_latavr)
     M = a1e2 / (math.sqrt(W2)*W2)
     N = a / math.sqrt(W2)
-
+    
     t1 = M * (gp1rad[0] - gp2rad[1])        #latdiff;
     t2 = N * math.cos(latavr) * (gp1rad[1] - gp2rad[1])    #londiff;
     return math.sqrt((t1*t1) + (t2*t2))
@@ -131,7 +166,7 @@ if __name__ == '__main__':
         else:
             paths.append(sys.argv[ix])
             ix += 1
-
+    
     geograph = dict()
     for filename in paths :
         try:
@@ -145,7 +180,7 @@ if __name__ == '__main__':
         
         xml = etree.fromstring(xmlbytes)
         print("root info: ",xml.tag, xml.attrib)
-    
+        
         nspaces = xml.nsmap
         if None in nspaces :
             nspaces['defns'] = nspaces.pop(None)
@@ -167,7 +202,7 @@ if __name__ == '__main__':
                 #print('highway', value)
             elif 'natural' in value['tag']:
                 links[key] = ('natural', value['ref'])
-
+        
         for wayid, val in links.items():
             (wayclass, gplist) = val
             for ix in range(len(gplist)-1):
@@ -191,7 +226,6 @@ if __name__ == '__main__':
     for gpid in geograph:
         geograph[gpid] = (geograph[gpid][0], sorted(geograph[gpid][1]))
     
-
     with open('output.csv', mode='w', encoding='utf-8') as fp:
         #fp.write(#node id,latitude,longitude,adjacent node id 1, node id 2,...)
         for t in sorted(geograph.items()) :
@@ -207,6 +241,16 @@ if __name__ == '__main__':
                 fp.write(str(ea))
             fp.write('\n')
     
+    with open('facility.csv', mode='w', encoding='utf-8') as fp:
+        #fp.write(#node id,latitude,longitude,adjacent node id 1, node id 2,...)
+        for t in sorted(objects['facility'].items()) :
+            fp.write(str(t[0]))
+            fp.write(',')
+            for ea in t[1]:
+                fp.write(ea)
+                fp.write(',')
+            fp.write('\n')
+    
     # for some tests
     geohashlist = list()
     for pid in geograph.keys():
@@ -216,7 +260,7 @@ if __name__ == '__main__':
     
     geohashlist.sort(key=lambda entry: entry[0])
     
-    showgeograph(geograph) #, [bbox['n'],bbox['w'],bbox['s'],bbox['e']])
+    #showgeograph(geograph) #, [bbox['n'],bbox['w'],bbox['s'],bbox['e']])
     exit()
     '''
     Show example data. 
