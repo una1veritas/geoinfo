@@ -15,33 +15,25 @@ import math
 
 def getobject(xml):
     '''
-    Get objects from .osm file into a JSON-like python dict.
+    Get geoobjs from .osm file into a JSON-like python dict.
     '''
     # considers only the following three objects
-    objects = { 'node':{}, 'way': {}, 'relation': {}, 'facility': {}}
+    geoobjs = { 'node':{}, 'way': {}, 'relation': {}}
+    objlabel = dict()
     for ch in xml:
         if ch.tag == 'node' :
+            objid = int(ch.attrib['id'])
             (lat, lon) = (float(ch.attrib['lat']), float(ch.attrib['lon']))
-            objects[ch.tag][int(ch.attrib['id'])] = (lat, lon)
-            info = {'id': int(ch.attrib['id'])}
+            geoobjs['node'][objid] = (lat, lon)
             for t in ch:
-                if t.tag == 'tag' :
-                    if t.attrib['k'] == 'shop' or t.attrib['k'] == 'name' :
-                        info[t.attrib['k']] = t.attrib['v']
-            if 'shop' in info :
-                objects['facility'][info['id']] = ['shop:'+info['shop'], 'name:'+info['name']]
-            elif 'leisure' in info :
-                print('leisure')
-                objects['facility'][info['id']] = ['leisure:'+info['leisure']]
-                if 'name' in info :
-                    objects['facility'][info['id']].append('name:'+info['name'])
-            elif 'amenity' in info :
-                print('amenity')
-                objects['facility'][info['id']] = ['amenity:'+info['amenity']]
-                if 'name' in info :
-                    objects['facility'][info['id']].append('name:'+info['name'])
+                if t.tag != 'tag' : continue
+                if t.attrib['k'] in ('shop', 'leisure', 'amenity', 'name') :
+                    if objid not in objlabel :
+                        objlabel[objid] = list()
+                    objlabel[objid].append(t.attrib['k'] + ":" + t.attrib['v'])
                 
         elif ch.tag == 'way' :
+            objid = int(ch.attrib['id'])
             refs = list()
             tags = dict()
             for t in ch:
@@ -49,26 +41,13 @@ def getobject(xml):
                     refs.append(int(t.attrib['ref']))
                 elif t.tag == 'tag':
                     tags[t.attrib['k']] = t.attrib['v']
-            objects[ch.tag][int(ch.attrib['id'])] = {'tag': tags, 'ref': refs}
-            info = {'id': int(ch.attrib['id'])}
+            geoobjs[ch.tag][int(ch.attrib['id'])] = {'tag': tags, 'ref': refs}
             for t in ch:
-                if t.tag == 'tag' :
-                    if t.attrib['k'] == 'shop' or t.attrib['k'] == 'name' :
-                        info[t.attrib['k']] = t.attrib['v']
-            if 'shop' in info :
-                objects['facility'][info['id']] = ['shop:'+info['shop']]
-                if 'name' in info :
-                    objects['facility'][info['id']].append('name:'+info['name'])
-            elif 'leisure' in info :
-                print('leisure')
-                objects['facility'][info['id']] = ['leisure:'+info['leisure']]
-                if 'name' in info :
-                    objects['facility'][info['id']].append('name:'+info['name'])
-            elif 'amenity' in info :
-                print('amenity')
-                objects['facility'][info['id']] = ['amenity:'+info['amenity']]
-                if 'name' in info :
-                    objects['facility'][info['id']].append('name:'+info['name'])
+                if t.tag != 'tag' : continue
+                if t.attrib['k'] in ('shop', 'leisure', 'amenity', 'name') :
+                    if objid not in objlabel :
+                        objlabel[objid] = list()
+                    objlabel[objid].append(t.attrib['k'] + ":" + t.attrib['v'])
 
         elif ch.tag == 'relation' :
             members = [ t.attrib for t in ch if t.tag == 'member']
@@ -77,8 +56,8 @@ def getobject(xml):
             for t in ch:
                 if t.tag == 'tag' :
                     tags[t.attrib['k']] = t.attrib['v']
-            objects[ch.tag][int(ch.attrib['id'])] = {'tag': tags, 'member': members}
-    return objects
+            geoobjs[ch.tag][int(ch.attrib['id'])] = {'tag': tags, 'member': members}
+    return (geoobjs, objlabel)
 
 def showgeograph(gg, bbox=None):
     if bbox == None:
@@ -145,6 +124,7 @@ def geodist(gp1, gp2):
     t2 = N * math.cos(latavr) * (gp1rad[1] - gp2rad[1])    #londiff;
     return math.sqrt((t1*t1) + (t2*t2))
 
+# main program
 if __name__ == '__main__':
     if len(sys.argv) < 2 :
         print('osm file is requested.',file=sys.stderr)
@@ -186,11 +166,11 @@ if __name__ == '__main__':
             nspaces['defns'] = nspaces.pop(None)
         print('nspaces = ', nspaces)
         
-        objects = getobject(xml)
-        nodes = objects['node']
+        (gobjects, label) = getobject(xml)
+        nodes = gobjects['node']
         links = dict()
         # extract the points only referred in way-links. 
-        for key, value in sorted(objects['way'].items()):
+        for key, value in sorted(gobjects['way'].items()):
             if 'railway' in value['tag']:
                 links[key] = ('railway', value['ref'])
                 #print('railway',edges['railway'][key])
@@ -202,11 +182,14 @@ if __name__ == '__main__':
                 #print('highway', value)
             elif 'natural' in value['tag']:
                 links[key] = ('natural', value['ref'])
+            elif 'leisure' in value['tag']:
+                links[key] = ('leisure', value['ref'])
         
         for wayid, val in links.items():
             (wayclass, gplist) = val
+            print(wayclass,gplist)
             for ix in range(len(gplist)-1):
-                if False and  mapbbox != None :
+                if mapbbox != None :
                     print(mapbbox)
                     (lat, lon) = nodes[gplist[ix]]
                     if lat < min(mapbbox[0],mapbbox[2]) or \
@@ -214,6 +197,8 @@ if __name__ == '__main__':
                     lon < min(mapbbox[1],mapbbox[3]) or \
                     lon >= max(mapbbox[1],mapbbox[3]) :
                         continue
+                
+                break
                 if gplist[ix] not in geograph:
                     geograph[gplist[ix]] = (nodes[gplist[ix]],list())
                 if gplist[ix+1] not in geograph:
@@ -243,13 +228,15 @@ if __name__ == '__main__':
     
     with open('facility.csv', mode='w', encoding='utf-8') as fp:
         #fp.write(#node id,latitude,longitude,adjacent node id 1, node id 2,...)
-        for t in sorted(objects['facility'].items()) :
-            fp.write(str(t[0]))
-            fp.write(',')
-            for ea in t[1]:
-                fp.write(ea)
+        for t in sorted(label.items()) :
+            if 'shop:convenience' in t[1] or 'shop:supermarket' in t[1] \
+                or 'leisure:park' in t[1] or 'amenity:atm' in t[1] :
+                fp.write(str(t[0]))
                 fp.write(',')
-            fp.write('\n')
+                for ea in t[1]:
+                    fp.write(ea)
+                    fp.write(',')
+                fp.write('\n')
     
     # for some tests
     geohashlist = list()
@@ -260,28 +247,28 @@ if __name__ == '__main__':
     
     geohashlist.sort(key=lambda entry: entry[0])
     
-    #showgeograph(geograph) #, [bbox['n'],bbox['w'],bbox['s'],bbox['e']])
+    showgeograph(geograph) #, [bbox['n'],bbox['w'],bbox['s'],bbox['e']])
     exit()
     '''
     Show example data. 
     '''
-    for i in sorted(objects['node'].keys()):
-        print('node', i, ':', objects['node'][i])
+    for i in sorted(geoobjs['node'].keys()):
+        print('node', i, ':', geoobjs['node'][i])
     else:
-        print(len(objects['node']))
-    for i in sorted(objects['way'].keys()):
-        print('way', i, ':', objects['way'][i])
+        print(len(geoobjs['node']))
+    for i in sorted(geoobjs['way'].keys()):
+        print('way', i, ':', geoobjs['way'][i])
     else:
-        print(len(objects['way']))
-    for i in objects['relation']:
-        tags = objects['relation'][i]['tag']
+        print(len(geoobjs['way']))
+    for i in geoobjs['relation']:
+        tags = geoobjs['relation'][i]['tag']
         if tags['type'] == 'route' or tags['type'] == 'route_master' : 
-            print('relation', i, ':', objects['relation'][i])
-            members = objects['relation'][i]['member']
+            print('relation', i, ':', geoobjs['relation'][i])
+            members = geoobjs['relation'][i]['member']
             for m in members:
                 ref = m['ref']
-                if ref in objects['way'] :
-                    for r in objects['way'][ref]['ref']:
+                if ref in geoobjs['way'] :
+                    for r in geoobjs['way'][ref]['ref']:
                         print(' '+str(r), end=',')
                 else:
                     print('-',end='')
