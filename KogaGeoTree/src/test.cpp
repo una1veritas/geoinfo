@@ -144,7 +144,7 @@ struct GeoNode{
 
 		}
 		path.push_back(node);
-		while (path != NULL) { //while条件の型が不一致
+		while (path.empty() == false) {
 			if (path.back() == /*葉*/) {　　//push_back()が葉であるという条件をどのように表すか
 				for (const auto &gp : node->pset) {
 					a.push_back(gp);
