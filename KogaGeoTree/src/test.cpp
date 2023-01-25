@@ -107,6 +107,10 @@ struct GeoNode{
 		}
 	}
 
+	bool is_leaf() const {
+		return node_is_leaf;
+	}
+
 	vector<geopoint> search(bgeohash h , vector<geopoint> s , GeoNode* node){
 		geohash = h;
 		//int cnt = 0;

@@ -28,7 +28,7 @@ int main() {
 	cout << "bgeohash code: " << bhash << endl;
 	cout << "geohash in binary: " << hex << bhash.location() << endl;
 	uint64_t intval = bhash.location();
-	for(int i = 0; i < bhash.precision(); ++i) {
+	for(unsigned int i = 0; i < bhash.precision(); ++i) {
 		cout << ( (intval >> (63-i)) & 1)  << " ";
 	}
 	cout << endl;

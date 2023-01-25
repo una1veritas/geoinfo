@@ -18,6 +18,8 @@
 
 #include <cinttypes>
 
+#include "geohash.h"
+
 using namespace std;
 
 struct bgeohash {
@@ -44,6 +46,11 @@ public:
 	bgeohash(const uint64_t & num, unsigned int prec) {
 		prec = (prec < 56 ? prec : 56);
 		hash = (num & (0xffffffffffffffff << (64 - prec))) | (prec & 0xff);
+	}
+
+	bgeohash(const string & str) {
+		unsigned int prec = str.length() * 5;
+		hash = geohash::binvalue(str.c_str()) | prec;
 	}
 
 	bgeohash(const bgeohash & bghash) : hash(bghash.hash) {}
