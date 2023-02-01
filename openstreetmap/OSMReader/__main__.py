@@ -152,7 +152,7 @@ if __name__ == '__main__':
         else:
             paths.append(sys.argv[ix])
             ix += 1
-    
+        
     geograph = dict()
     for filename in paths :
         try:
@@ -181,15 +181,26 @@ if __name__ == '__main__':
                 links[wayid] = ('railway:'+value['tag']['railway'], value['ref'])
                 #print('railway',edges['railway'][key])
             elif 'highway' in value['tag']:
-                # if value['tag']['highway'] == 'residential':
-                #     pass
-                # else:
                 links[wayid] = ('highway:' + value['tag']['highway'], value['ref'])
-                #print('highway', value)
             elif 'natural' in value['tag']:
                 links[wayid] = ('natural:'+ value['tag']['natural'], value['ref'])
             elif 'leisure' in value['tag']:
                 links[wayid] = ('leisure:'+ value['tag']['leisure'], value['ref'])
+            elif 'amenity' in value['tag']:
+                links[wayid] = ('amenity:'+ value['tag']['amenity'], value['ref'])
+        
+        cnt = 0
+        for item in labels.items():
+            if ( item[1][0].startswith("leisure:") ) : 
+                print(item)
+            cnt += 1
+        print()
+        cnt = 0
+        for key, val in links.items() : 
+            if ( "leisure" in val[0] ) :
+                print(key, val)
+                cnt += 1
+            if ( cnt > 100 ) : break
         
         for nodeid, coordval in nodes.items() :
             if nodeid in labels: 
@@ -201,12 +212,11 @@ if __name__ == '__main__':
     
         for wayid, val in links.items():
             (wayclass, pointids) = val
-            #print(wayid, wayclass, pointids)
-            # add edges along with link
             if wayid in labels :
                 label = '"' + ' '.join([s for s in labels[wayid]])+'"'
             else:
                 label = ''
+            
             for ix in range(len(pointids) - 1):
                 if len(label) :
                     geograph[pointids[ix]][1] += label
@@ -229,7 +239,7 @@ if __name__ == '__main__':
     with open('output.csv', mode='w', encoding='utf-8') as fp:
         #fp.write(#node id,latitude,longitude,adjacent node id 1, node id 2,...)
         for nodeid, values in sorted(geograph.items()) :
-            #print(values)
+            #print(nodeid, values)
             fp.write(str(nodeid))
             fp.write(',')
             fp.write(str(values[0])) # coordinates
