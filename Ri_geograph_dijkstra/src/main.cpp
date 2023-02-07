@@ -28,11 +28,7 @@
 #include "geodistance.h"
 #include "cartcoord.h"
 
-#include <SDL2/SDL.h>
-#include <SDL2/SDL2_gfxPrimitives.h>
-
 using namespace std;
-
 
 vector<string> split(string& input, char delimiter) {
     istringstream stream(input);
@@ -44,20 +40,32 @@ vector<string> split(string& input, char delimiter) {
     return result;
 }
 
+/*
+ *
+ *
+#include <SDL2/SDL.h>
+#include <SDL2/SDL2_gfxPrimitives.h>
+ *
 int show_in_sdl_window(const geograph & map, const std::vector<uint64_t> & d_track);
+*/
 
 int main(int argc, char * argv[]) {
 	ifstream csvf;
 
-	if (argc < 2) {
-		cerr << "usage: command map-file_name]" << endl;
+	if (argc < 4) {
+		cerr << "usage: command [map-file_name] [start point lattitude] [start point longitude] [distance (m)] [mode]" << endl;
 		exit(EXIT_FAILURE);
 	}
 
-	cout << "reading geograph file " << argv[1] << ". " << endl;
-	csvf.open(argv[1]);
+	string geographfilename = argv[1];
+	geopoint start_coord(std::stod(argv[2]), std::stod(argv[3]));
+	double distance = std::stod(argv[4]);
+	string mode = argv[5];
+
+	cout << "reading geograph file " << geographfilename << ". " << endl;
+	csvf.open(geographfilename);
 	if (! csvf ) {
-		cerr << "open a geograph file " << argv[1] << " failed." << endl;
+		cerr << "open a geograph file " << geographfilename << " failed." << endl;
 		exit(EXIT_FAILURE);
 	}
 	geograph ggraph;
@@ -79,16 +87,12 @@ int main(int argc, char * argv[]) {
     }
     csvf.close();
 
-
-
-
-
     cout << "goegraph node size = " << dec << ggraph.size() << endl;
     cout << endl;
 
     double start_horizon, start_vartical;
 	//double goal_horizon, goal_vartical;
-	double distance;
+	//double distance;
 	double target_horizon, target_vartical;
 	string distination;
 
@@ -97,7 +101,7 @@ int main(int argc, char * argv[]) {
 	//cout << "goal_coord = ?" << endl;
 	//cin >> goal_horizon >> goal_vartical;
 
-	geopoint start_coord(start_horizon, start_vartical);
+	//geopoint start_coord(start_horizon, start_vartical);
 	//geopoint goal_coord(goal_horizon, goal_vartical);
 
 	uint64_t osmid_start = ggraph.node_nearest_to(start_coord).id();
@@ -111,8 +115,8 @@ int main(int argc, char * argv[]) {
     uint64_t start_id = osmid_start;
     //uint64_t goal_id = osmid_goal;
 
-    cout << "distance = ?" << endl;
-    cin >> distance;
+    //cout << "distance = ?" << endl;
+    //cin >> distance;
 
     if(distance < 0){
     	cout << "Error:Distance is incorrect" << endl;
@@ -370,7 +374,7 @@ int main(int argc, char * argv[]) {
 
     	cout << "caluculation_time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end_clock - start_clock).count() << endl;
 
-    	show_in_sdl_window(ggraph, Q);
+    	//show_in_sdl_window(ggraph, Q);
 
     } else {
     	double half_distance, difference;
@@ -432,12 +436,13 @@ int main(int argc, char * argv[]) {
 
     	cout << "caluculationtime = " << std::chrono::duration_cast<std::chrono::milliseconds>(end_clock - start_clock).count() << endl;
 
-    	show_in_sdl_window(ggraph, Q);
+    	//show_in_sdl_window(ggraph, Q);
     }
 
     return EXIT_SUCCESS;
 }
 
+/*
 int show_in_sdl_window(const geograph & map, const std::vector<uint64_t> & d_track) {
 	constexpr unsigned int WINDOW_MIN_WIDTH = 1024;
 	constexpr unsigned int WINDOW_MIN_HEIGHT = 768;
@@ -627,3 +632,4 @@ int show_in_sdl_window(const geograph & map, const std::vector<uint64_t> & d_tra
 	SDL_Quit();
 	return EXIT_SUCCESS;
 }
+*/

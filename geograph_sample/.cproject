@@ -5,46 +5,54 @@
 			<storageModule buildSystemId="org.eclipse.cdt.managedbuilder.core.configurationDataProvider" id="cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947" moduleId="org.eclipse.cdt.core.settings" name="Debug">
 				<externalSettings/>
 				<extensions>
-					<extension id="org.eclipse.cdt.core.PE64" point="org.eclipse.cdt.core.BinaryParser"/>
+					<extension id="org.eclipse.cdt.core.MachO64" point="org.eclipse.cdt.core.BinaryParser"/>
 					<extension id="org.eclipse.cdt.core.GASErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.GLDErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
 					<extension id="org.eclipse.cdt.core.GCCErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.GmakeErrorParser" point="org.eclipse.cdt.core.ErrorParser"/>
+					<extension id="org.eclipse.cdt.core.CWDLocator" point="org.eclipse.cdt.core.ErrorParser"/>
 				</extensions>
 			</storageModule>
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
-				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug" cleanCommand="rm -rf" description="" id="cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947" name="Debug" optionalBuildProperties="org.eclipse.cdt.docker.launcher.containerbuild.property.selectedvolumes=,org.eclipse.cdt.docker.launcher.containerbuild.property.volumes=" parent="cdt.managedbuild.config.gnu.mingw.exe.debug">
+				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug" cleanCommand="rm -rf" description="" id="cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947" name="Debug" optionalBuildProperties="org.eclipse.cdt.docker.launcher.containerbuild.property.dockerdpath=,org.eclipse.cdt.docker.launcher.containerbuild.property.selectedvolumes=,org.eclipse.cdt.docker.launcher.containerbuild.property.volumes=" parent="cdt.managedbuild.config.gnu.mingw.exe.debug">
 					<folderInfo id="cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947." name="/" resourcePath="">
-						<toolChain id="cdt.managedbuild.toolchain.gnu.mingw.base.1331485897" name="MinGW GCC" superClass="cdt.managedbuild.toolchain.gnu.mingw.base">
-							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.PE64" id="cdt.managedbuild.target.gnu.platform.mingw.base.277920187" name="Debug Platform" osList="win32" superClass="cdt.managedbuild.target.gnu.platform.mingw.base"/>
-							<builder buildPath="${workspace_loc:/geograph}/Debug" id="cdt.managedbuild.tool.gnu.builder.mingw.base.109222252" keepEnvironmentInBuildfile="false" name="CDT Internal Builder" superClass="cdt.managedbuild.tool.gnu.builder.mingw.base"/>
-							<tool id="cdt.managedbuild.tool.gnu.assembler.mingw.base.397396254" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.mingw.base">
-								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.899432295" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
-							</tool>
-							<tool id="cdt.managedbuild.tool.gnu.archiver.mingw.base.579461401" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.mingw.base"/>
-							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.mingw.base.23213743" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.mingw.base">
-								<option id="gnu.cpp.compiler.option.optimization.level.970987214" name="Optimization Level" superClass="gnu.cpp.compiler.option.optimization.level" useByScannerDiscovery="false" value="gnu.cpp.compiler.optimization.level.none" valueType="enumerated"/>
-								<option defaultValue="gnu.cpp.compiler.debugging.level.max" id="gnu.cpp.compiler.option.debugging.level.1805067262" name="Debug Level" superClass="gnu.cpp.compiler.option.debugging.level" useByScannerDiscovery="false" valueType="enumerated"/>
-								<option id="gnu.cpp.compiler.option.dialect.std.1934515698" name="Language standard" superClass="gnu.cpp.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.cpp.compiler.dialect.c++2a" valueType="enumerated"/>
-								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1559410313" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
-							</tool>
-							<tool id="cdt.managedbuild.tool.gnu.c.compiler.mingw.base.1443656932" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.mingw.base">
-								<option defaultValue="gnu.c.optimization.level.none" id="gnu.c.compiler.option.optimization.level.1439893729" name="Optimization Level" superClass="gnu.c.compiler.option.optimization.level" useByScannerDiscovery="false" valueType="enumerated"/>
-								<option defaultValue="gnu.c.debugging.level.max" id="gnu.c.compiler.option.debugging.level.1689039536" name="Debug Level" superClass="gnu.c.compiler.option.debugging.level" useByScannerDiscovery="false" valueType="enumerated"/>
-								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.392705589" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
-							</tool>
-							<tool id="cdt.managedbuild.tool.gnu.c.linker.mingw.base.399197428" name="MinGW C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.mingw.base"/>
-							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.mingw.base.543188990" name="MinGW C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.mingw.base">
-								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.cpp.link.option.libs.1492730231" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" valueType="libs">
-									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="mingw32"/>
-									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="SDL2main"/>
-									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="SDL2"/>
-									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="SDL2_gfx"/>
-								</option>
-								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="true" id="gnu.cpp.link.option.paths.1101810682" name="Library search path (-L)" superClass="gnu.cpp.link.option.paths" useByScannerDiscovery="false" valueType="libPaths"/>
-								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.1159290090" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
+						<toolChain id="cdt.managedbuild.toolchain.gnu.macosx.base.1998716337" name="MacOSX GCC" superClass="cdt.managedbuild.toolchain.gnu.macosx.base">
+							<targetPlatform archList="all" binaryParser="org.eclipse.cdt.core.MachO64" id="cdt.managedbuild.target.gnu.platform.macosx.base.1812464144" name="Debug Platform" osList="macosx" superClass="cdt.managedbuild.target.gnu.platform.macosx.base"/>
+							<builder buildPath="${workspace_loc:/ri_geograph_sample}/Debug" id="cdt.managedbuild.target.gnu.builder.macosx.base.575272462" keepEnvironmentInBuildfile="false" name="Gnu Make Builder" superClass="cdt.managedbuild.target.gnu.builder.macosx.base"/>
+							<tool id="cdt.managedbuild.tool.macosx.c.linker.macosx.base.1030734842" name="MacOS X C Linker" superClass="cdt.managedbuild.tool.macosx.c.linker.macosx.base"/>
+							<tool id="cdt.managedbuild.tool.macosx.cpp.linker.macosx.base.2074519733" name="MacOS X C++ Linker" superClass="cdt.managedbuild.tool.macosx.cpp.linker.macosx.base">
+								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="true" id="macosx.cpp.link.option.libs.1423822774" name="Libraries (-l)" superClass="macosx.cpp.link.option.libs" valueType="libs"/>
+								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="true" id="macosx.cpp.link.option.paths.829767332" name="Library search path (-L)" superClass="macosx.cpp.link.option.paths" valueType="libPaths"/>
+								<inputType id="cdt.managedbuild.tool.macosx.cpp.linker.input.1672142279" superClass="cdt.managedbuild.tool.macosx.cpp.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
 								</inputType>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.assembler.macosx.base.1120557749" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.macosx.base">
+								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.both.asm.option.include.paths.156875449" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="/Users/sin/Documents/Projects/geoinfo/geograph"/>
+									<listOptionValue builtIn="false" value="/usr/local/include"/>
+								</option>
+								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.461343913" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.archiver.macosx.base.2054014296" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.macosx.base"/>
+							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.macosx.base.985554034" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.macosx.base">
+								<option id="gnu.cpp.compiler.option.optimization.level.1362685605" name="Optimization Level" superClass="gnu.cpp.compiler.option.optimization.level" useByScannerDiscovery="false" value="gnu.cpp.compiler.optimization.level.more" valueType="enumerated"/>
+								<option defaultValue="gnu.cpp.compiler.debugging.level.max" id="gnu.cpp.compiler.option.debugging.level.536245540" name="Debug Level" superClass="gnu.cpp.compiler.option.debugging.level" useByScannerDiscovery="false" valueType="enumerated"/>
+								<option id="gnu.cpp.compiler.option.dialect.std.878718475" name="Language standard" superClass="gnu.cpp.compiler.option.dialect.std" useByScannerDiscovery="true" value="gnu.cpp.compiler.dialect.c++2a" valueType="enumerated"/>
+								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.cpp.compiler.option.include.paths.1899511487" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
+									<listOptionValue builtIn="false" value="/Users/sin/Documents/Projects/geoinfo/geograph"/>
+									<listOptionValue builtIn="false" value="/usr/local/include"/>
+								</option>
+								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1426519577" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
+							</tool>
+							<tool id="cdt.managedbuild.tool.gnu.c.compiler.macosx.base.268429498" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.macosx.base">
+								<option defaultValue="gnu.c.optimization.level.none" id="gnu.c.compiler.option.optimization.level.1385189555" name="Optimization Level" superClass="gnu.c.compiler.option.optimization.level" useByScannerDiscovery="false" valueType="enumerated"/>
+								<option defaultValue="gnu.c.debugging.level.max" id="gnu.c.compiler.option.debugging.level.371096830" name="Debug Level" superClass="gnu.c.compiler.option.debugging.level" useByScannerDiscovery="false" valueType="enumerated"/>
+								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.c.compiler.option.include.paths.1016638215" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
+									<listOptionValue builtIn="false" value="/Users/sin/Documents/Projects/geoinfo/geograph"/>
+								</option>
+								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1260347958" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
 						</toolChain>
 					</folderInfo>
@@ -72,21 +80,37 @@
 							<targetPlatform id="cdt.managedbuild.target.gnu.platform.mingw.exe.release.1010194979" name="Debug Platform" superClass="cdt.managedbuild.target.gnu.platform.mingw.exe.release"/>
 							<builder buildPath="${workspace_loc:/geograph}/Release" id="cdt.managedbuild.tool.gnu.builder.mingw.base.1982460062" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="CDT Internal Builder" superClass="cdt.managedbuild.tool.gnu.builder.mingw.base"/>
 							<tool id="cdt.managedbuild.tool.gnu.assembler.mingw.exe.release.1439441323" name="GCC Assembler" superClass="cdt.managedbuild.tool.gnu.assembler.mingw.exe.release">
+								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.both.asm.option.include.paths.1779775298" name="Include paths (-I)" superClass="gnu.both.asm.option.include.paths" valueType="includePath">
+									<listOptionValue builtIn="false" value="/Users/sin/Documents/Projects/geoinfo/geograph"/>
+									<listOptionValue builtIn="false" value="/usr/local/include"/>
+								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.assembler.input.1502190192" superClass="cdt.managedbuild.tool.gnu.assembler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.archiver.mingw.base.371509998" name="GCC Archiver" superClass="cdt.managedbuild.tool.gnu.archiver.mingw.base"/>
 							<tool id="cdt.managedbuild.tool.gnu.cpp.compiler.mingw.exe.release.1902752134" name="GCC C++ Compiler" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.mingw.exe.release">
 								<option id="gnu.cpp.compiler.mingw.exe.release.option.optimization.level.206841026" name="Optimization Level" superClass="gnu.cpp.compiler.mingw.exe.release.option.optimization.level" useByScannerDiscovery="false" value="gnu.cpp.compiler.optimization.level.most" valueType="enumerated"/>
 								<option defaultValue="gnu.cpp.compiler.debugging.level.none" id="gnu.cpp.compiler.mingw.exe.release.option.debugging.level.110213659" name="Debug Level" superClass="gnu.cpp.compiler.mingw.exe.release.option.debugging.level" useByScannerDiscovery="false" valueType="enumerated"/>
+								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.cpp.compiler.option.include.paths.678199295" name="Include paths (-I)" superClass="gnu.cpp.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
+									<listOptionValue builtIn="false" value="/Users/sin/Documents/Projects/geoinfo/geograph"/>
+									<listOptionValue builtIn="false" value="/usr/local/include"/>
+								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.compiler.input.1777486445" superClass="cdt.managedbuild.tool.gnu.cpp.compiler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.c.compiler.mingw.exe.release.563372660" name="GCC C Compiler" superClass="cdt.managedbuild.tool.gnu.c.compiler.mingw.exe.release">
 								<option defaultValue="gnu.c.optimization.level.most" id="gnu.c.compiler.mingw.exe.release.option.optimization.level.12977933" name="Optimization Level" superClass="gnu.c.compiler.mingw.exe.release.option.optimization.level" useByScannerDiscovery="false" valueType="enumerated"/>
 								<option defaultValue="gnu.c.debugging.level.none" id="gnu.c.compiler.mingw.exe.release.option.debugging.level.1023806625" name="Debug Level" superClass="gnu.c.compiler.mingw.exe.release.option.debugging.level" useByScannerDiscovery="false" valueType="enumerated"/>
+								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.c.compiler.option.include.paths.852956332" name="Include paths (-I)" superClass="gnu.c.compiler.option.include.paths" useByScannerDiscovery="false" valueType="includePath">
+									<listOptionValue builtIn="false" value="/Users/sin/Documents/Projects/geoinfo/geograph"/>
+									<listOptionValue builtIn="false" value="/usr/local/include"/>
+								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.c.compiler.input.1069522248" superClass="cdt.managedbuild.tool.gnu.c.compiler.input"/>
 							</tool>
 							<tool id="cdt.managedbuild.tool.gnu.c.linker.mingw.exe.release.2061269825" name="MinGW C Linker" superClass="cdt.managedbuild.tool.gnu.c.linker.mingw.exe.release"/>
 							<tool id="cdt.managedbuild.tool.gnu.cpp.linker.mingw.exe.release.673757814" name="MinGW C++ Linker" superClass="cdt.managedbuild.tool.gnu.cpp.linker.mingw.exe.release">
+								<option IS_BUILTIN_EMPTY="false" IS_VALUE_EMPTY="false" id="gnu.cpp.link.option.libs.1053282086" name="Libraries (-l)" superClass="gnu.cpp.link.option.libs" valueType="libs">
+									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="/usr/local/Cellar/sdl2/2.26.2/lib/libSDL2.a"/>
+									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="/usr/local/Cellar/sdl2_gfx/1.0.4/lib/libSDL2_gfx.a"/>
+								</option>
 								<inputType id="cdt.managedbuild.tool.gnu.cpp.linker.input.433327590" superClass="cdt.managedbuild.tool.gnu.cpp.linker.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
@@ -118,34 +142,40 @@
 	<storageModule moduleId="org.eclipse.cdt.internal.ui.text.commentOwnerProjectMappings"/>
 	<storageModule moduleId="scannerConfiguration">
 		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947;cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947.;cdt.managedbuild.tool.gnu.c.compiler.macosx.base.1234142134;cdt.managedbuild.tool.gnu.c.compiler.input.1634270859">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.mingw.exe.release.920895216;cdt.managedbuild.config.gnu.mingw.exe.release.920895216.;cdt.managedbuild.tool.gnu.cpp.compiler.mingw.exe.release.1902752134;cdt.managedbuild.tool.gnu.cpp.compiler.input.1777486445">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947;cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947.;cdt.managedbuild.tool.gnu.c.compiler.macosx.base.116940538;cdt.managedbuild.tool.gnu.c.compiler.input.2004663555">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947;cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947.;cdt.managedbuild.tool.gnu.cpp.compiler.mingw.exe.debug.2054257576;cdt.managedbuild.tool.gnu.cpp.compiler.input.263415653">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947;cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947.;cdt.managedbuild.tool.gnu.cpp.compiler.macosx.base.1433591815;cdt.managedbuild.tool.gnu.cpp.compiler.input.2072665393">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947;cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947.;cdt.managedbuild.tool.gnu.c.compiler.mingw.exe.debug.1648963636;cdt.managedbuild.tool.gnu.c.compiler.input.5933216">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947;cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947.;cdt.managedbuild.tool.gnu.c.compiler.mingw.base.1443656932;cdt.managedbuild.tool.gnu.c.compiler.input.392705589">
-			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
-		</scannerConfigBuildInfo>
-		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947;cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947.;cdt.managedbuild.tool.gnu.cpp.compiler.mingw.base.23213743;cdt.managedbuild.tool.gnu.cpp.compiler.input.1559410313">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947;cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947.;cdt.managedbuild.tool.gnu.cpp.compiler.macosx.base.281830512;cdt.managedbuild.tool.gnu.cpp.compiler.input.307964465">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947;cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947.;cdt.managedbuild.tool.gnu.c.compiler.macosx.base.268429498;cdt.managedbuild.tool.gnu.c.compiler.input.1260347958">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.mingw.exe.release.920895216;cdt.managedbuild.config.gnu.mingw.exe.release.920895216.;cdt.managedbuild.tool.gnu.c.compiler.mingw.exe.release.563372660;cdt.managedbuild.tool.gnu.c.compiler.input.1069522248">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947;cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947.;cdt.managedbuild.tool.gnu.c.compiler.macosx.base.116940538;cdt.managedbuild.tool.gnu.c.compiler.input.2004663555">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947;cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947.;cdt.managedbuild.tool.gnu.c.compiler.macosx.base.1234142134;cdt.managedbuild.tool.gnu.c.compiler.input.1634270859">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947;cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947.;cdt.managedbuild.tool.gnu.cpp.compiler.mingw.exe.debug.2054257576;cdt.managedbuild.tool.gnu.cpp.compiler.input.263415653">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947;cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947.;cdt.managedbuild.tool.gnu.cpp.compiler.macosx.base.985554034;cdt.managedbuild.tool.gnu.cpp.compiler.input.1426519577">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947;cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947.;cdt.managedbuild.tool.gnu.cpp.compiler.mingw.base.23213743;cdt.managedbuild.tool.gnu.cpp.compiler.input.1559410313">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.mingw.exe.release.920895216;cdt.managedbuild.config.gnu.mingw.exe.release.920895216.;cdt.managedbuild.tool.gnu.cpp.compiler.mingw.exe.release.1902752134;cdt.managedbuild.tool.gnu.cpp.compiler.input.1777486445">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947;cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947.;cdt.managedbuild.tool.gnu.c.compiler.mingw.base.1443656932;cdt.managedbuild.tool.gnu.c.compiler.input.392705589">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947;cdt.managedbuild.config.gnu.mingw.exe.debug.1212190947.;cdt.managedbuild.tool.gnu.cpp.compiler.macosx.base.1433591815;cdt.managedbuild.tool.gnu.cpp.compiler.input.2072665393">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		</scannerConfigBuildInfo>
 	</storageModule>

@@ -32,8 +32,10 @@ using std::set;
 #include "geodistance.h"
 #include "cartcoord.h"
 
+/*
 #include <SDL2/SDL.h>
 #include <SDL2/SDL2_gfxPrimitives.h>
+*/
 
 vector<string> split(string& input, char delimiter) {
     istringstream stream(input);
@@ -45,7 +47,9 @@ vector<string> split(string& input, char delimiter) {
     return result;
 }
 
+/*
 int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track, const std::vector<std::set<std::pair<uint64_t,uint64_t>>> & roadsegs);
+*/
 
 int main(int argc, char * argv[]) {
 	ifstream csvf;
@@ -157,12 +161,12 @@ int main(int argc, char * argv[]) {
     }
     cout << "finished." << endl;
 
-    show_in_sdl_window(ggraph, mytrack, edgeseq);
+    //show_in_sdl_window(ggraph, mytrack, edgeseq);
 
     return EXIT_SUCCESS;
 }
 
-
+/*
 int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track, const std::vector<std::set<std::pair<uint64_t,uint64_t>>> & roadsegs) {
 	constexpr unsigned int WINDOW_MIN_WIDTH = 1024;
 	constexpr unsigned int WINDOW_MIN_HEIGHT = 768;
@@ -347,3 +351,4 @@ int show_in_sdl_window(const geograph & map, const std::vector<geopoint> & track
 	SDL_Quit();
 	return EXIT_SUCCESS;
 }
+*/
