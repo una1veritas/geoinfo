@@ -49,6 +49,69 @@ vector<string> split(string& input, char delimiter) {
 int show_in_sdl_window(const geograph & map, const std::vector<uint64_t> & d_track);
 */
 
+std::map<uint64_t,double> dijkstra_dist_table(const geograph & graph, const uint64_t & start_id) {
+    std::set<uint64_t> R;
+    std::map<uint64_t, double> dist;
+
+    for(const auto & p : graph.nodemap() ){
+    	R.insert(p.first);
+    	dist[p.first] = std::numeric_limits<double>::infinity();
+    }
+
+    dist[start_id] = 0;
+
+    cout << "calculate now..." << endl;
+    cout << endl;
+
+    while ( R.size() > 0) {
+    	uint64_t u = 0;
+    	double nearest = std::numeric_limits<double>::infinity();
+
+    	for(auto & id : R) {
+    		if (dist[id] < nearest) {
+    			u = id;
+    			nearest = dist[id];
+    		}
+    	}
+
+    	if(nearest == std::numeric_limits<double>::infinity()){
+    		break;
+    	}
+
+    	R.erase(u);
+
+    	for(const auto & adjid : graph.adjacent_nodes(u) ) {
+    		if(R.contains(adjid) && dist[adjid] > dist[u] + graph.point(u).distance_to(graph.point(adjid))){
+    			dist[adjid] = dist[u] + graph.point(u).distance_to(graph.point(adjid));
+    		}
+
+    	}
+    }
+    return dist;
+}
+
+std::vector<uint64_t> dijkstra_find_path(const geograph & graph,
+		std::map<uint64_t, double> & dist, const uint64_t & start_id, const uint64_t & goal_id) {
+
+	std::vector<uint64_t> path;
+	path.push_back(goal_id);
+	uint64_t current = goal_id;
+	while( current != start_id ) {
+		double mindist = std::numeric_limits<double>::infinity();;
+	    uint64_t minid = 0;
+	    for(const auto & adjid : graph.adjacent_nodes(current) ) {
+	    	if(dist[adjid] - (dist[current] - graph.point(adjid).distance_to(graph.point(current))) < mindist){
+	    		mindist = dist[adjid] - (dist[current] - graph.point(adjid).distance_to(graph.point(current)));
+	    		minid = adjid;
+	    	}
+	    }
+
+	    current = minid;
+	    path.push_back(current);
+	}
+	return path;
+}
+
 int main(int argc, char * argv[]) {
 	ifstream csvf;
 
@@ -159,6 +222,7 @@ int main(int argc, char * argv[]) {
      */
 
 	uint64_t start_id = ggraph.node_nearest_to(start_coord).id();
+	uint64_t target_id = ggraph.node_nearest_to(dropby_coord).id();
 
     std::set<uint64_t> VP1, VP2;
     std::map<uint64_t, double> l1, l2;
@@ -166,113 +230,24 @@ int main(int argc, char * argv[]) {
 
     start_clock = std::chrono::system_clock::now();
 
-    for(auto itr = ggraph.begin(); itr != ggraph.end(); ++itr){
-    	VP1.insert(itr->first);
-    	l1[itr->first] = std::numeric_limits<double>::infinity();
-    }
+    cout << "calculate now..." << endl << endl;
+    l1 = dijkstra_dist_table(ggraph, start_id);
 
-    l1[start_id] = 0;
-
-    cout << "calculate now..." << endl;
-    cout << endl;
-
-    while ( VP1.size() > 0) {
-    	uint64_t u1 = 0;
-    	double nearest = std::numeric_limits<double>::infinity();
-
-    	for(auto & id : VP1) {
-    		if (l1[id] < nearest) {
-    			u1 = id;
-    			nearest = l1[id];
-    		}
-    	}
-
-    	if(nearest == std::numeric_limits<double>::infinity()){
-    		break;
-    	}
-
-    	VP1.erase(u1);
-
-    	for(auto itr = ggraph.adjacent_nodes(u1).cbegin();
-    			itr != ggraph.adjacent_nodes(u1).cend(); ++itr) {
-    		uint64_t v1 = *itr;
-
-    		if(VP1.contains(v1) && l1[v1] > l1[u1] + ggraph.point(u1).distance_to(ggraph.point(v1))){
-    			l1[v1] = l1[u1] + ggraph.point(u1).distance_to(ggraph.point(v1));
-    		}
-
-    	}
-    }
-
-    if(distination == "yes" || distination == "Yes" || distination == "YES"){
-    	for(auto itr = ggraph.begin(); itr != ggraph.end(); ++itr){
-    		VP2.insert(itr->first);
-    		l2[itr->first] = std::numeric_limits<double>::infinity();
-    	}
-
-    	l2[target_id] = 0;
-
-    	cout << "calculate now..." << endl;
-    	cout << endl;
-
-    	while ( VP2.size() > 0) {
-    		uint64_t u2 = 0;
-    		double nearest = std::numeric_limits<double>::infinity();
-
-    		for(auto & id : VP2) {
-    		    if (l2[id] < nearest) {
-    		    	u2 = id;
-    		    	nearest = l2[id];
-    		    }
-    		}
-
-    		if(nearest == std::numeric_limits<double>::infinity()){
-    		    	break;
-    		}
-
-    		VP2.erase(u2);
-
-    		for(auto itr = ggraph.adjacent_nodes(u2).cbegin();
-    		    	itr != ggraph.adjacent_nodes(u2).cend(); ++itr) {
-    		    uint64_t v2 = *itr;
-
-    		    if(VP2.contains(v2) && l2[v2] > l2[u2] + ggraph.point(u2).distance_to(ggraph.point(v2))){
-    		    	l2[v2] = l2[u2] + ggraph.point(u2).distance_to(ggraph.point(v2));
-    		    }
-
-    		}
-    	}
-    }
+	if (mode == DROP_BY) {
+		cout << "calculate now..." << endl << endl;
+		l2 = dijkstra_dist_table(ggraph, target_id);
+	}
 
     //cout << "distance = " << l[goal_id] << endl;
     //cout << endl;
 
-    if(distination == "yes" || distination == "Yes" || distination == "YES"){
+    if(mode == DROP_BY){
     	std::vector<uint64_t> Q, R, S, X, Y;
     	uint64_t s, t1, t2, t3, min_id;
     	double difference, half_difference, fifty = 25;
     	int i = 1, check = 0;
 
-    	t1 = target_id;
-
-    	S.push_back(t1);
-
-    	while(t1 != start_id) {
-    		double min = 10000;
-    	    uint64_t m1;
-    	    for(auto itr = ggraph.adjacent_nodes(t1).cbegin();
-    	    		itr != ggraph.adjacent_nodes(t1).cend(); ++itr) {
-    	    	s = *itr;
-
-    	    	if(l1[s] - (l1[t1] - ggraph.point(t1).distance_to(ggraph.point(s))) < min){
-    	    		min = l1[s] - (l1[t1] - ggraph.point(t1).distance_to(ggraph.point(s)));
-    	    		m1 = s;
-    	    	}
-    	    }
-
-    	    t1 = m1;
-    	    S.push_back(t1);
-    	}
+    	S = dijkstra_find_path(ggraph, l1, start_id, target_id);
 
     	cout << "calculate now..." << endl;
     	cout << endl;
@@ -321,24 +296,7 @@ int main(int argc, char * argv[]) {
 
     	t2 = min_id;
 
-    	Q.push_back(t2);
-
-    	while(t2 != start_id) {
-    		double min = 10000;
-    	    uint64_t m2;
-    	    for(auto itr = ggraph.adjacent_nodes(t2).cbegin();
-    	    		itr != ggraph.adjacent_nodes(t2).cend(); ++itr) {
-    	    	s = *itr;
-
-    	    	if(l1[s] - (l1[t2] - ggraph.point(t2).distance_to(ggraph.point(s))) < min){
-    	    	    min = l1[s] - (l1[t2] - ggraph.point(t2).distance_to(ggraph.point(s)));
-    	    	    m2 = s;
-    	    	}
-    	    }
-
-    	    t2 = m2;
-    	    Q.push_back(t2);
-    	}
+    	Q = dijkstra_find_path(ggraph, l1, start_id, t2);
 
     	cout << "calculate now..." << endl;
     	cout << endl;
