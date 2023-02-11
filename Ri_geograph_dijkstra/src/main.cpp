@@ -53,19 +53,28 @@ int main(int argc, char * argv[]) {
 	ifstream csvf;
 
 	if (argc < 4) {
-		cerr << "usage: command [map-file_name] [start point lattitude] [start point longitude] [distance (m)] [mode]" << endl;
+		cerr << "usage: command [map-file_name] [start point lattitude] [start point longitude] [distance (m)] [latitude] [longitude]" << endl;
 		exit(EXIT_FAILURE);
 	}
 
-	string geographfilename = argv[1];
+	string mapfilename = argv[1];
 	geopoint start_coord(std::stod(argv[2]), std::stod(argv[3]));
+	geopoint dropby_coord;
 	double distance = std::stod(argv[4]);
-	string mode = argv[5];
+	enum {
+		ROUND_TRIP = 0,
+		DROP_BY = 1,
+	} mode = ROUND_TRIP;
+	if (argc >= 7) {
+		mode = DROP_BY;
+		dropby_coord.lat = std::stod(argv[5]);
+		dropby_coord.lon = std::stod(argv[6]);
+	}
 
-	cout << "reading geograph file " << geographfilename << ". " << endl;
-	csvf.open(geographfilename);
+	cout << "reading geograph file " << mapfilename << ". " << endl;
+	csvf.open(mapfilename);
 	if (! csvf ) {
-		cerr << "open a geograph file " << geographfilename << " failed." << endl;
+		cerr << "open a geograph file " << mapfilename << " failed." << endl;
 		exit(EXIT_FAILURE);
 	}
 	geograph ggraph;
@@ -87,9 +96,10 @@ int main(int argc, char * argv[]) {
     }
     csvf.close();
 
-    cout << "goegraph node size = " << dec << ggraph.size() << endl;
+    cout << "goegraph size = " << dec << ggraph.size() << endl;
     cout << endl;
 
+    /*
     double start_horizon, start_vartical;
 	//double goal_horizon, goal_vartical;
 	//double distance;
@@ -140,12 +150,15 @@ int main(int argc, char * argv[]) {
         target_id = osmid_target;
 
     }
+    */
 
     /* 学校正門前
      * geopoint start_coord(33.651759, 130.672120);
      * 新飯塚駅
      * geopoint goal_coord(33.644224, 130.693827);
      */
+
+	uint64_t start_id = ggraph.node_nearest_to(start_coord).id();
 
     std::set<uint64_t> VP1, VP2;
     std::map<uint64_t, double> l1, l2;
