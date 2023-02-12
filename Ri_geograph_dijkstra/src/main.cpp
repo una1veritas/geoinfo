@@ -14,8 +14,7 @@
 #include <limits>
 #include <vector>
 #include <algorithm>
-#include <stdio.h>
-#include <time.h>
+#include <cstdio>
 #include <chrono>
 
 #include <stdexcept>
@@ -40,6 +39,32 @@ vector<string> split(string& input, char delimiter) {
     return result;
 }
 
+bool getfromcsv(const string & filename, geograph & ggraph) {
+	ifstream csvf;
+	csvf.open(filename);
+	if (! csvf ) {
+		cerr << "open a geograph file " << filename << " failed." << endl;
+		return false;
+	}
+    string line;
+    while (getline(csvf, line)) {
+        vector<string> strvec = split(line, ',');
+        if (strvec.size() < 4) {
+        	cerr << "insufficient parameters to define a node_edge." << endl;
+        	continue;
+        }
+		uint64_t id = stoull(strvec[0]);
+		double lat = stod(strvec[1]);
+		double lon = stod(strvec[2]);
+        vector<uint64_t> adjacents;
+        for(unsigned int i = 3; i < strvec.size(); ++i)
+        	adjacents.push_back(stoull(strvec[i]));
+        ggraph.insert(id, lat, lon, adjacents);
+        adjacents.clear();
+    }
+    csvf.close();
+    return true;
+}
 /*
  *
  *
@@ -49,7 +74,7 @@ vector<string> split(string& input, char delimiter) {
 int show_in_sdl_window(const geograph & map, const std::vector<uint64_t> & d_track);
 */
 
-std::map<uint64_t,double> dijkstra_dist_table(const geograph & graph, const uint64_t & start_id) {
+std::map<uint64_t,double> dijkstra_dist_table(const geograph & graph, const uint64_t & start_id, const double & limit = std::numeric_limits<double>::infinity()) {
     std::set<uint64_t> R;
     std::map<uint64_t, double> dist;
 
@@ -60,29 +85,29 @@ std::map<uint64_t,double> dijkstra_dist_table(const geograph & graph, const uint
 
     dist[start_id] = 0;
 
-    cout << "calculate now..." << endl;
-    cout << endl;
-
     while ( R.size() > 0) {
     	uint64_t u = 0;
     	double nearest = std::numeric_limits<double>::infinity();
 
-    	for(auto & id : R) {
+    	for(const auto & id : R) {
     		if (dist[id] < nearest) {
     			u = id;
     			nearest = dist[id];
     		}
     	}
 
-    	if(nearest == std::numeric_limits<double>::infinity()){
+    	if ( nearest == std::numeric_limits<double>::infinity() )
     		break;
-    	}
+
+    	if ( nearest > limit )
+    		break;
 
     	R.erase(u);
 
     	for(const auto & adjid : graph.adjacent_nodes(u) ) {
-    		if(R.contains(adjid) && dist[adjid] > dist[u] + graph.point(u).distance_to(graph.point(adjid))){
-    			dist[adjid] = dist[u] + graph.point(u).distance_to(graph.point(adjid));
+    		double adjdist = graph.point(u).distance_to(graph.point(adjid));
+    		if( R.contains(adjid) && dist[adjid] > dist[u] + adjdist ){
+    			dist[adjid] = dist[u] + adjdist;
     		}
 
     	}
@@ -113,107 +138,31 @@ std::vector<uint64_t> dijkstra_find_path(const geograph & graph,
 }
 
 int main(int argc, char * argv[]) {
-	ifstream csvf;
 
-	if (argc < 4) {
+	if (argc < 5) {
 		cerr << "usage: command [map-file_name] [start point lattitude] [start point longitude] [distance (m)] [latitude] [longitude]" << endl;
 		exit(EXIT_FAILURE);
 	}
 
 	string mapfilename = argv[1];
-	geopoint start_coord(std::stod(argv[2]), std::stod(argv[3]));
-	geopoint dropby_coord;
+	geopoint startpt(std::stod(argv[2]), std::stod(argv[3]));
+	geopoint dropbypt;
 	double distance = std::stod(argv[4]);
+	cout << mapfilename << " " << startpt << " " << distance << endl;
 	enum {
 		ROUND_TRIP = 0,
 		DROP_BY = 1,
 	} mode = ROUND_TRIP;
 	if (argc >= 7) {
 		mode = DROP_BY;
-		dropby_coord.lat = std::stod(argv[5]);
-		dropby_coord.lon = std::stod(argv[6]);
+		dropbypt.lat = std::stod(argv[5]);
+		dropbypt.lon = std::stod(argv[6]);
 	}
 
 	cout << "reading geograph file " << mapfilename << ". " << endl;
-	csvf.open(mapfilename);
-	if (! csvf ) {
-		cerr << "open a geograph file " << mapfilename << " failed." << endl;
-		exit(EXIT_FAILURE);
-	}
 	geograph ggraph;
-    string line;
-    while (getline(csvf, line)) {
-        vector<string> strvec = split(line, ',');
-        if (strvec.size() < 4) {
-        	cerr << "insufficient parameters to define a node_edge." << endl;
-        	continue;
-        }
-		uint64_t id = stoull(strvec[0]);
-		double lat = stod(strvec[1]);
-		double lon = stod(strvec[2]);
-        vector<uint64_t> adjacents;
-        for(unsigned int i = 3; i < strvec.size(); ++i)
-        	adjacents.push_back(stoull(strvec[i]));
-        ggraph.insert(id, lat, lon, adjacents);
-        adjacents.clear();
-    }
-    csvf.close();
-
-    cout << "goegraph size = " << dec << ggraph.size() << endl;
-    cout << endl;
-
-    /*
-    double start_horizon, start_vartical;
-	//double goal_horizon, goal_vartical;
-	//double distance;
-	double target_horizon, target_vartical;
-	string distination;
-
-	cout << "start_coord = ?" << endl;
-	cin >> start_horizon >> start_vartical;
-	//cout << "goal_coord = ?" << endl;
-	//cin >> goal_horizon >> goal_vartical;
-
-	//geopoint start_coord(start_horizon, start_vartical);
-	//geopoint goal_coord(goal_horizon, goal_vartical);
-
-	uint64_t osmid_start = ggraph.node_nearest_to(start_coord).id();
-	//uint64_t osmid_goal = ggraph.node_nearest_to(goal_coord).id();
-
-	cout << "start point = " << ggraph.node(osmid_start) << " id " << std::dec << osmid_start << endl;
-	//cout << "goal point = " << ggraph.node(osmid_goal) << " id " << std::dec << osmid_goal << endl;
-
-	cout << endl;
-
-    uint64_t start_id = osmid_start;
-    //uint64_t goal_id = osmid_goal;
-
-    //cout << "distance = ?" << endl;
-    //cin >> distance;
-
-    if(distance < 0){
-    	cout << "Error:Distance is incorrect" << endl;
-    	exit(1);
-    }
-
-    cout << "Do you have a distination?" << endl;
-    cout << "yes or no" << endl;
-    cin >> distination;
-
-    uint64_t target_id;
-    if(distination == "yes" || distination == "Yes" || distination == "YES"){
-    	cout << "target_coord = ?" << endl;
-    	cin >> target_horizon >> target_vartical;
-
-    	geopoint target_coord(target_horizon, target_vartical);
-    	uint64_t osmid_target = ggraph.node_nearest_to(target_coord).id();
-        cout << "target point = " << ggraph.node(osmid_target) << " id " << std::dec << osmid_target << endl;
-        cout << endl;
-
-        target_id = osmid_target;
-
-    }
-    */
+	getfromcsv(mapfilename, ggraph);
+    cout << "goegraph size = " << dec << ggraph.size() << endl << endl;
 
     /* 学校正門前
      * geopoint start_coord(33.651759, 130.672120);
@@ -221,38 +170,39 @@ int main(int argc, char * argv[]) {
      * geopoint goal_coord(33.644224, 130.693827);
      */
 
-	uint64_t start_id = ggraph.node_nearest_to(start_coord).id();
-	uint64_t target_id = ggraph.node_nearest_to(dropby_coord).id();
+	uint64_t start_id = ggraph.node_nearest_to(startpt).id();
+	uint64_t dropby_id = ggraph.node_nearest_to(dropbypt).id();
 
-    std::set<uint64_t> VP1, VP2;
     std::map<uint64_t, double> l1, l2;
     std::chrono::system_clock::time_point start_clock, end_clock;
 
     start_clock = std::chrono::system_clock::now();
 
-    cout << "calculate now..." << endl << endl;
-    l1 = dijkstra_dist_table(ggraph, start_id);
+    cout << "calculate dists from start_id..." << endl << endl;
+    l1 = dijkstra_dist_table(ggraph, start_id, distance * 0.51);
 
 	if (mode == DROP_BY) {
-		cout << "calculate now..." << endl << endl;
-		l2 = dijkstra_dist_table(ggraph, target_id);
+		cout << "calculate dists from dropby_id... " << endl << endl;
+		l2 = dijkstra_dist_table(ggraph, dropby_id);
 	}
+    end_clock = std::chrono::system_clock::now();
+    cout << "dist table calcuration time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end_clock - start_clock).count() << " millis." << endl;
 
-    //cout << "distance = " << l[goal_id] << endl;
-    //cout << endl;
+    cout << "searching for a turning point..." << endl << endl;
+    start_clock = std::chrono::system_clock::now();
 
     if(mode == DROP_BY){
     	std::vector<uint64_t> Q, R, S, X, Y;
-    	uint64_t s, t1, t2, t3, min_id;
+    	uint64_t t1, t2, t3, min_id;
     	double difference, half_difference, fifty = 25;
     	int i = 1, check = 0;
 
-    	S = dijkstra_find_path(ggraph, l1, start_id, target_id);
+    	S = dijkstra_find_path(ggraph, l1, start_id, dropby_id);
 
     	cout << "calculate now..." << endl;
     	cout << endl;
 
-    	difference = distance - l1[target_id];
+    	difference = distance - l1[dropby_id];
 
     	half_difference = difference / 2;
 
@@ -303,24 +253,7 @@ int main(int argc, char * argv[]) {
 
     	t3 = min_id;
 
-    	R.push_back(t3);
-
-    	while(t3 != target_id) {
-    	    double min = 10000;
-    	    uint64_t m3;
-    	    for(auto itr = ggraph.adjacent_nodes(t3).cbegin();
-    	    		itr != ggraph.adjacent_nodes(t3).cend(); ++itr) {
-    	    	s = *itr;
-
-    	    	if(l2[s] - (l2[t3] - ggraph.point(t3).distance_to(ggraph.point(s))) < min){
-    	    	    min = l2[s] - (l2[t3] - ggraph.point(t3).distance_to(ggraph.point(s)));
-    	    	    m3 = s;
-    	    	}
-    	    }
-
-    	    t3 = m3;
-    	    R.push_back(t3);
-    	}
+    	R =  dijkstra_find_path(ggraph, l1, dropby_id, t3);
 
     	cout << "calculate now..." << endl;
     	cout << endl;
@@ -339,7 +272,7 @@ int main(int argc, char * argv[]) {
 
     	cout << "goal" << endl;
 
-    	cout << "real_distance = " << l1[min_id] + l2[min_id] + l1[target_id] << endl;
+    	cout << "real_distance = " << l1[min_id] + l2[min_id] + l1[dropby_id] << endl;
 
     	end_clock = std::chrono::system_clock::now();
 
@@ -362,29 +295,10 @@ int main(int argc, char * argv[]) {
     	}
 
     	std::vector<uint64_t> Q, R;
-    	uint64_t s, t = min_id;
+    	uint64_t t = min_id;
     	int i = 1;
 
-    	Q.push_back(t);
-
-    	while(t != start_id) {
-    	double min = 10000;
-    	uint64_t m;
-    	for(auto itr = ggraph.adjacent_nodes(t).cbegin();
-    			itr != ggraph.adjacent_nodes(t).cend(); ++itr) {
-    		s = *itr;
-
-    	    if(l1[s] - (l1[t] - ggraph.point(t).distance_to(ggraph.point(s))) < min){
-    	    	min = l1[s] - (l1[t] - ggraph.point(t).distance_to(ggraph.point(s)));
-    	    	m = s;
-    	    }
-    	}
-
-    	t = m;
-
-    	Q.push_back(t);
-
-    	}
+    	Q = dijkstra_find_path(ggraph, l1, start_id, t);
 
     	R = Q;
 
