@@ -125,8 +125,9 @@ std::vector<uint64_t> dijkstra_find_path(const geograph & graph,
 		double mindist = std::numeric_limits<double>::infinity();;
 	    uint64_t minid = 0;
 	    for(const auto & adjid : graph.adjacent_nodes(current) ) {
-	    	if(dist[adjid] - (dist[current] - graph.point(adjid).distance_to(graph.point(current))) < mindist){
-	    		mindist = dist[adjid] - (dist[current] - graph.point(adjid).distance_to(graph.point(current)));
+	    	double adjdist = graph.point(current).distance_to(graph.point(adjid));
+	    	if(dist[adjid] - (dist[current] - adjdist) < mindist) {
+	    		mindist = dist[adjid] - (dist[current] - adjdist);
 	    		minid = adjid;
 	    	}
 	    }
@@ -138,21 +139,21 @@ std::vector<uint64_t> dijkstra_find_path(const geograph & graph,
 }
 
 int main(int argc, char * argv[]) {
+	enum {
+		ROUND_TRIP = 0,
+		DROP_BY = 1,
+	} mode = ROUND_TRIP;
 
 	if (argc < 5) {
-		cerr << "usage: command [map-file_name] [start point lattitude] [start point longitude] [distance (m)] [latitude] [longitude]" << endl;
+		cerr << "usage: command [map-file_name] [start point lattitude] [longitude] [distance (m)] [drop-by point latitude] [longitude]" << endl;
 		exit(EXIT_FAILURE);
 	}
 
 	string mapfilename = argv[1];
 	geopoint startpt(std::stod(argv[2]), std::stod(argv[3]));
-	geopoint dropbypt;
 	double distance = std::stod(argv[4]);
 	cout << mapfilename << " " << startpt << " " << distance << endl;
-	enum {
-		ROUND_TRIP = 0,
-		DROP_BY = 1,
-	} mode = ROUND_TRIP;
+	geopoint dropbypt;
 	if (argc >= 7) {
 		mode = DROP_BY;
 		dropbypt.lat = std::stod(argv[5]);
@@ -173,64 +174,73 @@ int main(int argc, char * argv[]) {
 	uint64_t start_id = ggraph.node_nearest_to(startpt).id();
 	uint64_t dropby_id = ggraph.node_nearest_to(dropbypt).id();
 
-    std::map<uint64_t, double> l1, l2;
+    std::map<uint64_t, double> d_from_start, d_from_dropby;
     std::chrono::system_clock::time_point start_clock, end_clock;
 
     start_clock = std::chrono::system_clock::now();
 
-    cout << "calculate dists from start_id..." << endl << endl;
-    l1 = dijkstra_dist_table(ggraph, start_id, distance * 0.51);
+    cout << "calculate dists from start_id..." << endl;
+    d_from_start = dijkstra_dist_table(ggraph, start_id, distance * 0.51);
 
 	if (mode == DROP_BY) {
-		cout << "calculate dists from dropby_id... " << endl << endl;
-		l2 = dijkstra_dist_table(ggraph, dropby_id);
+		cout << "calculate dists from dropby_id... " << endl;
+		d_from_dropby = dijkstra_dist_table(ggraph, dropby_id, distance * 0.5);
 	}
     end_clock = std::chrono::system_clock::now();
-    cout << "dist table calcuration time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end_clock - start_clock).count() << " millis." << endl;
+    cout << "time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end_clock - start_clock).count() << " millis." << endl << endl;
 
     cout << "searching for a turning point..." << endl << endl;
     start_clock = std::chrono::system_clock::now();
 
     if(mode == DROP_BY){
-    	std::vector<uint64_t> Q, R, S, X, Y;
-    	uint64_t t1, t2, t3, min_id;
+    	std::vector<uint64_t> Q, R, path_start_to_dropby, X, Y;
+    	uint64_t t2, t3, min_id;
     	double difference, half_difference, fifty = 25;
     	int i = 1, check = 0;
 
-    	S = dijkstra_find_path(ggraph, l1, start_id, dropby_id);
+    	path_start_to_dropby = dijkstra_find_path(ggraph, d_from_start, start_id, dropby_id);
 
-    	cout << "calculate now..." << endl;
-    	cout << endl;
-
-    	difference = distance - l1[dropby_id];
+    	difference = distance - d_from_start[dropby_id];
 
     	half_difference = difference / 2;
 
-    	if(difference < l1[t1]){
-    		cout << "Error:Root not found" << endl;
+    	if(difference < d_from_start[dropby_id]){
+    		cout << "Error: impossible distance." << endl;
     		exit(1);
     	}
+
+    	struct uid_comparator {
+    		std::map<uint64_t,double> & dist;
+    		uid_comparator(std::map<uint64_t,double> & disttable) : dist(disttable) {}
+    		bool operator()(uint64_t &i, uint64_t & j) const {
+    			return dist[i] < dist[j];
+    		}
+    	} comp_fromstart(d_from_start), comp_fromdropby(d_from_dropby) ;
+
+
+		std::sort (X.begin(), X.end(), comp_fromstart);
+		std::sort (Y.begin(), Y.end(), comp_fromdropby);
 
     	while(check == 0){
     		double min = 10000;
 
-    		for(auto itr = l1.cbegin(); itr != l1.cend(); ++itr){
-    			if(fabs(itr->second - half_difference) < fifty){
-    				X.push_back(itr->first);
-    			}
-    		}
+			for(auto itr = d_from_start.cbegin(); itr != d_from_start.cend(); ++itr) {
+				if(fabs(itr->second - half_difference) < fifty){
+					X.push_back(itr->first);
+				}
+			}
 
-    		for(auto itr = l2.cbegin(); itr != l2.cend(); ++itr){
-    			if(fabs(itr->second - half_difference) < fifty){
-    				Y.push_back(itr->first);
-    			}
-    		}
+			for(auto itr = d_from_dropby.cbegin(); itr != d_from_dropby.cend(); ++itr) {
+				if(fabs(itr->second - half_difference) < fifty){
+					Y.push_back(itr->first);
+				}
+			}
 
     		for(auto itr1 = X.cbegin(); itr1 != X.cend(); ++itr1){
     			for(auto itr2 = Y.cbegin(); itr2 != Y.cend(); ++itr2){
     				if(*itr1 == *itr2){
-    					if(fabs(l1[*itr1] + l2[*itr2] - difference) < min){
-    						min = l1[*itr1] + l2[*itr2];
+    					if(fabs(d_from_start[*itr1] + d_from_dropby[*itr2] - difference) < min){
+    						min = d_from_start[*itr1] + d_from_dropby[*itr2];
     						min_id = *itr1;
     						check = 1;
     					}
@@ -246,14 +256,14 @@ int main(int argc, char * argv[]) {
 
     	t2 = min_id;
 
-    	Q = dijkstra_find_path(ggraph, l1, start_id, t2);
+    	Q = dijkstra_find_path(ggraph, d_from_start, start_id, t2);
 
     	cout << "calculate now..." << endl;
     	cout << endl;
 
     	t3 = min_id;
 
-    	R =  dijkstra_find_path(ggraph, l1, dropby_id, t3);
+    	R =  dijkstra_find_path(ggraph, d_from_start, dropby_id, t3);
 
     	cout << "calculate now..." << endl;
     	cout << endl;
@@ -261,7 +271,7 @@ int main(int argc, char * argv[]) {
     	std::reverse(Q.begin(), Q.end());
 
     	Q.insert(Q.cend(), R.cbegin(), R.cend());
-    	Q.insert(Q.cend(), S.cbegin(), S.cend());
+    	Q.insert(Q.cend(), path_start_to_dropby.cbegin(), path_start_to_dropby.cend());
 
     	cout << "start" << endl;
 
@@ -272,7 +282,7 @@ int main(int argc, char * argv[]) {
 
     	cout << "goal" << endl;
 
-    	cout << "real_distance = " << l1[min_id] + l2[min_id] + l1[dropby_id] << endl;
+    	cout << "real_distance = " << d_from_start[min_id] + d_from_dropby[min_id] + d_from_start[dropby_id] << endl;
 
     	end_clock = std::chrono::system_clock::now();
 
@@ -287,7 +297,7 @@ int main(int argc, char * argv[]) {
     	half_distance = distance / 2;
     	difference = std::numeric_limits<double>::infinity();
 
-    	for(auto itr = l1.cbegin(); itr != l1.cend(); ++itr){
+    	for(auto itr = d_from_start.cbegin(); itr != d_from_start.cend(); ++itr){
     		if(fabs(itr->second - half_distance) < difference){
     			difference = fabs(itr->second - half_distance);
     			min_id = itr->first;
@@ -298,7 +308,7 @@ int main(int argc, char * argv[]) {
     	uint64_t t = min_id;
     	int i = 1;
 
-    	Q = dijkstra_find_path(ggraph, l1, start_id, t);
+    	Q = dijkstra_find_path(ggraph, d_from_start, start_id, t);
 
     	R = Q;
 
@@ -315,7 +325,7 @@ int main(int argc, char * argv[]) {
 
     	cout << "goal" << endl;
 
-    	cout << "real_distance = " << l1[min_id] * 2 << endl;
+    	cout << "real_distance = " << d_from_start[min_id] * 2 << endl;
 
     	end_clock = std::chrono::system_clock::now();
 
