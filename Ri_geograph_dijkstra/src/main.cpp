@@ -178,6 +178,8 @@ int main(int argc, char * argv[]) {
      * geopoint start_coord(33.651759, 130.672120);
      * 新飯塚駅
      * geopoint goal_coord(33.644224, 130.693827);
+     * モスバーガー飯塚幸袋店
+     * 33.6644315 130.6862538
      */
 
 	uint64_t start_id = ggraph.node_nearest_to(startpt).id();
@@ -234,16 +236,37 @@ int main(int argc, char * argv[]) {
 
 		uint64_t turningpt_id = 0;
 		double diff = std::numeric_limits<double>::infinity();
-		for(const auto & y: d_from_dropby_vec) {
-			for (const auto & x : d_from_start_vec) {
-				if (y.first == x.first) {
-					if ( fabs(difference - (x.second + y.second)) < diff ) {
-						turningpt_id = x.first;
-						diff = fabs(difference - (x.second + y.second));
-					}
+		std::vector<std::pair<uint64_t,double>>::iterator start_index_min, start_index_max, dropby_index_min, dropby_index_max;
+
+		start_index_min = d_from_start_vec.begin();
+		double from_start_val_min = start_index_min->second;
+		double from_start_val_max = start_index_min->second + 25;
+		start_index_max = std::upper_bound(start_index_min, d_from_start_vec.end(),
+				std::pair<uint64_t,double>{0,from_start_val_max},
+				[](const std::pair<uint64_t,double> & a, const std::pair<uint64_t,double>& b) { return a.second < b.second; });
+		cout << "start_index " << start_index_min->second << ", " << start_index_max->second << endl;
+
+		dropby_index_min = d_from_dropby_vec.begin();
+		double from_dropby_val_max = std::max(difference - from_start_val_min, difference - from_start_val_max);
+		double from_dropby_val_min = std::min(difference - from_start_val_min, difference - from_start_val_max);
+		cout << "dropby values " << from_dropby_val_min << ", " << from_dropby_val_max << endl;
+		dropby_index_min = std::lower_bound(d_from_dropby_vec.begin(), d_from_dropby_vec.end(),
+				std::pair<uint64_t,double>{0,from_dropby_val_min},
+				[](const std::pair<uint64_t,double> & a, const std::pair<uint64_t,double>& b) { return a.second < b.second; });
+		dropby_index_max = std::lower_bound(d_from_dropby_vec.begin(), d_from_dropby_vec.end(),
+				std::pair<uint64_t,double>{0,from_dropby_val_max},
+				[](const std::pair<uint64_t,double> & a, const std::pair<uint64_t,double>& b) { return a.second < b.second; });
+		cout << "dropby_index " << dropby_index_min->second << ", " << dropby_index_max->second << endl;
+
+		for(auto i = start_index_min; i != start_index_max; ++i) {
+			for(auto j = dropby_index_min; j < dropby_index_max; ++j) {
+				if (i->first == j->first) {
+					cout << i->first << ", ";
 				}
 			}
 		}
+		cout << endl;
+
 		cout << "turning point id = " << turningpt_id << " with difference " << diff << " m." << endl;
 
     	end_clock = std::chrono::system_clock::now();
