@@ -81,7 +81,7 @@ for trk in gpxroot.iter(gpxroot_namespace+'trk'):
             for trkpt in trkseg:
                 t = trkpt.find(gpxroot_namespace+'time')
                 tstr = t.text
-                print(tstr)
+                #print(tstr)
                 if '.' in tstr and '+' in tstr:
                     dt = datetime.strptime(tstr, '%Y-%m-%dT%H:%M:%S.%f%zZ')
                 elif '+' in tstr:
@@ -102,12 +102,12 @@ for trk in gpxroot.iter(gpxroot_namespace+'trk'):
                             gpxspeed = c.text
                             break
                     #print(trkpt.find(gpxroot_namespace+'extensions'))
-                print(dtstr, trkpt.attrib['lat'], trkpt.attrib['lon'], end='')
-                if elevinfo :
-                    print('\telev='+elev, end='')
-                if mytracksgpx :
-                    print('\tspeed='+gpxspeed, end='')
-                print()
+                #print(dtstr, trkpt.attrib['lat'], trkpt.attrib['lon'], end='')
+                #if elevinfo :
+                #    print('\telev='+elev, end='')
+                #if mytracksgpx :
+                #    print('\tspeed='+gpxspeed, end='')
+                #print()
                 
                 outfile.write(dtstr)
                 outfile.write(',')
