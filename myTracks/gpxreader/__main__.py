@@ -63,6 +63,7 @@ if len(tmplist) :
     gpxroot_namespace = tmplist[0]
 #print(gpxroot_namespace)
 
+startdt = None
 for trk in gpxroot.iter(gpxroot_namespace+'trk'):
     name = trk.find(gpxroot_namespace+'name') 
     trkname = name.text.replace(':', '').replace(' ', '_')
@@ -71,7 +72,7 @@ for trk in gpxroot.iter(gpxroot_namespace+'trk'):
 #            print(elem.)
     if trkseg :
         tzinfo = exts.find(gpxroot_namespace+'mytracks:timezone')
-        print(tzinfo)
+        print('tzinfo = ' + str(tzinfo))
         if outfilename == '':
             if not trkname:
                 trkname = 'no_track_name'
@@ -81,13 +82,15 @@ for trk in gpxroot.iter(gpxroot_namespace+'trk'):
             for trkpt in trkseg:
                 t = trkpt.find(gpxroot_namespace+'time')
                 tstr = t.text
-                print(tstr)
+                #print(tstr)
                 if '.' in tstr and '+' in tstr:
                     dt = datetime.strptime(tstr, '%Y-%m-%dT%H:%M:%S.%f%zZ')
                 elif '+' in tstr:
                     dt = datetime.strptime(tstr, '%Y-%m-%dT%H:%M:%S%zZ')
                 else:
                     dt = datetime.strptime(tstr, '%Y-%m-%dT%H:%M:%S.%fZ')
+                if startdt == None :
+                    startdt = dt
                 dtstr = str(dt)
                 if mjdtime :
                     mjd = datetime2mjd(dt)
@@ -102,12 +105,12 @@ for trk in gpxroot.iter(gpxroot_namespace+'trk'):
                             gpxspeed = c.text
                             break
                     #print(trkpt.find(gpxroot_namespace+'extensions'))
-                print(dtstr, trkpt.attrib['lat'], trkpt.attrib['lon'], end='')
-                if elevinfo :
-                    print('\telev='+elev, end='')
-                if mytracksgpx :
-                    print('\tspeed='+gpxspeed, end='')
-                print()
+                #print(dtstr, trkpt.attrib['lat'], trkpt.attrib['lon'], end='')
+                #if elevinfo :
+                #    print('\telev='+elev, end='')
+                #if mytracksgpx :
+                #    print('\tspeed='+gpxspeed, end='')
+                #print()
                 
                 outfile.write(dtstr)
                 outfile.write(',')

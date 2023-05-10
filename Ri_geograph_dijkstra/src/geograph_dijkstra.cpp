@@ -14,8 +14,7 @@
 #include <limits>
 #include <vector>
 #include <algorithm>
-#include <stdio.h>
-#include <time.h>
+#include <cstdio>
 #include <chrono>
 
 #include <stdexcept>
@@ -44,23 +43,13 @@ vector<string> split(string& input, char delimiter) {
     return result;
 }
 
-//int show_in_sdl_window(const geograph & map, const std::vector<uint64_t> & d_track);
-
-int main(int argc, char * argv[]) {
+bool getfromcsv(const string & filename, geograph & ggraph) {
 	ifstream csvf;
-
-	if (argc < 2) {
-		cerr << "usage: command map-file_name]" << endl;
-		exit(EXIT_FAILURE);
-	}
-
-	cout << "reading geograph file " << argv[1] << ". " << endl;
-	csvf.open(argv[1]);
+	csvf.open(filename);
 	if (! csvf ) {
-		cerr << "open a geograph file " << argv[1] << " failed." << endl;
-		exit(EXIT_FAILURE);
+		cerr << "open a geograph file " << filename << " failed." << endl;
+		return false;
 	}
-	geograph ggraph;
     string line;
     while (getline(csvf, line)) {
         vector<string> strvec = split(line, ',');
@@ -78,293 +67,211 @@ int main(int argc, char * argv[]) {
         adjacents.clear();
     }
     csvf.close();
+    return true;
+}
+/*
+ *
+ *
+#include <SDL2/SDL.h>
+#include <SDL2/SDL2_gfxPrimitives.h>
+ *
+int show_in_sdl_window(const geograph & map, const std::vector<uint64_t> & d_track);
+*/
 
+std::map<uint64_t,double> dijkstra_dist_table(const geograph & graph, const uint64_t & start_id, const double & limit = std::numeric_limits<double>::infinity()) {
+    std::set<uint64_t> R;
+    std::map<uint64_t, double> dist;
 
+    for(const auto & p : graph.nodemap() ){
+    	R.insert(p.first);
+    	//dist[p.first] = std::numeric_limits<double>::infinity();
+    }
 
+    dist[start_id] = 0;
 
+    while ( R.size() > 0) {
+    	uint64_t u = 0;
+    	double nearest = std::numeric_limits<double>::infinity();
 
-    cout << "goegraph node size = " << dec << ggraph.size() << endl;
-    cout << endl;
+    	for(const auto & id : R) {
+    		//if (dist[id] < nearest) {
+        	if (dist.contains(id) and dist[id] < nearest) {
+    			u = id;
+    			nearest = dist[id];
+    		}
+    	}
 
-    double start_horizon, start_vartical;
-	//double goal_horizon, goal_vartical;
-	double distance;
-	double target_horizon, target_vartical;
-	string distination;
+    	if ( nearest == std::numeric_limits<double>::infinity() )
+    		break;
 
-	cout << "start_coord = ?" << endl;
-	cin >> start_horizon >> start_vartical;
-	//cout << "goal_coord = ?" << endl;
-	//cin >> goal_horizon >> goal_vartical;
+    	if ( nearest > limit )
+    		break;
 
-	geopoint start_coord(start_horizon, start_vartical);
-	//geopoint goal_coord(goal_horizon, goal_vartical);
+    	R.erase(u);
 
-	uint64_t osmid_start = ggraph.node_nearest_to(start_coord).id();
-	//uint64_t osmid_goal = ggraph.node_nearest_to(goal_coord).id();
+    	for(const auto & adjid : graph.adjacent_nodes(u) ) {
+    		double adjdist = graph.point(u).distance_to(graph.point(adjid));
+    		if( R.contains(adjid) and (!dist.contains(adjid) or dist[adjid] > dist[u] + adjdist) ){
+    			dist[adjid] = dist[u] + adjdist;
+    		}
 
-	cout << "start point = " << ggraph.node(osmid_start) << " id " << std::dec << osmid_start << endl;
-	//cout << "goal point = " << ggraph.node(osmid_goal) << " id " << std::dec << osmid_goal << endl;
+    	}
+    }
+    return dist;
+}
 
+std::vector<uint64_t> dijkstra_find_path(const geograph & graph,
+		std::map<uint64_t, double> & dist, const uint64_t & start_id, const uint64_t & goal_id) {
+
+	std::vector<uint64_t> path;
+	path.push_back(goal_id);
+	uint64_t current = goal_id;
+	//cout << start_id << ", " << dist[start_id] << ", " << goal_id << ", " << dist[goal_id] << endl;
+	while( current != start_id ) {
+		double mindist = std::numeric_limits<double>::infinity();
+	    uint64_t minid = 0;
+	    for(const auto & adjid : graph.adjacent_nodes(current) ) {
+	    	double adjdist = graph.point(current).distance_to(graph.point(adjid));
+	    	if(dist[adjid] - (dist[current] - adjdist) < mindist) {
+	    		mindist = dist[adjid] - (dist[current] - adjdist);
+	    		minid = adjid;
+	    	}
+	    }
+	    //cout << mindist << endl;
+	    current = minid;
+	    path.push_back(current);
+	}
+	return path;
+}
+
+bool comp_by_second(const std::pair<uint64_t,double> & a, const std::pair<uint64_t,double> & b) {
+		return a.second < b.second;
+}
+
+int main(int argc, char * argv[]) {
+	enum {
+		ROUND_TRIP = 0,
+		DROP_BY = 1,
+	} mode = ROUND_TRIP;
+
+	if (argc < 5) {
+		cerr << "usage: command [map-file_name] [start point lattitude] [longitude] [distance (m)] [drop-by point latitude] [longitude]" << endl;
+		exit(EXIT_FAILURE);
+	}
+
+	string mapfilename = argv[1];
+	geopoint startpt(std::stod(argv[2]), std::stod(argv[3]));
+	double distance = std::stod(argv[4]);
+	cout << "map file = " << mapfilename << ", start point = " << startpt << ", requested distance = " << distance;
+	geopoint dropbypt;
+	if (argc >= 7) {
+		mode = DROP_BY;
+		dropbypt.lat = std::stod(argv[5]);
+		dropbypt.lon = std::stod(argv[6]);
+
+		cout << ", drop-by point = " << dropbypt;
+	}
 	cout << endl;
 
-    uint64_t start_id = osmid_start;
-    //uint64_t goal_id = osmid_goal;
-
-    cout << "distance = ?" << endl;
-    cin >> distance;
-
-    if(distance < 0){
-    	cout << "Error:Distance is incorrect" << endl;
-    	exit(1);
-    }
-
-    cout << "Do you have a distination?" << endl;
-    cout << "yes or no" << endl;
-    cin >> distination;
-
-    uint64_t target_id;
-    if(distination == "yes" || distination == "Yes" || distination == "YES"){
-    	cout << "target_coord = ?" << endl;
-    	cin >> target_horizon >> target_vartical;
-
-    	geopoint target_coord(target_horizon, target_vartical);
-    	uint64_t osmid_target = ggraph.node_nearest_to(target_coord).id();
-        cout << "target point = " << ggraph.node(osmid_target) << " id " << std::dec << osmid_target << endl;
-        cout << endl;
-
-        target_id = osmid_target;
-
-    }
+	cout << "reading geograph file " << mapfilename << ". " << endl;
+	geograph ggraph;
+	getfromcsv(mapfilename, ggraph);
+    cout << "goegraph size = " << dec << ggraph.size() << endl << endl;
 
     /* 学校正門前
      * geopoint start_coord(33.651759, 130.672120);
      * 新飯塚駅
      * geopoint goal_coord(33.644224, 130.693827);
+     * モスバーガー飯塚幸袋店
+     * 33.6644315 130.6862538
      */
 
-    std::set<uint64_t> VP1, VP2;
-    std::map<uint64_t, double> l1, l2;
+	uint64_t start_id = ggraph.node_nearest_to(startpt).id();
+	uint64_t dropby_id = ggraph.node_nearest_to(dropbypt).id();
+
+	cout << "start " << start_id << ", drop by " << dropby_id << endl;
+
+    std::map<uint64_t, double> d_from_start, d_from_dropby;
     std::chrono::system_clock::time_point start_clock, end_clock;
 
     start_clock = std::chrono::system_clock::now();
 
-    for(auto itr = ggraph.begin(); itr != ggraph.end(); ++itr){
-    	VP1.insert(itr->first);
-    	l1[itr->first] = std::numeric_limits<double>::infinity();
-    }
+    cout << "calculate dists from start_id..." << endl;
+    d_from_start = dijkstra_dist_table(ggraph, start_id, distance * 0.51);
 
-    l1[start_id] = 0;
+	if (mode == DROP_BY) {
+		cout << "calculate dists from dropby_id... " << endl;
+		d_from_dropby = dijkstra_dist_table(ggraph, dropby_id, distance * 0.51);
+	}
+    end_clock = std::chrono::system_clock::now();
+    cout << "time = " << std::chrono::duration_cast<std::chrono::milliseconds>(end_clock - start_clock).count() << " millis." << endl << endl;
 
-    cout << "calculate now..." << endl;
-    cout << endl;
+    cout << "searching for a turning point..." << endl << endl;
+    start_clock = std::chrono::system_clock::now();
 
-    while ( VP1.size() > 0) {
-    	uint64_t u1 = 0;
-    	double nearest = std::numeric_limits<double>::infinity();
+    if(mode == DROP_BY){
+    	std::vector<uint64_t> Q, R, path_start_to_dropby;
+    	std::vector<std::pair<uint64_t,double>> d_from_start_vec, d_from_dropby_vec;
 
-    	for(auto & id : VP1) {
-    		if (l1[id] < nearest) {
-    			u1 = id;
-    			nearest = l1[id];
-    		}
-    	}
+    	cout << "dist from start to drop by point " << d_from_start[dropby_id] << endl;
 
-    	if(nearest == std::numeric_limits<double>::infinity()){
-    		break;
-    	}
+    	path_start_to_dropby = dijkstra_find_path(ggraph, d_from_start, start_id, dropby_id);
+    	//cout << "found path." << endl;
 
-    	VP1.erase(u1);
+    	double difference = distance - d_from_start[dropby_id];
+    	cout << "additional distance to the return path = " << difference - d_from_start[dropby_id] << " m" << endl;
 
-    	for(auto itr = ggraph.adjacent_nodes(u1).cbegin();
-    			itr != ggraph.adjacent_nodes(u1).cend(); ++itr) {
-    		uint64_t v1 = *itr;
-
-    		if(VP1.contains(v1) && l1[v1] > l1[u1] + ggraph.point(u1).distance_to(ggraph.point(v1))){
-    			l1[v1] = l1[u1] + ggraph.point(u1).distance_to(ggraph.point(v1));
-    		}
-
-    	}
-    }
-
-    if(distination == "yes" || distination == "Yes" || distination == "YES"){
-    	for(auto itr = ggraph.begin(); itr != ggraph.end(); ++itr){
-    		VP2.insert(itr->first);
-    		l2[itr->first] = std::numeric_limits<double>::infinity();
-    	}
-
-    	l2[target_id] = 0;
-
-    	cout << "calculate now..." << endl;
-    	cout << endl;
-
-    	while ( VP2.size() > 0) {
-    		uint64_t u2 = 0;
-    		double nearest = std::numeric_limits<double>::infinity();
-
-    		for(auto & id : VP2) {
-    		    if (l2[id] < nearest) {
-    		    	u2 = id;
-    		    	nearest = l2[id];
-    		    }
-    		}
-
-    		if(nearest == std::numeric_limits<double>::infinity()){
-    		    	break;
-    		}
-
-    		VP2.erase(u2);
-
-    		for(auto itr = ggraph.adjacent_nodes(u2).cbegin();
-    		    	itr != ggraph.adjacent_nodes(u2).cend(); ++itr) {
-    		    uint64_t v2 = *itr;
-
-    		    if(VP2.contains(v2) && l2[v2] > l2[u2] + ggraph.point(u2).distance_to(ggraph.point(v2))){
-    		    	l2[v2] = l2[u2] + ggraph.point(u2).distance_to(ggraph.point(v2));
-    		    }
-
-    		}
-    	}
-    }
-
-    //cout << "distance = " << l[goal_id] << endl;
-    //cout << endl;
-
-    if(distination == "yes" || distination == "Yes" || distination == "YES"){
-    	std::vector<uint64_t> Q, R, S, X, Y;
-    	uint64_t s, t1, t2, t3, min_id;
-    	double difference, half_difference, fifty = 25;
-    	int i = 1, check = 0;
-
-    	t1 = target_id;
-
-    	S.push_back(t1);
-
-    	while(t1 != start_id) {
-    		double min = 10000;
-    	    uint64_t m1 = 0;
-    	    for(auto itr = ggraph.adjacent_nodes(t1).cbegin();
-    	    		itr != ggraph.adjacent_nodes(t1).cend(); ++itr) {
-    	    	s = *itr;
-
-    	    	if(l1[s] - (l1[t1] - ggraph.point(t1).distance_to(ggraph.point(s))) < min){
-    	    		min = l1[s] - (l1[t1] - ggraph.point(t1).distance_to(ggraph.point(s)));
-    	    		m1 = s;
-    	    	}
-    	    }
-
-    	    t1 = m1;
-    	    S.push_back(t1);
-    	}
-
-    	cout << "calculate now..." << endl;
-    	cout << endl;
-
-    	difference = distance - l1[target_id];
-
-    	half_difference = difference / 2;
-
-    	if(difference < l1[t1]){
-    		cout << "Error:Root not found" << endl;
+    	if(difference < d_from_start[dropby_id]){
+    		cout << "Error: impossible distance." << endl;
     		exit(1);
     	}
 
-    	while(check == 0){
-    		double min = 10000;
-
-    		for(auto itr = l1.cbegin(); itr != l1.cend(); ++itr){
-    			if(fabs(itr->second - half_difference) < fifty){
-    				X.push_back(itr->first);
-    			}
-    		}
-
-    		for(auto itr = l2.cbegin(); itr != l2.cend(); ++itr){
-    			if(fabs(itr->second - half_difference) < fifty){
-    				Y.push_back(itr->first);
-    			}
-    		}
-
-    		for(auto itr1 = X.cbegin(); itr1 != X.cend(); ++itr1){
-    			for(auto itr2 = Y.cbegin(); itr2 != Y.cend(); ++itr2){
-    				if(*itr1 == *itr2){
-    					if(fabs(l1[*itr1] + l2[*itr2] - difference) < min){
-    						min = l1[*itr1] + l2[*itr2];
-    						min_id = *itr1;
-    						check = 1;
-    					}
-    				}
-    			}
-    		}
-
-    		fifty = fifty + 25;
+    	//cout << d_from_start.size() << endl << d_from_dropby.size() << endl;
+    	for(auto & kv : d_from_start) {
+    		d_from_start_vec.push_back(kv);
+    	}
+    	for(auto & kv : d_from_dropby) {
+    		d_from_dropby_vec.push_back(kv);
     	}
 
-    	cout << "calculate now..." << endl;
-    	cout << endl;
+    	//cout << d_from_start_vec[0].first << ", " << d_from_dropby_vec[0].first << endl;
+		std::sort (d_from_start_vec.begin(), d_from_start_vec.end(), comp_by_second);
+		std::sort (d_from_dropby_vec.begin(), d_from_dropby_vec.end(), comp_by_second);
 
-    	t2 = min_id;
+		uint64_t turningpt_id = 0;
+		double diff = std::numeric_limits<double>::infinity();
+		std::vector<std::pair<uint64_t,double>>::iterator start_index_min, start_index_max, dropby_index_min, dropby_index_max;
 
-    	Q.push_back(t2);
+		start_index_min = d_from_start_vec.begin();
+		double from_start_val_min = start_index_min->second;
+		double from_start_val_max = start_index_min->second + 25;
+		start_index_max = std::upper_bound(start_index_min, d_from_start_vec.end(),
+				std::pair<uint64_t,double>{0,from_start_val_max},
+				[](const std::pair<uint64_t,double> & a, const std::pair<uint64_t,double>& b) { return a.second < b.second; });
+		cout << "start_index " << start_index_min->second << ", " << start_index_max->second << endl;
 
-    	while(t2 != start_id) {
-    		double min = 10000;
-    	    uint64_t m2 = 0;
-    	    for(auto itr = ggraph.adjacent_nodes(t2).cbegin();
-    	    		itr != ggraph.adjacent_nodes(t2).cend(); ++itr) {
-    	    	s = *itr;
+		dropby_index_min = d_from_dropby_vec.begin();
+		double from_dropby_val_max = std::max(difference - from_start_val_min, difference - from_start_val_max);
+		double from_dropby_val_min = std::min(difference - from_start_val_min, difference - from_start_val_max);
+		cout << "dropby values " << from_dropby_val_min << ", " << from_dropby_val_max << endl;
+		dropby_index_min = std::lower_bound(d_from_dropby_vec.begin(), d_from_dropby_vec.end(),
+				std::pair<uint64_t,double>{0,from_dropby_val_min},
+				[](const std::pair<uint64_t,double> & a, const std::pair<uint64_t,double>& b) { return a.second < b.second; });
+		dropby_index_max = std::lower_bound(d_from_dropby_vec.begin(), d_from_dropby_vec.end(),
+				std::pair<uint64_t,double>{0,from_dropby_val_max},
+				[](const std::pair<uint64_t,double> & a, const std::pair<uint64_t,double>& b) { return a.second < b.second; });
+		cout << "dropby_index " << dropby_index_min->second << ", " << dropby_index_max->second << endl;
 
-    	    	if(l1[s] - (l1[t2] - ggraph.point(t2).distance_to(ggraph.point(s))) < min){
-    	    	    min = l1[s] - (l1[t2] - ggraph.point(t2).distance_to(ggraph.point(s)));
-    	    	    m2 = s;
-    	    	}
-    	    }
+		for(auto i = start_index_min; i != start_index_max; ++i) {
+			for(auto j = dropby_index_min; j < dropby_index_max; ++j) {
+				if (i->first == j->first) {
+					cout << i->first << ", ";
+				}
+			}
+		}
+		cout << endl;
 
-    	    t2 = m2;
-    	    Q.push_back(t2);
-    	}
-
-    	cout << "calculate now..." << endl;
-    	cout << endl;
-
-    	t3 = min_id;
-
-    	R.push_back(t3);
-
-    	while(t3 != target_id) {
-    	    double min = 10000;
-    	    uint64_t m3 = 0;
-    	    for(auto itr = ggraph.adjacent_nodes(t3).cbegin();
-    	    		itr != ggraph.adjacent_nodes(t3).cend(); ++itr) {
-    	    	s = *itr;
-
-    	    	if(l2[s] - (l2[t3] - ggraph.point(t3).distance_to(ggraph.point(s))) < min){
-    	    	    min = l2[s] - (l2[t3] - ggraph.point(t3).distance_to(ggraph.point(s)));
-    	    	    m3 = s;
-    	    	}
-    	    }
-
-    	    t3 = m3;
-    	    R.push_back(t3);
-    	}
-
-    	cout << "calculate now..." << endl;
-    	cout << endl;
-
-    	std::reverse(Q.begin(), Q.end());
-
-    	Q.insert(Q.cend(), R.cbegin(), R.cend());
-    	Q.insert(Q.cend(), S.cbegin(), S.cend());
-
-    	cout << "start" << endl;
-
-    	for(auto itr = Q.cbegin(); itr != Q.cend(); ++itr) {
-    		cout << i <<" id:" << dec << *itr << endl;
-    	    i++;
-    	}
-
-    	cout << "goal" << endl;
-
-    	cout << "real_distance = " << l1[min_id] + l2[min_id] + l1[target_id] << endl;
+		cout << "turning point id = " << turningpt_id << " with difference " << diff << " m." << endl;
 
     	end_clock = std::chrono::system_clock::now();
 
@@ -379,7 +286,7 @@ int main(int argc, char * argv[]) {
     	half_distance = distance / 2;
     	difference = std::numeric_limits<double>::infinity();
 
-    	for(auto itr = l1.cbegin(); itr != l1.cend(); ++itr){
+    	for(auto itr = d_from_start.cbegin(); itr != d_from_start.cend(); ++itr){
     		if(fabs(itr->second - half_distance) < difference){
     			difference = fabs(itr->second - half_distance);
     			min_id = itr->first;
@@ -387,29 +294,10 @@ int main(int argc, char * argv[]) {
     	}
 
     	std::vector<uint64_t> Q, R;
-    	uint64_t s, t = min_id;
+    	uint64_t t = min_id;
     	int i = 1;
 
-    	Q.push_back(t);
-
-    	while(t != start_id) {
-    	double min = 10000;
-    	uint64_t m = 0;
-    	for(auto itr = ggraph.adjacent_nodes(t).cbegin();
-    			itr != ggraph.adjacent_nodes(t).cend(); ++itr) {
-    		s = *itr;
-
-    	    if(l1[s] - (l1[t] - ggraph.point(t).distance_to(ggraph.point(s))) < min){
-    	    	min = l1[s] - (l1[t] - ggraph.point(t).distance_to(ggraph.point(s)));
-    	    	m = s;
-    	    }
-    	}
-
-    	t = m;
-
-    	Q.push_back(t);
-
-    	}
+    	Q = dijkstra_find_path(ggraph, d_from_start, start_id, t);
 
     	R = Q;
 
@@ -426,7 +314,7 @@ int main(int argc, char * argv[]) {
 
     	cout << "goal" << endl;
 
-    	cout << "real_distance = " << l1[min_id] * 2 << endl;
+    	cout << "real_distance = " << d_from_start[min_id] * 2 << endl;
 
     	end_clock = std::chrono::system_clock::now();
 
