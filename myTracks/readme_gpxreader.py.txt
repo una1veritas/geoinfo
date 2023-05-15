@@ -1,3 +1,13 @@
+gpxreader.py バージョン -0.8
+（変更点）
+
+時刻を直前の座標測定時刻からの経過秒で表示するオプション -elapsed を追加．
+
+例）
+python3 gpxreader -elapsed -mytracks -elev 2023-05-02\ 17_25_48.gpx
+
+--------------------------
+
 gpxreader.py バージョン -0.9
 （変更点）
 
