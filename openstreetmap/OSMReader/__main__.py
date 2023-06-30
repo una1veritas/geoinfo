@@ -15,22 +15,28 @@ import math
 
 def getobject(xml):
     '''
-    Get objects from .osm file into a JSON-like python dict.
+    Get geoobjs from .osm file into a JSON-like python dict.
     '''
-    objects = dict()
     # considers only the following three objects
-    objects['node'] = dict()
-    objects['way'] = dict()
-    objects['relation'] = dict()
+    #geoobjs = { 'node':{}, 'way': {}, 'relation': {}}
+    nodes = dict()
+    ways = dict()
+    relations = dict()
+    labels = dict()
     for ch in xml:
         if ch.tag == 'node' :
+            nodeid = int(ch.attrib['id'])
             (lat, lon) = (float(ch.attrib['lat']), float(ch.attrib['lon']))
-            objects[ch.tag][int(ch.attrib['id'])] = (lat, lon)
-                # print(ch.tag, ch.attrib)
-                # for t in ch:
-                #     if t.tag == 'tag' :
-                #         print(t.attrib['k'], t.attrib['v'])
+            nodes[nodeid] = (lat, lon)
+            for t in ch:
+                if t.tag != 'tag' : continue
+                if t.attrib['k'] in ('shop', 'leisure', 'amenity', 'name') :
+                    if nodeid not in labels :
+                        labels[nodeid] = list()
+                    labels[nodeid].append(t.attrib['k'] + ":" + t.attrib['v'])
+                
         elif ch.tag == 'way' :
+            wayid = int(ch.attrib['id'])
             refs = list()
             tags = dict()
             for t in ch:
@@ -38,16 +44,24 @@ def getobject(xml):
                     refs.append(int(t.attrib['ref']))
                 elif t.tag == 'tag':
                     tags[t.attrib['k']] = t.attrib['v']
-            objects[ch.tag][int(ch.attrib['id'])] = {'tag': tags, 'ref': refs}
+            ways[wayid] = {'tag': tags, 'ref': refs}
+            for t in ch:
+                if t.tag != 'tag' : continue
+                if t.attrib['k'] in ('shop', 'leisure', 'amenity', 'name') :
+                    if id not in labels :
+                        labels[wayid] = list()
+                    labels[wayid].append(t.attrib['k'] + ":" + t.attrib['v'])
+
         elif ch.tag == 'relation' :
+            relid = int(ch.attrib['id'])
             members = [ t.attrib for t in ch if t.tag == 'member']
             #print('members = ', members)
             tags = dict()
             for t in ch:
                 if t.tag == 'tag' :
                     tags[t.attrib['k']] = t.attrib['v']
-            objects[ch.tag][int(ch.attrib['id'])] = {'tag': tags, 'member': members}
-    return objects
+            relations[relid] = {'tag': tags, 'member': members}
+    return (nodes, ways, relations, labels)
 
 def showgeograph(gg, bbox=None):
     if bbox == None:
@@ -99,21 +113,24 @@ def geodist(gp1, gp2):
     gp2rad = (deg2rad(gp2[0]), deg2rad(gp2[1]));
     #double latdiff = plat - qlat, londiff = plon - qlon;
     latavr = (gp2rad[0] + gp2rad[0]) / 2.0;
-
+    
     a = 6378137.0           #mode ? 6378137.0 : 6377397.155;
     #b = 6356752.314140356   #mode ? 6356752.314140356 : 6356078.963; 
     e2 = 0.00669438002301188    #mode ? 0.00669438002301188 : 0.00667436061028297; 
     a1e2 = 6335439.32708317     #mode ? 6335439.32708317 : 6334832.10663254; 
-
+    
     sin_latavr = math.sin(latavr)
     W2 = 1.0 - e2 * (sin_latavr*sin_latavr)
     M = a1e2 / (math.sqrt(W2)*W2)
     N = a / math.sqrt(W2)
-
+    
     t1 = M * (gp1rad[0] - gp2rad[1])        #latdiff;
     t2 = N * math.cos(latavr) * (gp1rad[1] - gp2rad[1])    #londiff;
     return math.sqrt((t1*t1) + (t2*t2))
 
+#
+#
+# main program
 if __name__ == '__main__':
     if len(sys.argv) < 2 :
         print('osm file is requested.',file=sys.stderr)
@@ -135,7 +152,7 @@ if __name__ == '__main__':
         else:
             paths.append(sys.argv[ix])
             ix += 1
-
+        
     geograph = dict()
     for filename in paths :
         try:
@@ -149,40 +166,66 @@ if __name__ == '__main__':
         
         xml = etree.fromstring(xmlbytes)
         print("root info: ",xml.tag, xml.attrib)
-    
+        
         nspaces = xml.nsmap
         if None in nspaces :
             nspaces['defns'] = nspaces.pop(None)
         print('nspaces = ', nspaces)
         
-        objects = getobject(xml)
-        nodes = objects['node']
+        (nodes, ways, relations, labels) = getobject(xml)
         links = dict()
         # extract the points only referred in way-links. 
-        for key, value in sorted(objects['way'].items()):
+        for wayid, value in sorted(ways.items()):
+            #print(id, value)
             if 'railway' in value['tag']:
-                links[key] = ('railway', value['ref'])
+                links[wayid] = ('railway:'+value['tag']['railway'], value['ref'])
                 #print('railway',edges['railway'][key])
             elif 'highway' in value['tag']:
-                # if value['tag']['highway'] == 'residential':
-                #     pass
-                # else:
-                links[key] = ('highway', value['ref'])
-                #print('highway', value)
+                links[wayid] = ('highway:' + value['tag']['highway'], value['ref'])
             elif 'natural' in value['tag']:
-                links[key] = ('natural', value['ref'])
-
+                links[wayid] = ('natural:'+ value['tag']['natural'], value['ref'])
+            elif 'leisure' in value['tag']:
+                links[wayid] = ('leisure:'+ value['tag']['leisure'], value['ref'])
+            elif 'amenity' in value['tag']:
+                links[wayid] = ('amenity:'+ value['tag']['amenity'], value['ref'])
+        
+        cnt = 0
+        for item in labels.items():
+            if ( item[1][0].startswith("leisure:") ) : 
+                print(item)
+            cnt += 1
+        print()
+        cnt = 0
+        for key, val in links.items() : 
+            if ( "leisure" in val[0] ) :
+                print(key, val)
+                cnt += 1
+            if ( cnt > 100 ) : break
+        
+        for nodeid, coordval in nodes.items() :
+            if nodeid in labels: 
+                label = '"' + ' '.join([s for s in labels[nodeid]])+'"'
+            else:
+                label = ''
+            geograph[nodeid] = [coordval, label]
+            #print(nodeid, geograph[nodeid])
+    
         for wayid, val in links.items():
-            (wayclass, gplist) = val
-            for ix in range(len(gplist)-1):
-                if False and  mapbbox != None :
-                    print(mapbbox)
-                    (lat, lon) = nodes[gplist[ix]]
-                    if lat < min(mapbbox[0],mapbbox[2]) or \
-                    lat >= max(mapbbox[0],mapbbox[2]) or \
-                    lon < min(mapbbox[1],mapbbox[3]) or \
-                    lon >= max(mapbbox[1],mapbbox[3]) :
-                        continue
+            (wayclass, pointids) = val
+            if wayid in labels :
+                label = '"' + ' '.join([s for s in labels[wayid]])+'"'
+            else:
+                label = ''
+            
+            for ix in range(len(pointids) - 1):
+                if len(label) :
+                    geograph[pointids[ix]][1] += label
+                if pointids[ix] < pointids[ix+1] :
+                    geograph[pointids[ix]].append(pointids[ix+1])
+                else:
+                    geograph[pointids[ix+1]].append(pointids[ix])
+                
+            '''
                 if gplist[ix] not in geograph:
                     geograph[gplist[ix]] = (nodes[gplist[ix]],list())
                 if gplist[ix+1] not in geograph:
@@ -191,25 +234,32 @@ if __name__ == '__main__':
                     geograph[gplist[ix]][-1].append(gplist[ix+1])
                 if gplist[ix] not in geograph[gplist[ix+1]][-1] :
                     geograph[gplist[ix+1]][-1].append(gplist[ix])
-        
-    for gpid in geograph:
-        geograph[gpid] = (geograph[gpid][0], sorted(geograph[gpid][1]))
+            '''
     
-
     with open('output.csv', mode='w', encoding='utf-8') as fp:
         #fp.write(#node id,latitude,longitude,adjacent node id 1, node id 2,...)
-        for t in sorted(geograph.items()) :
-            fp.write(str(t[0]))
+        for nodeid, values in sorted(geograph.items()) :
+            #print(nodeid, values)
+            fp.write(str(nodeid))
             fp.write(',')
-            fp.write(str(t[1][0][0]))
+            fp.write(str(values[0])) # coordinates
             fp.write(',')
-            fp.write(str(t[1][0][1]))
+            fp.write(str(values[1])) # labels
             fp.write(',')
-            fp.write(str(t[1][1][0]))
-            for ea in t[1][1][1:]:
-                fp.write(',')
-                fp.write(str(ea))
+            fp.write(', '.join([str(eachid) for eachid in values[2:]])) # adjacent node ids
             fp.write('\n')
+    
+    with open('facility.csv', mode='w', encoding='utf-8') as fp:
+        #fp.write(#node id,latitude,longitude,adjacent node id 1, node id 2,...)
+        for t in sorted(labels.items()) :
+            if 'shop:convenience' in t[1] or 'shop:supermarket' in t[1] \
+                or 'leisure:park' in t[1] or 'amenity:atm' in t[1] :
+                fp.write(str(t[0]))
+                fp.write(',')
+                for ea in t[1]:
+                    fp.write(ea)
+                    fp.write(',')
+                fp.write('\n')
     
     # for some tests
     geohashlist = list()
@@ -220,28 +270,28 @@ if __name__ == '__main__':
     
     geohashlist.sort(key=lambda entry: entry[0])
     
-    showgeograph(geograph) #, [bbox['n'],bbox['w'],bbox['s'],bbox['e']])
+    #showgeograph(geograph) #, [bbox['n'],bbox['w'],bbox['s'],bbox['e']])
     exit()
     '''
     Show example data. 
     '''
-    for i in sorted(objects['node'].keys()):
-        print('node', i, ':', objects['node'][i])
+    for i in sorted(geoobjs['node'].keys()):
+        print('node', i, ':', geoobjs['node'][i])
     else:
-        print(len(objects['node']))
-    for i in sorted(objects['way'].keys()):
-        print('way', i, ':', objects['way'][i])
+        print(len(geoobjs['node']))
+    for i in sorted(geoobjs['way'].keys()):
+        print('way', i, ':', geoobjs['way'][i])
     else:
-        print(len(objects['way']))
-    for i in objects['relation']:
-        tags = objects['relation'][i]['tag']
+        print(len(geoobjs['way']))
+    for i in geoobjs['relation']:
+        tags = geoobjs['relation'][i]['tag']
         if tags['type'] == 'route' or tags['type'] == 'route_master' : 
-            print('relation', i, ':', objects['relation'][i])
-            members = objects['relation'][i]['member']
+            print('relation', i, ':', geoobjs['relation'][i])
+            members = geoobjs['relation'][i]['member']
             for m in members:
                 ref = m['ref']
-                if ref in objects['way'] :
-                    for r in objects['way'][ref]['ref']:
+                if ref in geoobjs['way'] :
+                    for r in geoobjs['way'][ref]['ref']:
                         print(' '+str(r), end=',')
                 else:
                     print('-',end='')

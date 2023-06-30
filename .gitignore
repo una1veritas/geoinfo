@@ -8,3 +8,6 @@
 *.osm*
 *.synctex.gz
 *.aux
+
+.settings/
+.cproject

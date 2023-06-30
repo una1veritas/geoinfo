@@ -20,6 +20,8 @@ def datetime2mjd(dt:datetime):
     mjd = int(365.25*y) + int(y/400) - int(y/100) + int(30.59*(m-2)) + d - 678912
     return (mjd, sec)
 
+# main
+
 if len(sys.argv) < 2 :
     print('input (and optionally output) file names are needed.')
     print('usage: python3 gpxreader gpxfile cvsfile[return]')
@@ -28,6 +30,7 @@ else :
     elevinfo = False
     mytracksgpx = False
     mjdtime = False
+    elapsedtime = False
     xmltext = ''
     outfilename = ''
     print('command args: ' + str(sys.argv[1:]))
@@ -41,7 +44,10 @@ else :
                 print('will add speed info.')
             elif arg == '-mjd' :
                 mjdtime = True
-                print('date time in modified julian day number.')                
+                print('date time in modified julian day number.')
+            elif arg == '-elapsed' :
+                elapsedtime = True
+                print('time in elapsed seconds since the previous.')
         else:
             if not len(xmltext) :
                 with open(arg, mode='r') as gpxfile :
@@ -63,6 +69,7 @@ if len(tmplist) :
     gpxroot_namespace = tmplist[0]
 #print(gpxroot_namespace)
 
+start_dt = None
 for trk in gpxroot.iter(gpxroot_namespace+'trk'):
     name = trk.find(gpxroot_namespace+'name') 
     trkname = name.text.replace(':', '').replace(' ', '_')
@@ -71,7 +78,7 @@ for trk in gpxroot.iter(gpxroot_namespace+'trk'):
 #            print(elem.)
     if trkseg :
         tzinfo = exts.find(gpxroot_namespace+'mytracks:timezone')
-        print(tzinfo)
+        print('tzinfo = ' + str(tzinfo))
         if outfilename == '':
             if not trkname:
                 trkname = 'no_track_name'
@@ -81,17 +88,23 @@ for trk in gpxroot.iter(gpxroot_namespace+'trk'):
             for trkpt in trkseg:
                 t = trkpt.find(gpxroot_namespace+'time')
                 tstr = t.text
-                print(tstr)
+                #print(tstr)
                 if '.' in tstr and '+' in tstr:
-                    dt = datetime.strptime(tstr, '%Y-%m-%dT%H:%M:%S.%f%zZ')
+                    current_dt = datetime.strptime(tstr, '%Y-%m-%dT%H:%M:%S.%f%zZ')
                 elif '+' in tstr:
-                    dt = datetime.strptime(tstr, '%Y-%m-%dT%H:%M:%S%zZ')
+                    current_dt = datetime.strptime(tstr, '%Y-%m-%dT%H:%M:%S%zZ')
                 else:
-                    dt = datetime.strptime(tstr, '%Y-%m-%dT%H:%M:%S.%fZ')
-                dtstr = str(dt)
+                    current_dt = datetime.strptime(tstr, '%Y-%m-%dT%H:%M:%S.%fZ')
+                if start_dt == None :
+                    start_dt = current_dt
                 if mjdtime :
-                    mjd = datetime2mjd(dt)
+                    mjd = datetime2mjd(current_dt)
                     dtstr = '{0},{1}'.format(mjd[0],mjd[1])
+                elif elapsedtime :
+                    dtstr = '{:.03f}'.format( (current_dt - start_dt).total_seconds() )
+                    start_dt = current_dt
+                else:
+                    dtstr = str(current_dt)
                 if elevinfo :
                     elev = trkpt.find(gpxroot_namespace+'ele').text
                 if mytracksgpx : #'{http://mytracks.stichling.info/myTracksGPX/1/0}
@@ -102,12 +115,12 @@ for trk in gpxroot.iter(gpxroot_namespace+'trk'):
                             gpxspeed = c.text
                             break
                     #print(trkpt.find(gpxroot_namespace+'extensions'))
-                print(dtstr, trkpt.attrib['lat'], trkpt.attrib['lon'], end='')
-                if elevinfo :
-                    print('\telev='+elev, end='')
-                if mytracksgpx :
-                    print('\tspeed='+gpxspeed, end='')
-                print()
+                #print(dtstr, trkpt.attrib['lat'], trkpt.attrib['lon'], end='')
+                #if elevinfo :
+                #    print('\telev='+elev, end='')
+                #if mytracksgpx :
+                #    print('\tspeed='+gpxspeed, end='')
+                #print()
                 
                 outfile.write(dtstr)
                 outfile.write(',')

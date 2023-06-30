@@ -1,0 +1,20 @@
+\def\@begintheorem#1#2{\trivlist \item[\hskip \labelsep{\bf #1\ #2.}]}
+%\def\@begintheorem#1#2{\trivlist \item[\hskip \labelsep{\bf #1\ }]}
+\def\@opargbegintheorem#1#2#3{\trivlist
+      \item[\hskip \labelsep{\bf #1\ #2\ (#3).}]}
+%      \item[\hskip \labelsep{\bf #1\ }]}
+
+\newenvironment{proof}{\trivlist \item[\hskip \labelsep{\bf 証明.\ }]}{\endtrivlist }
+\newenvironment{solv}{\trivlist \item[\hskip \labelsep{\bf 解答.\ }]}{\endtrivlist }
+
+\newtheorem{defn}{定義}
+\newtheorem{lemma}{補題}
+\newtheorem{thm}{定理}
+\newtheorem{cor}{系}
+\newtheorem{prob}{問題}
+\newtheorem{displ}{板書事項}
+\newtheorem{ext}{発展課題}
+\newtheorem{exercise}{練習}
+\newtheorem{auxprob}{特製問題}
+\newtheorem{example}{例}
+\newtheorem{expr}{用例}

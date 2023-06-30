@@ -1,0 +1,52 @@
+\documentclass[11pt]{jsarticle}
+\usepackage{setspace}
+\usepackage{multicol}
+\usepackage{latexsym}
+\usepackage{mathrsfs}
+\usepackage{url}
+\usepackage{ascmac}
+\usepackage[dvipdfmx]{graphicx}
+\usepackage{theorem}
+%\usepackage{marginfix}
+\usepackage{framed}
+
+\usepackage{fancyhdr}
+\pagestyle{fancy}
+\lhead{Binary Geohash}
+\rhead{Binary Geohash}
+
+\input{A4}
+\setlength{\topmargin}{-0.5in}
+\setlength{\textwidth}{5.6in}
+\setlength{\textheight}{8.8in}
+\setlength{\oddsidemargin}{0in}
+%\setlength{\evensidemargin}{0in}
+\setlength{\marginparwidth}{1in}
+
+\usepackage{theorem}
+\renewcommand{\baselinestretch}{1.1}
+\setlength{\parskip}{0.25ex}
+\renewcommand{\arraystretch}{0.95}
+
+\title{GPS 軌跡の抽象化パターン}
+\author{}
+\date{}
+
+\begin{document}
+\maketitle
+
+\section{準備}
+
+地理点 $p = (y, x)$ は，緯度 $y \in (-90,90]$（北緯が $+$）と経度$x \in (-180, 180]$（東経が $+$）の組 $p \in (-90, 90] \times (-180, 180]$ で，地理的な位置を二次元座標上の点として表す．
+
+地図グラフ $G=(V, E)$ は地理点の集合 $V$ とその二点を端点とする辺 $E \subseteq V^2$ の組で無向グラフとして表す．
+辺 $(u,v) \in E$ の地理的長さ $\mathit{dist}(u,v) \in \mathbf{R}^+$ は，辺を道としたときの二つの地理点 $u, v$ の間の道のりである．
+
+\section{パターン？}
+
+GPS 軌跡の集合 $T=\{t_1, \ldots, t_n\}$ の各軌跡に対して，
+地図グラフ $G=(V,E)$ 上の $t_i$ の近似辺集合 $E_i$ が得られたとする．
+
+このとき，
+
+\end{document}
