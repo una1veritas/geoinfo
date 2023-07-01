@@ -23,44 +23,50 @@ def getobject(xml):
     ways = dict()
     relations = dict()
     labels = dict()
-    for ch in xml:
-        if ch.tag == 'node' :
-            nodeid = int(ch.attrib['id'])
-            (lat, lon) = (float(ch.attrib['lat']), float(ch.attrib['lon']))
+    for elem in xml:
+        if elem.tag == 'node' :
+            nodeid = int(elem.attrib['id'])
+            (lat, lon) = (float(elem.attrib['lat']), float(elem.attrib['lon']))
             nodes[nodeid] = (lat, lon)
-            for t in ch:
+            for t in elem:
                 if t.tag != 'tag' : continue
                 if t.attrib['k'] in ('shop', 'leisure', 'amenity', 'name') :
                     if nodeid not in labels :
                         labels[nodeid] = list()
                     labels[nodeid].append(t.attrib['k'] + ":" + t.attrib['v'])
+                else:
+                    print('ignore node attrib[k]:', t.attrib['k'])
                 
-        elif ch.tag == 'way' :
-            wayid = int(ch.attrib['id'])
+        elif elem.tag == 'way' :
+            wayid = int(elem.attrib['id'])
             refs = list()
             tags = dict()
-            for t in ch:
+            for t in elem:
                 if t.tag == 'nd':
                     refs.append(int(t.attrib['ref']))
                 elif t.tag == 'tag':
                     tags[t.attrib['k']] = t.attrib['v']
             ways[wayid] = {'tag': tags, 'ref': refs}
-            for t in ch:
+            for t in elem:
                 if t.tag != 'tag' : continue
                 if t.attrib['k'] in ('shop', 'leisure', 'amenity', 'name') :
                     if id not in labels :
                         labels[wayid] = list()
                     labels[wayid].append(t.attrib['k'] + ":" + t.attrib['v'])
+                else:
+                    print('ignore way attrib[k]:', t.attrib['k'])
 
-        elif ch.tag == 'relation' :
-            relid = int(ch.attrib['id'])
-            members = [ t.attrib for t in ch if t.tag == 'member']
+        elif elem.tag == 'relation' :
+            relid = int(elem.attrib['id'])
+            members = [ t.attrib for t in elem if t.tag == 'member']
             #print('members = ', members)
             tags = dict()
-            for t in ch:
+            for t in elem:
                 if t.tag == 'tag' :
                     tags[t.attrib['k']] = t.attrib['v']
             relations[relid] = {'tag': tags, 'member': members}
+        else:
+            print('ignore:', elem.tag)
     return (nodes, ways, relations, labels)
 
 def showgeograph(gg, bbox=None):
@@ -173,6 +179,7 @@ if __name__ == '__main__':
         print('nspaces = ', nspaces)
         
         (nodes, ways, relations, labels) = getobject(xml)
+        print('getobject done.')
         links = dict()
         # extract the points only referred in way-links. 
         for wayid, value in sorted(ways.items()):
