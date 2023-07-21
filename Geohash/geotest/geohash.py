@@ -4,33 +4,61 @@ Created on 2022/03/31
 @author: Sin Shimozono
 '''
 
-class binaryhash:
+class bghash:
+    '''
+    binary geohash
+    '''
     MAX_LAT = 90.0
     MIN_LAT = -90.0
     MAX_LONG = 180.0
     MIN_LONG = -180.0
     GEOHASH_BASE32 = "0123456789bcdefghjkmnpqrstuvwxyz"
+    GEOHASH_CHARVAL = {'0': 0, '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, \
+                       '8': 8, '9': 9, 'b': 10, 'c': 11, 'd': 12, 'e': 13, 'f': 14, 'g': 15, \
+                       'h': 16, 'j': 17, 'k': 18, 'm': 19, 'n': 20, 'p': 21, 'q': 22, 'r': 23, 's': 24, \
+                       't': 25, 'u': 26, 'v': 27, 'w': 28, 'x': 29, 'y': 30, 'z': 31}
+    DEFAULT_PRECISION = 41
+    MAXIMUM_PRECISION = 58
     
-    def __init__(self, arg1 = None, arg2 = None, arg3 = None) :
+    def __init__(self, lat_or_hash = None, lon_or_prec = None, precision = None) :
         self.code = 0
-        defaultprec = 41
-        if isinstance(arg1, (int, str)) and arg3 is None :
-            if arg2 is None :
-                prec = defaultprec
+        if precision is None:
+            if isinstance(lat_or_hash, (int, str)) and lon_or_prec is None :
+                '''
+                from single int or string representing an bghash or a geohash code
+                '''
+                try:
+                    int_value = int(lat_or_hash)
+                except ValueError:
+                    self.degeohash(lat_or_hash)
+                    return
+                self.code = int_value
+                return
+            elif isinstance(lat_or_hash, str) and lat_or_hash is not None : 
+                '''
+                two arguments, a hashcode (str) and/without a precision number (int)
+                '''
+                if lon_or_prec is not None:
+                    precision = min(int(lon_or_prec), self.MAXIMUM_PRECISION)
+                if isinstance(lat_or_hash, str):
+                    self.set(lat_or_hash, precision)
+                else:
+                    self.set(int(lat_or_hash),precision)
+                return
+        elif isinstance(lat_or_hash, float) and isinstance(lon_or_prec, float):
+            latitude = lat_or_hash
+            longitude = lon_or_prec
+            if precision is None :
+                precision = self.DEFAULT_PRECISION
             else:
-                prec = int(arg2)
-            self.set(int(arg1), prec)
-            return
-        if isinstance(arg1, float) and isinstance(arg2, float) :
-            latitude = arg1
-            longitude = arg2
-            prec = 41 if arg3 is None else int(arg3) if int(arg3) < 58 else 58 
+                precision = min(int(precision), self.MAXIMUM_PRECISION)
+
             if -90.0 <= latitude <= 90.0 and -180.0 <= longitude <= 180.0 :
                 northsouth = [self.MAX_LAT, self.MIN_LAT]
                 eastwest   = [self.MAX_LONG, self.MIN_LONG]
                 bit = 1 <<63;
                 i = 0
-                while i < prec:
+                while i < precision:
                     latmid = (northsouth[0] + northsouth[1]) / 2.0
                     lonmid = (eastwest[0] + eastwest[1]) / 2.0
                     if longitude > lonmid :
@@ -40,7 +68,7 @@ class binaryhash:
                         eastwest[0] = lonmid                
                     bit >>= 1
                     i += 1
-                    if not i < prec :
+                    if not i < precision :
                         break
                     if latitude > latmid :
                         northsouth[1] = latmid
@@ -49,7 +77,7 @@ class binaryhash:
                         northsouth[0] = latmid
                     bit >>= 1
                     i += 1
-            self.code |= prec
+            self.set_precision(precision)
             return
 
     def precision(self):
@@ -59,7 +87,7 @@ class binaryhash:
         return self.code  & (0xffffffffffffffff ^ 0x3f)
 
     def set_precision(self, prec):
-        self.code &= 0x3f
+        self.code &= (0xffffffffffffffff << (64 - prec))
         self.code |= (prec & 0x3f)
         return self
 
@@ -82,6 +110,16 @@ class binaryhash:
         mask = 0xffffffffffffffff << (64 - minprec)
         return (self.code & mask) < (another.code & mask)
 
+    def degeohash(self, codestr):
+        binvalue = 0
+        precision = len(codestr)*5
+        for ch in codestr:
+            binvalue <<= 5
+            binvalue |= self.GEOHASH_CHARVAL[ch]
+        binvalue <<= (64 - precision)
+        self.set(binvalue, precision)
+        return 
+    
     def decode(self):
         northsouth = [self.MAX_LAT, self.MIN_LAT]
         eastwest   = [self.MAX_LONG, self.MIN_LONG]
@@ -123,7 +161,7 @@ class binaryhash:
         elif d == 'w' or d == 'sw' or d == 'ne':
             lon = (lon - lsb) & 0xaaaaaaaaaaaaaaaa
 
-        return binaryhash( lon | lat | prec )
+        return bghash( lon | lat | prec )
         
 
     def geohash(self, length=None):
@@ -131,6 +169,6 @@ class binaryhash:
         if length is None :
             length = int(self.precision() / 5)
         for pos in range(0, length) :
-            ghash += binaryhash.GEOHASH_BASE32[self.code>>(59 - pos * 5) & 0x1f]
+            ghash += bghash.GEOHASH_BASE32[self.code>>(59 - pos * 5) & 0x1f]
         return ghash
 
