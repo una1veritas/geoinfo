@@ -4,7 +4,6 @@ Created on 2022/03/11
 @author: sin
 '''
 
-import bisect
 from geohash import bghash
 
 if __name__ == '__main__' :
@@ -12,25 +11,23 @@ if __name__ == '__main__' :
     # e6f5da1cc0000025
     print('hello.', (33.5925135, 130.3560714, 37), hashcode, hashcode.precision())
     hashcode = bghash(0xe6f5da1dc8000025)
-    print('from 0xe6f5da1dc8000025', hashcode)
+    print('from 0xe6f5da1dc8000025 ', hashcode)
     print()
     
     hashcode = 'wvuxn7f'
     hashcode = bghash(hashcode)
-    print('wvuxn7f', hashcode, hashcode.decode())
+    print('wvuxn7f', hashcode, hashcode.geohash(), hashcode.decode())
     
     print(hashcode.decode())
     print(hashcode.geohash())
     
-    print(hashcode.neighbor('w'))
-    print(hashcode.neighbor('n').decode())
-    print(hashcode.neighbor('e').decode())
-    print(hashcode.neighbor('s').decode())
-    print(hashcode.neighbor('w').decode())
-    print(hashcode.neighbor('ne').decode())
-    print(hashcode.neighbor('se').decode())
-    print(hashcode.neighbor('sw').decode())
-    print(hashcode.neighbor('nw').decode())
+    print('ne', hashcode.neighbor('ne').decode())
+    print()
+    for i in range(8) :
+        print(i, hashcode.neighbor(i), hashcode.neighbor(i).decode())
+    
+    '''
+    import bisect
     
     geograph = list()
     with open('../geograph/fukuoka.geo', mode = 'r', encoding='utf-8') as f:
@@ -49,3 +46,4 @@ if __name__ == '__main__' :
     for i in range(max(0, left - 3), right + 1) :
         print(geograph[i][2], i, geograph[i][0:2])
     print(searchgp, left, right)
+    '''

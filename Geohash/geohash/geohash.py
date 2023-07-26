@@ -23,27 +23,26 @@ class bghash:
     def __init__(self, lat_or_hash = None, lon_or_prec = None, precision = None) :
         self.code = 0
         if precision is None:
-            if isinstance(lat_or_hash, (int, str)) and lon_or_prec is None :
+            if isinstance(lat_or_hash, int) and lon_or_prec is None :
                 '''
-                from single int or string representing an bghash or a geohash code
+                from a single int (64bit) or a hex string representing a bghash
                 '''
+                self.code = lat_or_hash & 0xffffffffffffffff
+                return
+            elif isinstance(lat_or_hash, str) and lon_or_prec is None :
                 try:
                     int_value = int(lat_or_hash)
+                    self.code = int_value & 0xffffffffffffffff
+                    return
                 except ValueError:
                     self.degeohash(lat_or_hash)
                     return
-                self.code = int_value
-                return
-            elif isinstance(lat_or_hash, str) and lat_or_hash is not None : 
-                '''
-                two arguments, a hashcode (str) and/without a precision number (int)
-                '''
-                if lon_or_prec is not None:
-                    precision = min(int(lon_or_prec), self.MAXIMUM_PRECISION)
+            elif lat_or_hash is not None and lon_or_prec is not None : 
+                precision = min(int(lon_or_prec), self.MAXIMUM_PRECISION)
                 if isinstance(lat_or_hash, str):
-                    self.set(lat_or_hash, precision)
+                    self.set(int(lat_or_hash), precision)
                 else:
-                    self.set(int(lat_or_hash),precision)
+                    self.set(lat_or_hash, precision)
                 return
         elif isinstance(lat_or_hash, float) and isinstance(lon_or_prec, float):
             latitude = lat_or_hash
@@ -152,13 +151,13 @@ class bghash:
         lsb = 1<<(64 - prec)
         lon = bcode & 0xaaaaaaaaaaaaaaaa
         lat = bcode & 0x5555555555555555
-        if d == 'n' or d == 'ne' or d == 'nw' :
+        if d == 'n' or d == 'ne' or d == 'nw' or d == 0 or d == 1 or d == 7 :
             lat = ((lat | 0xaaaaaaaaaaaaaaaa) + lsb) & 0x5555555555555555
-        elif d == 's' or d == 'se' or d == 'sw' :
+        elif d == 's' or d == 'se' or d == 'sw' or d == 4 or d == 3 or d == 5 :
             lat = (lat - lsb) & 0x5555555555555555
-        if d == 'e' or d == 'ne' or d == 'se' :
+        if d == 'e' or d == 'ne' or d == 'se' or d == 2 or d == 1 or d == 3 :
             lon = ((lon | 0x5555555555555555) + lsb) & 0xaaaaaaaaaaaaaaaa
-        elif d == 'w' or d == 'sw' or d == 'ne':
+        elif d == 'w' or d == 'sw' or d == 'nw' or d == 6 or d == 5 or d == 7 :
             lon = (lon - lsb) & 0xaaaaaaaaaaaaaaaa
 
         return bghash( lon | lat | prec )
