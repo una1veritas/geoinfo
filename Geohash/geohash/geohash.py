@@ -12,6 +12,7 @@ class bghash:
     MIN_LAT = -90.0
     MAX_LONG = 180.0
     MIN_LONG = -180.0
+    
     GEOHASH_BASE32 = "0123456789bcdefghjkmnpqrstuvwxyz"
     GEOHASH_CHARVAL = {'0': 0, '1': 1, '2': 2, '3': 3, '4': 4, '5': 5, '6': 6, '7': 7, \
                        '8': 8, '9': 9, 'b': 10, 'c': 11, 'd': 12, 'e': 13, 'f': 14, 'g': 15, \
@@ -19,6 +20,15 @@ class bghash:
                        't': 25, 'u': 26, 'v': 27, 'w': 28, 'x': 29, 'y': 30, 'z': 31}
     DEFAULT_PRECISION = 41
     MAXIMUM_PRECISION = 58
+    
+    NORTH = 0
+    NORTHEAST = 1
+    EAST = 2
+    SOUTHEAST = 3
+    SOUTH = 4
+    SOUTHWEST = 5
+    WEST = 6
+    NORTHWEST = 7
     
     def __init__(self, lat_or_hash = None, lon_or_prec = None, precision = None) :
         self.code = 0
