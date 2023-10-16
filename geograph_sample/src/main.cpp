@@ -10,6 +10,7 @@
 #include <iomanip>
 #include <fstream>
 #include <string>
+#include <sstream>
 #include <vector>
 #include <set>
 #include <map>
