@@ -53,8 +53,9 @@ int main(const int argc, const char * argv[]) {
 	}
 	cout << "input file name = " << argv[1] << endl;
 
-	ifstream csvfile(argv[1]);
+	ifstream csvfile;
 
+	csvfile.open(argv[1]);
 	if (! csvfile ) {
 		cerr << "opening the file " << argv[1] << " failed." << endl;
 		exit(EXIT_FAILURE);
