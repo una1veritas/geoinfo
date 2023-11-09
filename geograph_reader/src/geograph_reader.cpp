@@ -16,67 +16,7 @@
 
 using namespace std;
 
-struct Graph {
-private:
-	set<unsigned long> nodes;
-	map<unsigned long, pair<double, double> > node_coordinate;
-	map<unsigned long, vector<unsigned long> > node_adjacents;
-
-public:
-	// make as an empty graph
-	Graph() {}
-
-	// dispose the graph
-	~Graph() {
-		nodes.clear();
-		node_coordinate.clear();
-		for(auto & nodelistpair : node_adjacents) {
-			nodelistpair.second.clear();
-		}
-	}
-
-	unsigned long size() const {
-		return nodes.size();
-	}
-
-	// insert/register a new node.
-	void insert_node(const unsigned long & id, const double & lat, const double & lon) {
-		nodes.insert(id);
-        node_coordinate[id] = pair<double,double>(lat,lon);
-        node_adjacents[id] = vector<unsigned long>();
-	}
-
-	// add an edge. *** an adjacent node can be added more than once! ***
-	void add_edge(const unsigned long & id, const unsigned long & another) {
-		if ( id < another ) {
-			if ( ! node_adjacents.contains(id) ) {
-				node_adjacents[id] = vector<unsigned long>();
-			}
-        	node_adjacents[id].push_back(another);
-		} else {
-			if ( ! node_adjacents.contains(another) ) {
-				node_adjacents[another] = vector<unsigned long>();
-			}
-        	node_adjacents[another].push_back(id);
-		}
-	}
-
-	double latitude(const unsigned long & id) {
-		return node_coordinate[id].first;
-	}
-
-	double longitude(const unsigned long & id) {
-		return node_coordinate[id].second;
-	}
-
-	const set<unsigned long> & node_ids() const {
-		return nodes;
-	}
-
-	const vector<unsigned long> & adjacents(const unsigned long & id) const {
-		return node_adjacents[id];
-	}
-};
+#include "geograph.h"
 
 // 文字列を文字 delimiter で区切って文字列の配列 vector<string> にして
 // 返す関数．コンマやタブ区切り形式のテキスト一行を処理するのに使用する．
@@ -105,7 +45,8 @@ int main(const int argc, const char * argv[]) {
 		exit(EXIT_FAILURE);
 	}
 
-	Graph graph;
+	geograph graph;
+	vector<uint64_t> adjlist;
 
 	cout << "reading..." << endl;
     string line;
@@ -120,9 +61,10 @@ int main(const int argc, const char * argv[]) {
 		unsigned long id = stoull(strvec[0]);
 		double lat = stod(strvec[1]);
 		double lon = stod(strvec[2]);
-        graph.insert_node(id, lat, lon);
+		adjlist.clear();
         for(unsigned int i = 3; i < strvec.size(); ++i)
-        	graph.add_edge(id, stoull(strvec[i]));
+        	adjlist.push_back(stoull(strvec[i]));
+        graph.insert(id, lat, lon, adjlist);
     }
     cout << count << "lines finished." << endl;
     csvfile.close();
@@ -130,9 +72,8 @@ int main(const int argc, const char * argv[]) {
 
     cout << "node id (lattitude, longitude):" << endl;
     count = 0;
-    for(const auto & an_id : graph.node_ids() ) {
-    	cout << an_id << " (" << graph.latitude(an_id) << ", "
-    			<< graph.longitude(an_id) << "), " ;
+    for(const auto & a_pair : graph ) {
+    	cout << a_pair.first << " (" << a_pair.second << "), " ;
     	if (++count > 100)
     		break;
     }
