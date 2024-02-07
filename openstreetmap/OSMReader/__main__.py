@@ -8,8 +8,8 @@ python3 OSMReader map.osm [return]
 '''
 
 from lxml import etree
-import sys
-import geohashlite as geohash
+import sys, os
+#import geohashlite as geohash
 from PIL import Image, ImageDraw
 import math
 
@@ -139,7 +139,7 @@ def geodist(gp1, gp2):
 # main program
 if __name__ == '__main__':
     if len(sys.argv) < 2 :
-        print('osm file is requested.',file=sys.stderr)
+        print('osm file file name required.',file=sys.stderr)
         exit(1)
     
     paths = []
@@ -160,10 +160,13 @@ if __name__ == '__main__':
             ix += 1
         
     geograph = dict()
+    filenamewoext = ''
     for filename in paths :
         try:
             print(filename)
             with open(filename, encoding='utf-8') as fp:
+                if len(filenamewoext) == 0 :
+                    filenamewoext = '.'.join(os.path.basename(filename).split('.')[0:-1])
                 #with open('test.xml') as fp:
                 xmlbytes = bytes(bytearray(fp.read(), encoding='utf-8'))
         except Exception as ex:
@@ -243,7 +246,11 @@ if __name__ == '__main__':
                     geograph[gplist[ix+1]][-1].append(gplist[ix])
             '''
     
-    with open('output.csv', mode='w', encoding='utf-8') as fp:
+    if len(filenamewoext) == 0 :
+        print('seems no map file has found.')
+        exit(1)
+        
+    with open(filenamewoext + '.geo', mode='w', encoding='utf-8') as fp:
         #fp.write(#node id,latitude,longitude,adjacent node id 1, node id 2,...)
         for nodeid, values in sorted(geograph.items()) :
             #print(nodeid, values)
@@ -256,7 +263,7 @@ if __name__ == '__main__':
             fp.write(', '.join([str(eachid) for eachid in values[2:]])) # adjacent node ids
             fp.write('\n')
     
-    with open('facility.csv', mode='w', encoding='utf-8') as fp:
+    with open(filenamewoext + '.csv', mode='w', encoding='utf-8') as fp:
         #fp.write(#node id,latitude,longitude,adjacent node id 1, node id 2,...)
         for t in sorted(labels.items()) :
             if 'shop:convenience' in t[1] or 'shop:supermarket' in t[1] \
@@ -269,13 +276,13 @@ if __name__ == '__main__':
                 fp.write('\n')
     
     # for some tests
-    geohashlist = list()
-    for pid in geograph.keys():
-        gpoint = geograph[pid][0]
-        hashcode = geohash.encode(gpoint[0], gpoint[1], 8)
-        geohashlist.append((hashcode, pid))
-    
-    geohashlist.sort(key=lambda entry: entry[0])
+    # geohashlist = list()
+    # for pid in geograph.keys():
+    #     gpoint = geograph[pid][0]
+    #     hashcode = geohash.encode(gpoint[0], gpoint[1], 8)
+    #     geohashlist.append((hashcode, pid))
+    #
+    # geohashlist.sort(key=lambda entry: entry[0])
     
     #showgeograph(geograph) #, [bbox['n'],bbox['w'],bbox['s'],bbox['e']])
     exit()
