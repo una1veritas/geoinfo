@@ -152,10 +152,10 @@ bool is_in_circle(const unordered_map<long long, DataEntry>& graph,
 void dijkstraToZone(
     const unordered_map<long long, DataEntry>& graph,
     long long& start,
-    const long long center_of_next_zone,
-    const double next_zone_radius) {
-    const long long center_of_outer,
-    const double outer_radius) {
+    const long long & center_of_next_zone,
+    const double & next_zone_radius,
+    const long long & center_of_outer,
+    const double & outer_radius) {
 
     // 各ノードまでの最短距離を保存するマップ
     unordered_map<long long, double> dist;
