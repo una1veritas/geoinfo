@@ -14,6 +14,8 @@
 #include <set>
 #include <map>
 
+using namespace std;
+
 struct Graph {
 	set<unsigned long> nodes;
 	map<unsigned long, pair<double, double> > nodecoord;

@@ -14,8 +14,8 @@ else
 endif
 
 ifeq ($(PLATHOME),macos)
-#	INCLUDEDIRS = -I/usr/local/include/SDL2
-	LIBDIRS = -L/usr/local/lib
+	INCLUDEDIRS = -I/opt/homebrew/include
+	LIBDIRS = -L/opt/homebrew/lib
 	LIBRARIES = -lSDL2main -lSDL2 -lSDL2_gfx
 	CXXFLAGS += -std=c++20
 else ifeq ($(PLATHOME),mingw64)
@@ -29,7 +29,7 @@ else ifeq ($(PLATHOME),ubuntu22)
 endif
 
 showcomment:
-	@echo "Use make PLATHOME=ubuntu22 or =mingw64 or=macos command to build executable."
+	@echo "Use 'make PLATHOME=ubuntu22/mingw64/macos all' command to build executable."
 	@echo "commands: clean, all"
 	@echo
 
