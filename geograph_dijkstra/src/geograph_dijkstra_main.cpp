@@ -183,6 +183,8 @@ int main(int argc, char * argv[]) {
      * geopoint goal_coord(33.644224, 130.693827);
      * モスバーガー飯塚幸袋店
      * 33.6644315 130.6862538
+     *
+     * map-central-iizuka.geo 33.651759 130.672120 2500
      */
 
 	uint64_t start_id = ggraph.node_nearest_to(startpt).id();
