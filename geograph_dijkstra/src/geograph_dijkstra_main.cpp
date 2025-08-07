@@ -27,8 +27,8 @@
 #include "geodistance.h"
 #include "cartcoord.h"
 
-//#include <SDL2/SDL.h>
-//#include <SDL2/SDL2_gfxPrimitives.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL2_gfxPrimitives.h>
 
 using namespace std;
 
@@ -74,9 +74,8 @@ bool getfromcsv(const string & filename, geograph & ggraph) {
  *
 #include <SDL2/SDL.h>
 #include <SDL2/SDL2_gfxPrimitives.h>
- *
+ */
 int show_in_sdl_window(const geograph & map, const std::vector<uint64_t> & d_track);
-*/
 
 std::map<uint64_t,double> dijkstra_dist_table(const geograph & graph, const uint64_t & start_id, const double & limit = std::numeric_limits<double>::infinity()) {
     std::set<uint64_t> R;
@@ -184,6 +183,8 @@ int main(int argc, char * argv[]) {
      * geopoint goal_coord(33.644224, 130.693827);
      * モスバーガー飯塚幸袋店
      * 33.6644315 130.6862538
+     *
+     * map-central-iizuka.geo 33.651759 130.672120 2500
      */
 
 	uint64_t start_id = ggraph.node_nearest_to(startpt).id();
@@ -320,12 +321,12 @@ int main(int argc, char * argv[]) {
 
     	cout << "caluculationtime = " << std::chrono::duration_cast<std::chrono::milliseconds>(end_clock - start_clock).count() << endl;
 
-    	//show_in_sdl_window(ggraph, Q);
+    	show_in_sdl_window(ggraph, Q);
     }
 
     return EXIT_SUCCESS;
 }
-/*
+
 int show_in_sdl_window(const geograph & map, const std::vector<uint64_t> & d_track) {
 	constexpr unsigned int WINDOW_MIN_WIDTH = 1024;
 	constexpr unsigned int WINDOW_MIN_HEIGHT = 768;
@@ -515,4 +516,4 @@ int show_in_sdl_window(const geograph & map, const std::vector<uint64_t> & d_tra
 	SDL_Quit();
 	return EXIT_SUCCESS;
 }
-*/
+

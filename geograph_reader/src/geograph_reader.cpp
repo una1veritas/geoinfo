@@ -16,23 +16,7 @@
 
 using namespace std;
 
-struct Graph {
-	set<unsigned long> nodes;
-	map<unsigned long, pair<double, double> > node_coordinate;
-	map<unsigned long, vector<unsigned long> > node_adjacents;
-
-	// make as an empty graph
-	Graph() {}
-
-	// dispose the graph
-	~Graph() {
-		nodes.clear();
-		node_coordinate.clear();
-		for(auto & nodelistpair : node_adjacents) {
-			nodelistpair.second.clear();
-		}
-	}
-};
+#include "geograph.h"
 
 // 文字列を文字 delimiter で区切って文字列の配列 vector<string> にして
 // 返す関数．コンマやタブ区切り形式のテキスト一行を処理するのに使用する．
@@ -47,6 +31,8 @@ vector<string> split(string& input, char delimiter) {
 }
 
 int main(const int argc, const char * argv[]) {
+	ifstream csvfile;
+
 	if (! (argc > 0) ) {
 		cerr << "give an input file name." << endl;
 		exit(EXIT_FAILURE); // terminates with error.
@@ -61,7 +47,8 @@ int main(const int argc, const char * argv[]) {
 		exit(EXIT_FAILURE);
 	}
 
-	Graph graph;
+	geograph graph;
+	vector<uint64_t> adjlist;
 
 	cout << "reading..." << endl;
     string line;
@@ -76,11 +63,10 @@ int main(const int argc, const char * argv[]) {
 		unsigned long id = stoull(strvec[0]);
 		double lat = stod(strvec[1]);
 		double lon = stod(strvec[2]);
-        graph.nodes.insert(id);
-        graph.node_coordinate[id] = pair<double,double>(lat,lon);
-        graph.node_adjacents[id] = vector<unsigned long>();
+		adjlist.clear();
         for(unsigned int i = 3; i < strvec.size(); ++i)
-        	graph.node_adjacents[id].push_back(stoull(strvec[i]));
+        	adjlist.push_back(stoull(strvec[i]));
+        graph.insert(id, lat, lon, adjlist);
     }
     cout << count << "lines finished." << endl;
     csvfile.close();
@@ -88,25 +74,26 @@ int main(const int argc, const char * argv[]) {
 
     cout << "node id (lattitude, longitude):" << endl;
     count = 0;
-    for(const auto & an_id : graph.nodes) {
-    	cout << an_id << " (" << graph.node_coordinate[an_id].first << ", "
-    			<< graph.node_coordinate[an_id].second << "), " ;
+    for(const auto & a_pair : graph ) {
+    	cout << a_pair.first << " (" << a_pair.second << "), " ;
     	if (++count > 100)
     		break;
     }
     cout << endl;
-    cout << graph.nodes.size() << " nodes." << endl << endl;
+    cout << graph.size() << " nodes." << endl << endl;
 
     cout << endl << "edges: " << endl;
     count = 0;
-    for(const auto & a_pair : graph.node_adjacents) {
-    	if (count < 100) {
-			for(const auto & endpoint : a_pair.second) {
-				cout << "(" << a_pair.first << ", " << endpoint << "), ";
+    for(const auto & id : graph.node_ids() ) {
+    	for(const auto & another : graph.adjacents(id) ) {
+			if (count < 100) {
+				for(const auto & endpoint : a_pair.second) {
+					cout << "(" << a_pair.first << ", " << endpoint << "), ";
+				}
+				cout << endl;
 			}
-			cout << endl;
+			count += a_pair.second.size();
     	}
-    	count += a_pair.second.size();
     }
     cout << endl;
     cout << count << " edges." << endl;
