@@ -11,7 +11,7 @@ import csv
 if __name__ == '__main__':
 
     # Open the GPX file
-    with open('2023-06-22 16_48_37.gpx', 'r') as gpx_file:
+    with open('2025-0726-151032.gpx', 'r') as gpx_file:
         gpx = gpxpy.parse(gpx_file)
 
     # Prepare data for CSV

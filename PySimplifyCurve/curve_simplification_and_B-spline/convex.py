@@ -86,53 +86,45 @@ def simplify_greedy(xy : np.array, tolerance : float):
         # print()
     return np.array([xy[i] for i in path]), path
 
-'''  '''
-def simplify_shortest(xy : np.array, tolerance : float):
-    n = len(xy)
-    smpl = dict()
-    for gap in range(n):
-        for fix in range(n):
-            tix = fix + gap
-            if not (tix < n) :
-                break
-            if fix == tix :
-                smpl[(fix, tix)] = 1
-            elif fix + 1 == tix :
-                smpl[(fix, tix)] = 2
-            else:
-                for mix in range(fix+1, tix):
-                    dist = distance_to_line(xy[fix], xy[tix], xy[mix])
-                    if dist > tolerance :
-                        if (fix, tix) not in smpl \
-                        or smpl[(fix, tix)] > smpl[(fix, mix)] - 1 + smpl[(mix, tix)] :
-                            smpl[(fix, tix)] = smpl[(fix, mix)] - 1 + smpl[(mix, tix)]
-                if (fix, tix) not in smpl :
-                    smpl[(fix, tix)] = 2
-    print(f'smpl size = {len(smpl)}.')
-    path = list()
-    pq = deque([(0, len(xy) - 1)])
-    while len(pq) != 0 :
-        # print(f'path = {path}')
-        # print(f'pq = {pq}')
-        # input('pause.')
-        ix, jx = pq.popleft()
-        # print(f'ix = {ix}, jx = {jx}')
-        if ix == jx :
-            raise ValueError(f'found only one point in the interval {ix}, {jx}.')
-            # if len(path) == 0 or path[-1] != ix :
-            #     path.append(ix)
-        elif smpl[(ix,jx)] == 2 :
-            if len(path) == 0 or path[-1] != ix :
-                path.append(ix)
-            path.append(jx)
+def convex_hull(xy : np.array):
+    l_path = [ 0 ]
+    r_path = [ 0 ]
+    current_ix = 0
+    org_xy = xy[0]
+    while True:
+        next_ix = current_ix + 1
+        if not (next_ix < len(xy)) : break
+        if len(l_path) == 1 and len(r_path) == 1 :
+            l_path.append(next_ix)
+            r_path.append(next_ix)
         else:
-            for mx in range(ix+1, jx):
-                if smpl[(ix,jx)] == smpl[(ix,mx)] -1 + smpl[(mx,jx)] :
-                    pq.appendleft( (mx,jx) )
-                    pq.appendleft( (ix,mx) )
-                    break
+            print(0, current_ix, next_ix)
+            vec_oc = diff_vec(org_xy, xy[current_ix])
+            vec_cx = diff_vec(xy[current_ix], xy[next_ix])
+            if np.cross(vec_oc, vec_cx) >= 0 :
+                print('left')
+                l_path.append(next_ix)
+                while len(l_path) > 2 :
+                    vec_last = diff_vec(xy[l_path[-2]], xy[l_path[-1]])
+                    vec_prev = diff_vec(xy[l_path[-3]], xy[l_path[-2]])
+                    if np.cross(vec_prev,vec_last) >= 0 :
+                        last_ix = l_path.pop()
+                        l_path.pop()
+                        l_path.append(last_ix)
+                    else:
+                        break
+            else:
+                print('right')
+                r_path.append(next_ix)
+        current_ix = next_ix
 
-    return np.array([xy[i] for i in path]), path
+    ''' close paths'''
+    if l_path[-1] < r_path[-1] :
+        l_path.append(r_path[-1])
+    elif l_path[-1] > r_path[-1] :
+        r_path.append(l_path[-1])
+    print(l_path, r_path)
+    return l_path, r_path
 
 '''constant'''
 epoch_start = np.datetime64('1970-01-01T00:00:00Z')
@@ -159,73 +151,40 @@ if __name__ == '__main__':
     last_datetime = epoch_start
     for i in range(len(tbl)):
         past = dt[i] - last_datetime
-        if past.item().total_seconds() >= 5 :
+        if past.item().total_seconds() >= 30 :
             last_datetime = dt[i]
             x, y = proj(longi[i], lati[i])
             # if len(xy) > 0 and np.linalg.norm(np.array([x, y]) - xy[-1]) < 1/2*tolerance :
             #     continue
             xy.append((x, y))
-    #xy =xy[:10]
+    xy = xy[108:124]
     if False:
         with open('xy.csv', 'w') as f :
             for x, y in xy:
                 f.write(f'{x},{y}\n')
-    
     xy = np.array(xy)
     print(f'points in the input provided: {len(xy)}')
     
-    with Timer('greedy '):
-        greedy_xy, greedy_path = simplify_greedy(xy, tolerance)
-    #shortest_xy, shortest_path = simplify_shortest(xy, tolerance)
-    with Timer('rdp '):
-        rdp_xy, rdp_path = simplify_RDP(xy, tolerance)
-    
-    print('\nanalysis:')
-    print(f'\ngreedy xy size = {len(greedy_xy)}')
-    distances = list()
-    path = greedy_path
-    for i in range(1,len(path)):
-        a = xy[path[i-1]]
-        b =  xy[path[i]]
-        for p in xy[path[i-1]:path[i]]:
-            distances.append(distance_to_line(p, a, b))
-            arr = np.array(distances)
-    print(f'max {np.max(arr):.3f} mean {np.mean(arr):.2f}, std dev {np.std(arr):.2f}')
-    # print(f'\nshortest xy size = {len(shortest_xy)}')
-    # distances.clear()
-    # distances = list()
-    # path = shortest_path
-    # for i in range(1,len(path)):
-    #     a = xy[path[i-1]]
-    #     b =  xy[path[i]]
-    #     for p in xy[path[i-1]:path[i]]:
-    #         distances.append(distance_to_line(p, a, b))
-    #         arr = np.array(distances)
-    # print(f'max {np.max(arr):.3f} mean {np.mean(arr):.2f}, std dev {np.std(arr):.2f}')    
-    print(f'\nRDP xy size = {len(rdp_xy)}')
-    distances.clear()
-    distances = list()
-    path = rdp_path
-    for i in range(1,len(path)):
-        a = xy[path[i-1]]
-        b =  xy[path[i]]
-        for p in xy[path[i-1]:path[i]]:
-            distances.append(distance_to_line(p, a, b))
-            arr = np.array(distances)
-    print(f'max {np.max(arr):.3f} mean {np.mean(arr):.2f}, std dev {np.std(arr):.2f}')    
+    lpath, rpath = convex_hull(xy)
+    print(lpath, rpath)
         
     x, y = xy[:,0], xy[:,1]
-    sx, sy = greedy_xy[:,0], greedy_xy[:,1]     
-    ctrlparam = np.linspace(0,1,num=len(sx),endpoint=True)
-    spl = make_interp_spline(ctrlparam, np.c_[sx, sy])
+    #sx, sy = convex_xy[:,0], convex_xy[:,1]
+    #ctrlparam = np.linspace(0,1,num=len(sx),endpoint=True)
+    #spl = make_interp_spline(ctrlparam, np.c_[sx, sy])
 
-    drawparam = np.linspace(0, 1, len(sx)*8)
-    x_new, y_new = spl(drawparam).T
+    #drawparam = np.linspace(0, 1, len(sx)*8)
+    #x_new, y_new = spl(drawparam).T
+    lxy = np.array([xy[i] for i in lpath])
+    lx , ly = lxy[:,0], lxy[:,1]
+    rxy = np.array([xy[i] for i in rpath])
+    rx, ry = rxy[:,0], rxy[:,1]
     
     fig, ax = plt.subplots()
-    ax.plot(x, y, 'r.', lw=0.1, alpha=0.35)
-    ax.plot(sx, sy, 'bo-')
-    plt.plot(x_new, y_new, 'y-')
+    ax.plot(x, y, 'yo')
+    ax.plot(lx, ly, 'b.-', lw=0.75) #, alpha=0.75)
+    ax.plot(rx, ry, 'r.-', lw=0.75) #, alpha=0.75)
+    #plt.plot(x_new, y_new, 'y-')
     plt.legend(['Input points', 'Selected points', 'Interpolated B-spline', 'True'],loc='best')
     plt.title('B-Spline interpolation')
     ax.set_aspect('equal')
