@@ -20,7 +20,7 @@ class Timer:
         print(self.message + f"Execution time: {self.end - self.start} seconds")
 
     
-def diff_vec(orig, dest : np.array): 
+def vector(orig, dest : np.array): 
     return dest - orig
 
 def norm(v : np.array):
@@ -29,13 +29,16 @@ def norm(v : np.array):
 def outer_prod_norm(v0, v1 : np.array):
     return v0[0]*v1[1] - v0[1]*v1[0]
 
+def inner_prod(v0, v1 : np.array):
+    return v0[0]*v1[0] + v0[1]*v1[1]
+
 def distance_to_line(p, a, b):
-    ab = diff_vec(a, b)
-    ap = diff_vec(a, p)
+    ab = vector(a, b)
+    ap = vector(a, p)
     if np.dot(ab, ap) < 0.0 :
         return norm(ap)
-    ba = diff_vec(b,a)
-    bp = diff_vec(b,p)
+    ba = vector(b,a)
+    bp = vector(b,p)
     if np.dot(ba, bp) < 0.0 :
         return norm(bp)
     return abs(outer_prod_norm(ab, ap)/norm(ab))
@@ -80,60 +83,73 @@ def simplify_greedy(xy : np.array, tolerance : float):
                 #print('updated',path)
             if path[-1] != nextix :
                 break
-        # print(f'from {path[-2]}: {xy[path[-2]]} to {path[-1]}: {xy[path[-1]]}')
-        # for i in range(path[-1]+1, path[-1]):
-        #     print(f'{i}:{distance_to_line(xy[i], xy[path[-2]], xy[path[-1]]):4}, ', end='')
-        # print()
     return np.array([xy[i] for i in path]), path
 
 def convex_hull(xy : np.array):
-    l_path = [ 0 ]
-    r_path = [ 0 ]
-    current_ix = 0
-    org_xy = xy[0]
-    while True:
-        next_ix = current_ix + 1
-        if not (next_ix < len(xy)) : break
-        if len(l_path) == 1 and len(r_path) == 1 :
-            l_path.append(next_ix)
-            r_path.append(next_ix)
+    n = len(xy)
+    lpath =deque([i for i in range(min(n, 2))])
+    rpath = deque([i for i in range(min(n, 2))])
+    lastix = lpath[-1]
+    orgix = 0
+    print(lastix, n)
+    while lastix + 1 < n :
+        nextix = lastix + 1
+        vlast = vector(xy[orgix], xy[lastix])
+        vnext = vector(xy[lastix], xy[nextix])
+        if inner_prod(vlast, vnext) < 0 :
+            break
+        if np.cross(vlast, vnext) == 0 :
+            print('streight')
+        elif np.cross(vlast, vnext) > 0 :
+            print('left')
         else:
-            print(0, current_ix, next_ix)
-            vec_oc = diff_vec(org_xy, xy[current_ix])
-            vec_cx = diff_vec(xy[current_ix], xy[next_ix])
-            if np.cross(vec_oc, vec_cx) >= 0 :
-                print('left')
-                l_path.append(next_ix)
-                while len(l_path) > 2 :
-                    vec_last = diff_vec(xy[l_path[-2]], xy[l_path[-1]])
-                    vec_prev = diff_vec(xy[l_path[-3]], xy[l_path[-2]])
-                    if np.cross(vec_prev,vec_last) >= 0 :
-                        last_ix = l_path.pop()
-                        l_path.pop()
-                        l_path.append(last_ix)
-                    else:
-                        break
+            print('right')
+        lpath.append(nextix)
+        rpath.append(nextix)
+        
+        while len(lpath) > 2 :
+            vlast = vector(xy[lpath[-2]], xy[lpath[-1]])
+            vprev = vector(xy[lpath[-3]], xy[lpath[-2]])
+            if np.cross(vprev,vlast) >= 0 :
+                llast = lpath.pop()
+                lpath.pop()
+                lpath.append(llast)
             else:
-                print('right')
-                r_path.append(next_ix)
-                while len(r_path) > 2 :
-                    vec_last = diff_vec(xy[r_path[-2]], xy[r_path[-1]])
-                    vec_prev = diff_vec(xy[r_path[-3]], xy[r_path[-2]])
-                    if np.cross(vec_prev,vec_last) <= 0 :
-                        last_ix = r_path.pop()
-                        r_path.pop()
-                        r_path.append(last_ix)
-                    else:
-                        break
-        current_ix = next_ix
-
-    ''' close paths'''
-    if l_path[-1] < r_path[-1] :
-        l_path.append(r_path[-1])
-    elif l_path[-1] > r_path[-1] :
-        r_path.append(l_path[-1])
-    print(l_path, r_path)
-    return l_path, r_path
+                break
+        while len(rpath) > 2 :
+            vlast = vector(xy[rpath[-2]], xy[rpath[-1]])
+            vprev = vector(xy[rpath[-3]], xy[rpath[-2]])
+            if np.cross(vprev,vlast) <= 0 :
+                rlast = rpath.pop()
+                rpath.pop()
+                rpath.append(rlast)
+            else:
+                break
+        lastix = nextix
+        print(lpath, rpath)
+    a = xy[lpath[0]]
+    b = xy[lpath[-1]]
+    lmax = max([distance_to_line(xy[i], a, b) for i in lpath])
+    rmax = max([distance_to_line(xy[i], a, b) for i in rpath])
+    vab = vector(a,b)
+    peakix = 0
+    for i in range(1, len(lpath)):
+        vlp = vector(xy[lpath[i-1]], xy[lpath[i]])
+        if np.cross(vab, vlp) >= 0 :
+            peakix = i
+        else:
+            break
+    print(f'peak = {peakix}, distance = {distance_to_line(xy[lpath[peakix]], a, b)}')
+    for i in range(1, len(rpath)):
+        vlp = vector(xy[rpath[i-1]], xy[rpath[i]])
+        if np.cross(vab, vlp) <= 0 :
+            peakix = i
+        else:
+            break
+    print(f'peak = {peakix}, distance = {distance_to_line(xy[rpath[peakix]], a, b)}')
+    
+    print(f'lmax = {lmax}, rmax = {rmax}')
+    return (list(lpath), list(rpath))
 
 '''constant'''
 epoch_start = np.datetime64('1970-01-01T00:00:00Z')
@@ -160,13 +176,13 @@ if __name__ == '__main__':
     last_datetime = epoch_start
     for i in range(len(tbl)):
         past = dt[i] - last_datetime
-        if past.item().total_seconds() >= 30 :
+        if past.item().total_seconds() >= 15 :
             last_datetime = dt[i]
             x, y = proj(longi[i], lati[i])
             # if len(xy) > 0 and np.linalg.norm(np.array([x, y]) - xy[-1]) < 1/2*tolerance :
             #     continue
             xy.append((x, y))
-    xy = xy[100:106]
+    xy = xy[1:100]
     if False:
         with open('xy.csv', 'w') as f :
             for x, y in xy:
