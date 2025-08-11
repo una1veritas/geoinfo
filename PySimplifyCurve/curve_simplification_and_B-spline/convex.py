@@ -116,6 +116,15 @@ def convex_hull(xy : np.array):
             else:
                 print('right')
                 r_path.append(next_ix)
+                while len(r_path) > 2 :
+                    vec_last = diff_vec(xy[r_path[-2]], xy[r_path[-1]])
+                    vec_prev = diff_vec(xy[r_path[-3]], xy[r_path[-2]])
+                    if np.cross(vec_prev,vec_last) <= 0 :
+                        last_ix = r_path.pop()
+                        r_path.pop()
+                        r_path.append(last_ix)
+                    else:
+                        break
         current_ix = next_ix
 
     ''' close paths'''
@@ -157,7 +166,7 @@ if __name__ == '__main__':
             # if len(xy) > 0 and np.linalg.norm(np.array([x, y]) - xy[-1]) < 1/2*tolerance :
             #     continue
             xy.append((x, y))
-    xy = xy[108:124]
+    xy = xy[100:106]
     if False:
         with open('xy.csv', 'w') as f :
             for x, y in xy:
