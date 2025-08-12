@@ -85,71 +85,72 @@ def simplify_greedy(xy : np.array, tolerance : float):
                 break
     return np.array([xy[i] for i in path]), path
 
-def convex_hull(xy : np.array):
-    n = len(xy)
-    lpath =deque([i for i in range(min(n, 2))])
-    rpath = deque([i for i in range(min(n, 2))])
-    lastix = lpath[-1]
-    orgix = 0
-    print(lastix, n)
-    while lastix + 1 < n :
-        nextix = lastix + 1
-        vlast = vector(xy[orgix], xy[lastix])
-        vnext = vector(xy[lastix], xy[nextix])
-        if inner_prod(vlast, vnext) < 0 :
-            break
-        if np.cross(vlast, vnext) == 0 :
-            print('streight')
-        elif np.cross(vlast, vnext) > 0 :
-            print('left')
-        else:
-            print('right')
-        lpath.append(nextix)
-        rpath.append(nextix)
+class PointSequenceConvex:
+    def __init__(self, xy : np.array):
+        n = len(xy)
+        lpath =deque([i for i in range(min(n, 2))])
+        rpath = deque([i for i in range(min(n, 2))])
+        lastix = lpath[-1]
+        orgix = 0
+        print(lastix, n)
+        while lastix + 1 < n :
+            nextix = lastix + 1
+            vlast = vector(xy[orgix], xy[lastix])
+            vnext = vector(xy[lastix], xy[nextix])
+            if inner_prod(vlast, vnext) < 0 :
+                break
+            if np.cross(vlast, vnext) == 0 :
+                print('streight')
+            elif np.cross(vlast, vnext) > 0 :
+                print('left')
+            else:
+                print('right')
+            lpath.append(nextix)
+            rpath.append(nextix)
+            
+            while len(lpath) > 2 :
+                vlast = vector(xy[lpath[-2]], xy[lpath[-1]])
+                vprev = vector(xy[lpath[-3]], xy[lpath[-2]])
+                if np.cross(vprev,vlast) >= 0 :
+                    llast = lpath.pop()
+                    lpath.pop()
+                    lpath.append(llast)
+                else:
+                    break
+            while len(rpath) > 2 :
+                vlast = vector(xy[rpath[-2]], xy[rpath[-1]])
+                vprev = vector(xy[rpath[-3]], xy[rpath[-2]])
+                if np.cross(vprev,vlast) <= 0 :
+                    rlast = rpath.pop()
+                    rpath.pop()
+                    rpath.append(rlast)
+                else:
+                    break
+            lastix = nextix
+            print(lpath, rpath)
+        a = xy[lpath[0]]
+        b = xy[lpath[-1]]
+        lmax = max([distance_to_line(xy[i], a, b) for i in lpath])
+        rmax = max([distance_to_line(xy[i], a, b) for i in rpath])
+        vab = vector(a,b)
+        peakix = 0
+        for i in range(1, len(lpath)):
+            vlp = vector(xy[lpath[i-1]], xy[lpath[i]])
+            if np.cross(vab, vlp) >= 0 :
+                peakix = i
+            else:
+                break
+        print(f'peak = {peakix}, distance = {distance_to_line(xy[lpath[peakix]], a, b)}')
+        for i in range(1, len(rpath)):
+            vlp = vector(xy[rpath[i-1]], xy[rpath[i]])
+            if np.cross(vab, vlp) <= 0 :
+                peakix = i
+            else:
+                break
+        print(f'peak = {peakix}, distance = {distance_to_line(xy[rpath[peakix]], a, b)}')
         
-        while len(lpath) > 2 :
-            vlast = vector(xy[lpath[-2]], xy[lpath[-1]])
-            vprev = vector(xy[lpath[-3]], xy[lpath[-2]])
-            if np.cross(vprev,vlast) >= 0 :
-                llast = lpath.pop()
-                lpath.pop()
-                lpath.append(llast)
-            else:
-                break
-        while len(rpath) > 2 :
-            vlast = vector(xy[rpath[-2]], xy[rpath[-1]])
-            vprev = vector(xy[rpath[-3]], xy[rpath[-2]])
-            if np.cross(vprev,vlast) <= 0 :
-                rlast = rpath.pop()
-                rpath.pop()
-                rpath.append(rlast)
-            else:
-                break
-        lastix = nextix
-        print(lpath, rpath)
-    a = xy[lpath[0]]
-    b = xy[lpath[-1]]
-    lmax = max([distance_to_line(xy[i], a, b) for i in lpath])
-    rmax = max([distance_to_line(xy[i], a, b) for i in rpath])
-    vab = vector(a,b)
-    peakix = 0
-    for i in range(1, len(lpath)):
-        vlp = vector(xy[lpath[i-1]], xy[lpath[i]])
-        if np.cross(vab, vlp) >= 0 :
-            peakix = i
-        else:
-            break
-    print(f'peak = {peakix}, distance = {distance_to_line(xy[lpath[peakix]], a, b)}')
-    for i in range(1, len(rpath)):
-        vlp = vector(xy[rpath[i-1]], xy[rpath[i]])
-        if np.cross(vab, vlp) <= 0 :
-            peakix = i
-        else:
-            break
-    print(f'peak = {peakix}, distance = {distance_to_line(xy[rpath[peakix]], a, b)}')
-    
-    print(f'lmax = {lmax}, rmax = {rmax}')
-    return (list(lpath), list(rpath))
+        print(f'lmax = {lmax}, rmax = {rmax}')
+        return (list(lpath), list(rpath))
 
 '''constant'''
 epoch_start = np.datetime64('1970-01-01T00:00:00Z')
