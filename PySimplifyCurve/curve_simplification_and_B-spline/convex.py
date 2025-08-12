@@ -37,7 +37,7 @@ def distance_to_line(p, a, b):
     ap = vector(a, p)
     if np.dot(ab, ap) < 0.0 :
         return norm(ap)
-    ba = vector(b,a)
+    ba = -ab
     bp = vector(b,p)
     if np.dot(ba, bp) < 0.0 :
         return norm(bp)
@@ -85,12 +85,12 @@ def simplify_greedy(xy : np.array, tolerance : float):
                 break
     return np.array([xy[i] for i in path]), path
 
-class PointSequenceConvex:
+class ConvexHullSequence:
     def __init__(self, xy : np.array):
         n = len(xy)
-        lpath =deque([i for i in range(min(n, 2))])
-        rpath = deque([i for i in range(min(n, 2))])
-        lastix = lpath[-1]
+        self.leftpath = deque([i for i in range(min(n, 2))])
+        self.rightpath = deque([i for i in range(min(n, 2))])
+        lastix = self.leftpath[-1]
         orgix = 0
         print(lastix, n)
         while lastix + 1 < n :
@@ -105,52 +105,58 @@ class PointSequenceConvex:
                 print('left')
             else:
                 print('right')
-            lpath.append(nextix)
-            rpath.append(nextix)
+            self.leftpath.append(nextix)
+            self.rightpath.append(nextix)
             
-            while len(lpath) > 2 :
-                vlast = vector(xy[lpath[-2]], xy[lpath[-1]])
-                vprev = vector(xy[lpath[-3]], xy[lpath[-2]])
+            while len(self.leftpath) > 2 :
+                vlast = vector(xy[self.leftpath[-2]], xy[self.leftpath[-1]])
+                vprev = vector(xy[self.leftpath[-3]], xy[self.leftpath[-2]])
                 if np.cross(vprev,vlast) >= 0 :
-                    llast = lpath.pop()
-                    lpath.pop()
-                    lpath.append(llast)
+                    llast = self.leftpath.pop()
+                    self.leftpath.pop()
+                    self.leftpath.append(llast)
                 else:
                     break
-            while len(rpath) > 2 :
-                vlast = vector(xy[rpath[-2]], xy[rpath[-1]])
-                vprev = vector(xy[rpath[-3]], xy[rpath[-2]])
+            while len(self.rightpath) > 2 :
+                vlast = vector(xy[self.rightpath[-2]], xy[self.rightpath[-1]])
+                vprev = vector(xy[self.rightpath[-3]], xy[self.rightpath[-2]])
                 if np.cross(vprev,vlast) <= 0 :
-                    rlast = rpath.pop()
-                    rpath.pop()
-                    rpath.append(rlast)
+                    rlast = self.rightpath.pop()
+                    self.rightpath.pop()
+                    self.rightpath.append(rlast)
                 else:
                     break
             lastix = nextix
-            print(lpath, rpath)
-        a = xy[lpath[0]]
-        b = xy[lpath[-1]]
-        lmax = max([distance_to_line(xy[i], a, b) for i in lpath])
-        rmax = max([distance_to_line(xy[i], a, b) for i in rpath])
+            print(self.left_path_list(), self.right_path_list())
+        a = xy[self.leftpath[0]]
+        b = xy[self.leftpath[-1]]
         vab = vector(a,b)
         peakix = 0
-        for i in range(1, len(lpath)):
-            vlp = vector(xy[lpath[i-1]], xy[lpath[i]])
+        for i in range(1, len(self.leftpath)):
+            vlp = vector(xy[self.leftpath[i-1]], xy[self.leftpath[i]])
             if np.cross(vab, vlp) >= 0 :
                 peakix = i
             else:
                 break
-        print(f'peak = {peakix}, distance = {distance_to_line(xy[lpath[peakix]], a, b)}')
-        for i in range(1, len(rpath)):
-            vlp = vector(xy[rpath[i-1]], xy[rpath[i]])
+        self.leftpeak = peakix
+        print(f'left peak = {peakix}, distance = {distance_to_line(xy[self.leftpath[peakix]], a, b)}')
+        for i in range(1, len(self.rightpath)):
+            vlp = vector(xy[self.rightpath[i-1]], xy[self.rightpath[i]])
             if np.cross(vab, vlp) <= 0 :
                 peakix = i
             else:
                 break
-        print(f'peak = {peakix}, distance = {distance_to_line(xy[rpath[peakix]], a, b)}')
+        self.rightpeak = peakix
+        print(f'right peak = {peakix}, distance = {distance_to_line(xy[self.rightpath[peakix]], a, b)}')
         
-        print(f'lmax = {lmax}, rmax = {rmax}')
-        return (list(lpath), list(rpath))
+        #print(f'lmax = {lmax}, rmax = {rmax}')
+        return
+    
+    def left_path_list(self):
+        return list(self.leftpath)
+    
+    def right_path_list(self):
+        return list(self.rightpath)
 
 '''constant'''
 epoch_start = np.datetime64('1970-01-01T00:00:00Z')
@@ -167,7 +173,7 @@ if __name__ == '__main__':
     center_lonlat = (np.mean(longi), np.mean(lati))
     print(f'center = {center_lonlat}')
     
-    tolerance = 8
+    tolerance = 16
     print(f'tolerance = {tolerance}')
     '''epsilon, the 1/2 width of simplified lines.'''
     
@@ -177,11 +183,11 @@ if __name__ == '__main__':
     last_datetime = epoch_start
     for i in range(len(tbl)):
         past = dt[i] - last_datetime
-        if past.item().total_seconds() >= 15 :
+        if past.item().total_seconds() >= 60 :
             last_datetime = dt[i]
             x, y = proj(longi[i], lati[i])
-            # if len(xy) > 0 and np.linalg.norm(np.array([x, y]) - xy[-1]) < 1/2*tolerance :
-            #     continue
+            if len(xy) > 0 and np.linalg.norm(np.array([x, y]) - xy[-1]) < tolerance :
+                 continue
             xy.append((x, y))
     xy = xy[1:100]
     if False:
@@ -191,7 +197,8 @@ if __name__ == '__main__':
     xy = np.array(xy)
     print(f'points in the input provided: {len(xy)}')
     
-    lpath, rpath = convex_hull(xy)
+    convex = ConvexHullSequence(xy)
+    lpath, rpath = convex.left_path_list(), convex.right_path_list()
     print(lpath, rpath)
         
     x, y = xy[:,0], xy[:,1]
