@@ -19,29 +19,64 @@ class Timer:
         self.end = time.time()
         print(self.message + f"Execution time: {self.end - self.start} seconds")
 
+class PointXY:
+    def __init__(self, xy, yy = None):
+        if yy != None :
+            self.coord = (xy, yy)
+        else:
+            self.coord = (xy[0], xy[1])
+            
+    def __getitem__(self, key):
+        if key == 0 or key == 'x' :
+            return self.coord[0]
+        elif key == 1 or key == 'y' :
+            return self.coord[1]
+        raise KeyError('has no such key {key}')
+
+    def __setitem__(self, key, value):
+        if key == 0 or key == 'x' :
+            self.coord[0] = value
+        elif key == 1 or key == 'y' :
+            self.coord[1] = value
+        raise KeyError('has no such key {key}')
+
+    def __repr__(self):
+        return f'PointXY({self.coord[0]}, {self.coord[1]})'
     
-def vector(orig, dest : np.array): 
-    return dest - orig
+    def __str__(self):
+        return f'({self.coord[0]}, {self.coord[1]})'
+    
+    def __tuple__(self):
+        return self.coord
+    
+    def __neg__(self):
+        return PointXY(-self.coord[0], -self.coord[1])
+        
+    def __sub__(self, other):
+        return PointXY( self.coord[0] - other.coord[0], self.coord[1] - other.coord[1])
 
-def norm(v : np.array):
-    return np.linalg.norm(v)
+    def norm(self):
+        return sqrt(self.coord[0]*self.coord[0] + self.coord[1]*self.coord[1])
 
-def outer_prod_norm(v0, v1 : np.array):
-    return v0[0]*v1[1] - v0[1]*v1[0]
+    def distance(self, vdst):
+        return norm(vdst - self)
 
-def inner_prod(v0, v1 : np.array):
-    return v0[0]*v1[0] + v0[1]*v1[1]
+    def outer_prod_norm(self, other):
+        return self[0]*other[1] - self[1]*other[0]
 
-def distance_to_line(p, a, b):
-    ab = vector(a, b)
-    ap = vector(a, p)
-    if np.dot(ab, ap) < 0.0 :
-        return norm(ap)
-    ba = -ab
-    bp = vector(b,p)
-    if np.dot(ba, bp) < 0.0 :
-        return norm(bp)
-    return abs(outer_prod_norm(ab, ap)/norm(ab))
+    def inner_prod(self, other):
+        return self[0]*other[0] + self[1]*other[1]
+
+    def distance_to_line(self, a, b):
+        ab = b - a
+        ap = self - a
+        if ab.inner_prod(ap) < 0.0 :
+            return norm(ap)
+        ba = -ab
+        bp = b - self
+        if ba.inner_prod(bp) < 0.0 :
+            return norm(bp)
+        return abs(ab.outer_prod_norm(ap)/ab.norm())
     
 # def copilot_distance(a, b, p):
 #     ab = b - a
@@ -85,8 +120,78 @@ def simplify_greedy(xy : np.array, tolerance : float):
                 break
     return np.array([xy[i] for i in path]), path
 
-class ConvexHullSequence:
-    def __init__(self, xy : np.array):
+class ConvexHull:
+    def __init__(self):
+        self.xy = list()
+        self.leftpath = deque()
+        self.rightpath = deque()
+    
+    def __len__(self):
+        return self.size()
+    
+    def size(self):
+        return len(self.xy)
+    
+    '''returns axis vector'''
+    def axis(self):
+        '''the first and the last points of both paths are identical.'''
+        return self.xy[self.leftpath[-1]] - self.xy[0]
+    
+    def add_point(self, pt):
+        n = len(self.xy)
+        if n == 0 :
+            self.leftpath.append(n)
+            self.rightpath.append(n)
+            self.xy.append( PointXY(pt) )
+            return True
+        elif n == 1 :
+            self.leftpath.append(n)
+            self.rightpath.append(n)
+            self.xy.append( PointXY(pt) )
+            return True
+        #
+        lastix = self.leftpath[-1]
+        vlast = self.xy[lastix] - self.xy[0]
+        vnext = pt - self.xy[-1]            
+        if vlast.inner_prod(vnext) < 0 :
+            print('point gets near.')
+            return False
+        
+        if vlast.outer_prod_norm(vnext) == 0 :
+            print('streight')
+        elif vlast.outer_prod_norm(vnext) > 0 :
+            print('left')
+        else:
+            print('right')
+        
+        self.xy.append(pt)
+        self.leftpath.append(n)
+        self.rightpath.append(n)
+        
+        return True
+    
+        while len(self.leftpath) > 2 :
+            vlast = vector(xy[self.leftpath[-2]], xy[self.leftpath[-1]])
+            vprev = vector(xy[self.leftpath[-3]], xy[self.leftpath[-2]])
+            if np.cross(vprev,vlast) >= 0 :
+                llast = self.leftpath.pop()
+                self.leftpath.pop()
+                self.leftpath.append(llast)
+            else:
+                break
+        while len(self.rightpath) > 2 :
+            vlast = vector(xy[self.rightpath[-2]], xy[self.rightpath[-1]])
+            vprev = vector(xy[self.rightpath[-3]], xy[self.rightpath[-2]])
+            if np.cross(vprev,vlast) <= 0 :
+                rlast = self.rightpath.pop()
+                self.rightpath.pop()
+                self.rightpath.append(rlast)
+            else:
+                break
+        lastix = nextix
+
+    
+    def convex_hull(self, xy : np.array):
         n = len(xy)
         self.leftpath = deque([i for i in range(min(n, 2))])
         self.rightpath = deque([i for i in range(min(n, 2))])
@@ -197,8 +302,11 @@ if __name__ == '__main__':
     xy = np.array(xy)
     print(f'points in the input provided: {len(xy)}')
     
-    convex = ConvexHullSequence(xy)
-    lpath, rpath = convex.left_path_list(), convex.right_path_list()
+    cvxhull = ConvexHull()
+    for pt in xy:
+        if not cvxhull.add_point(PointXY(pt)) :
+            break
+    lpath, rpath = cvxhull.left_path_list(), cvxhull.right_path_list()
     print(lpath, rpath)
         
     x, y = xy[:,0], xy[:,1]
