@@ -208,7 +208,7 @@ if __name__ == '__main__':
     path = rdp_path
     for i in range(1,len(path)):
         a = xy[path[i-1]]
-        b =  xy[path[i]]
+        b = xy[path[i]]
         for p in xy[path[i-1]:path[i]]:
             distances.append(distance_to_line(p, a, b))
             arr = np.array(distances)
