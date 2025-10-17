@@ -3,15 +3,19 @@ Created on 2025/07/27
 
 @author: sin
 '''
-
-import gpxpy
+import sys
 import gpxpy.gpx
 import csv
 
 if __name__ == '__main__':
-
+    filename = '2025-0726-151032.gpx'  #default file name
+    if len(sys.argv) > 1 : filename = sys.argv[1]
+    if filename == None :
+        raise ValueError('no input .gpx file name.')
+    
     # Open the GPX file
-    with open('2025-0726-151032.gpx', 'r') as gpx_file:
+    print(f'open file \'{filename}\'.')
+    with open(filename, 'r') as gpx_file:
         gpx = gpxpy.parse(gpx_file)
 
     # Prepare data for CSV
@@ -33,3 +37,4 @@ if __name__ == '__main__':
             writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
             writer.writeheader()
             writer.writerows(data_rows)
+        print(f'written to \'output.csv\'.')
