@@ -1,23 +1,6 @@
+import sys
 import numpy as np
-import matplotlib.pyplot as plt
-from scipy.interpolate import make_interp_spline
-import rdp
-#import math
 from pyproj import Proj
-from collections import deque
-
-import time
-
-class Timer:
-    def __init__(self, mess = ''):
-        self.message = str(mess)
-        
-    def __enter__(self):
-        self.start = time.time()
-        return self
-    def __exit__(self, *args):
-        self.end = time.time()
-        print(self.message + f"Execution time: {self.end - self.start} seconds")
 
 # def copilot_distance(a, b, p):
 #     ab = b - a
@@ -42,16 +25,37 @@ epoch_start = np.datetime64('1970-01-01T00:00:00Z')
 
 if __name__ == '__main__':
     '''read csv into numpy array.'''
-    filename = '2025-0726-151032.csv'
+    filename = ''
+    outfilename = ''
+    '''引数処理'''
+    if len(sys.argv) == 1 :
+        print('A CSV file name as an input is requested.')
+        print('options: -o output_CSV_filename ')
+        exit(1)
+    else:
+        argi = 1
+        while argi < len(sys.argv) :
+            argstr = sys.argv[argi]
+            if argstr.startswith('-') :
+                if argstr == '-o' :
+                    argi += 1
+                    outfilename = sys.argv[argi]
+                    argi += 1
+            else:
+                filename = argstr
+                argi += 1
+                    
+    '''表形式に変換'''
     tbl = np.genfromtxt(filename, delimiter=',', skip_header=1, missing_values='', dtype=str)
     dt = np.datetime_as_string(tbl[:,3].astype(np.datetime64), timezone='UTC')
     dt = dt.astype(np.datetime64)
     print(f'raw data contains {len(dt)} points.')
-    #print(dt)
+    
     lati = tbl[:,0].astype(np.float64)
     longi = tbl[:,1].astype(np.float64)
     center_lonlat = (np.mean(longi), np.mean(lati))
-    print(f'center(longitude, latitude) = {center_lonlat}')
+    
+    print(f'center coordinate (longitude, latitude) = {center_lonlat}')
     
     '''convert (lon, lat) to points on the cartesian plane by azimuthal equidistance projection. '''
     proj = Proj(proj='aeqd', lon_0=center_lonlat[0], lat_0=center_lonlat[1], datum='WGS84')
@@ -63,15 +67,17 @@ if __name__ == '__main__':
             last_datetime = dt[i]
             x, y = proj(longi[i], lati[i])
             xy.append((x, y))
-
+    
+    '''返還後の出力'''
     #xy =xy[:10]
-    writeout_csv = False
-    if writeout_csv:
-        with open('xy.csv', 'w') as f :
+    if len(outfilename) :
+        with open(outfilename, 'w') as f :
             for x, y in xy:
                 f.write(f'{x},{y}\n')
+    else:
+        '''めんどくさいので numpy 配列にしてnumpy風表示'''
+        xy = np.array(xy)
+        print(f'points in the input provided: {len(xy)}')
+        print(xy)
     
-    xy = np.array(xy)
-    print(f'points in the input provided: {len(xy)}')
-    print(xy)
-    
+    print('Done.')
