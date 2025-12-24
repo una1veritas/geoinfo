@@ -36,7 +36,7 @@ def distance_to_line(p, a, b):
         return norm(ap)
     ba = diff_vec(b,a)
     bp = diff_vec(b,p)
-    if np.dot(ba, bp) < 0.0 :
+    if np.dot(ba, bp) == 0.0 :
         return norm(bp)
     return abs(outer_prod_norm(ab, ap)/norm(ab))
     
@@ -134,6 +134,72 @@ def simplify_shortest(xy : np.array, tolerance : float):
 
     return np.array([xy[i] for i in path]), path
 
+def distance_to_line_min_max_ix(xypoints, startix, stopix, a, b):
+    min_dist = float('inf')
+    max_dist = 0
+    min_dist_ix = startix
+    max_dist_ix = startix
+    for ix in range(startix, stopix + 1):
+        pt = xypoints[ix]
+        dist = distance_to_line(pt, a, b)
+        if dist < min_dist :
+            min_dist = dist
+            mindist_ix = ix
+        if dist > max_dist :
+            max_dist = dist
+            max_dist_ix = ix
+    return (min_dist_ix, min_dist, max_dist_ix, max_dist)
+
+def divide_and_decimate(xy : np.array, tolerance : float):
+    if len(xy) < 2 :
+        raise ValueError('xy array must have two or more points.')
+    
+    '''準備'''
+    '''section_ix_q は分割されうる区間の点の最初と最後のものの添え字を持つ．'''
+    section_ix_q = deque() # stack/queue of ix
+    section_ix_q.append(0) # the first point
+    section_ix_q.append(len(xy) - 1) # the last queue 
+    #print(f'the original index queue = {section_ix_q}')
+    
+    simplified_ix_q = deque()
+    simplified_ix_q.append(section_ix_q[0]) 
+    # '''単純化した区間の最初の点の添え字は、直前の区間の最後の点として追加済みとみなす。'''
+    # print(f'simplified_ix_q = {simplified_ix_q}')
+    
+    '''decimates the indices of the points in xy 
+    by moving chosen indices of points from section_ix_q to simplified_ix_q. '''
+    while len(section_ix_q) > 0 :
+        '''base line is (xy[start_ix], xy[stop_ix])'''
+        start_ix = section_ix_q.popleft() # get the first index and remove from queue
+        if len(section_ix_q) == 0 :
+            simplified_ix_q.append(start_ix)
+            break
+        stop_ix = section_ix_q[0] # the second index since the first one has been remooved
+        #print(f'considering section [{start_ix}, {stop_ix}]')
+        
+        '''3 区間にわける'''
+        mid_start_ix = start_ix + (stop_ix - start_ix + 1) //3;     # = first_stop_ix
+        mid_stop_ix = mid_start_ix + (stop_ix - start_ix + 1) //3;  # = last_start_ix
+        #mid_ix = start_ix + (stop_ix - start_ix)//2
+        #print(f'mid_start, mid_stop = [{mid_start_ix}, {mid_stop_ix}]')
+        (min_ix0, min_dist0, max_ix0, max_dist0) = distance_to_line_min_max_ix(xy, start_ix, mid_start_ix - 1, xy[start_ix], xy[start_ix])
+        (min_ix1, min_dist1, max_ix1, max_dist1) = distance_to_line_min_max_ix(xy, mid_start_ix, mid_stop_ix, xy[start_ix], xy[stop_ix])
+        (min_ix2, min_dist2, max_ix2, max_dist2) = distance_to_line_min_max_ix(xy, mid_stop_ix, stop_ix, xy[start_ix], xy[stop_ix])
+        if max(max_dist0, max_dist2) > tolerance and max_dist1 <= tolerance:
+            #print(f'{max_dist1} > tolerance')
+            section_ix_q.appendleft(min_ix1)
+            section_ix_q.appendleft(start_ix)
+        elif max_dist1 > tolerance :
+            #print(f'{max_dist0} or {max_dist2} > tolerance')
+            section_ix_q.appendleft(max_ix1)
+            section_ix_q.appendleft(start_ix)
+        else:
+            #print(f'{max_dist0}, {max_dist1}, {max_dist2} <= tolerance')
+            simplified_ix_q.append(section_ix_q[0])
+        #print(f'section_ix_q = {section_ix_q}, \nsimplified_ix_q = {simplified_ix_q}\n')
+    return xy[[True if i in simplified_ix_q else False for i in range(len(xy))]], simplified_ix_q
+    
+
 '''constant'''
 epoch_start = np.datetime64('1970-01-01T00:00:00Z')
 
@@ -174,16 +240,16 @@ if __name__ == '__main__':
     xy = np.array(xy)
     print(f'points in the input provided: {len(xy)}')
     
-    with Timer('greedy '):
-        greedy_xy, greedy_path = simplify_greedy(xy, tolerance)
+    with Timer('divide-and-decimate '):
+        divdec_xy, divdec_path = divide_and_decimate(xy, tolerance)
     #shortest_xy, shortest_path = simplify_shortest(xy, tolerance)
     with Timer('rdp '):
         rdp_xy, rdp_path = simplify_RDP(xy, tolerance)
     
     print('\nanalysis:')
-    print(f'\ngreedy xy size = {len(greedy_xy)}')
+    print(f'\ndivdec xy size = {len(divdec_xy)}')
     distances = list()
-    path = greedy_path
+    path = divdec_path
     for i in range(1,len(path)):
         a = xy[path[i-1]]
         b =  xy[path[i]]
@@ -191,6 +257,7 @@ if __name__ == '__main__':
             distances.append(distance_to_line(p, a, b))
             arr = np.array(distances)
     print(f'max {np.max(arr):.3f} mean {np.mean(arr):.2f}, std dev {np.std(arr):.2f}')
+    
     # print(f'\nshortest xy size = {len(shortest_xy)}')
     # distances.clear()
     # distances = list()
@@ -215,7 +282,7 @@ if __name__ == '__main__':
     print(f'max {np.max(arr):.3f} mean {np.mean(arr):.2f}, std dev {np.std(arr):.2f}')    
         
     x, y = xy[:,0], xy[:,1]
-    sx, sy = greedy_xy[:,0], greedy_xy[:,1]     
+    sx, sy = divdec_xy[:,0], divdec_xy[:,1]     
     ctrlparam = np.linspace(0,1,num=len(sx),endpoint=True)
     spl = make_interp_spline(ctrlparam, np.c_[sx, sy])
 
@@ -226,7 +293,7 @@ if __name__ == '__main__':
     ax.plot(x, y, 'r.', lw=0.1, alpha=0.35)
     ax.plot(sx, sy, 'bo-')
     plt.plot(x_new, y_new, 'y-')
-    plt.legend(['Input points', 'Selected points', 'Interpolated B-spline', 'True'],loc='best')
+    plt.legend(['Input points', 'Selected in divdec_xy', 'Interpolated B-spline', 'True'],loc='best')
     plt.title('B-Spline interpolation')
     ax.set_aspect('equal')
     plt.show()
