@@ -185,14 +185,19 @@ def divide_and_decimate(xy : np.array, tolerance : float):
         (min_ix0, min_dist0, max_ix0, max_dist0) = distance_to_line_min_max_ix(xy, start_ix, mid_start_ix - 1, xy[start_ix], xy[start_ix])
         (min_ix1, min_dist1, max_ix1, max_dist1) = distance_to_line_min_max_ix(xy, mid_start_ix, mid_stop_ix, xy[start_ix], xy[stop_ix])
         (min_ix2, min_dist2, max_ix2, max_dist2) = distance_to_line_min_max_ix(xy, mid_stop_ix, stop_ix, xy[start_ix], xy[stop_ix])
+         
         if max(max_dist0, max_dist2) > tolerance and max_dist1 <= tolerance:
-            #print(f'{max_dist1} > tolerance')
-            section_ix_q.appendleft(min_ix1)
-            section_ix_q.appendleft(start_ix)
+             #print(f'{max_dist1} > tolerance')
+             section_ix_q.appendleft(max_ix1)
+             section_ix_q.appendleft(start_ix)        # if max(max_dist0, max_dist2) > tolerance and max_dist1 <= tolerance:
+        # if max(max_dist0, max_dist2) > tolerance and max_dist1 <= tolerance:
+        #      #print(f'{max_dist1} > tolerance')
+        #      section_ix_q.appendleft(min_ix1)
+        #      section_ix_q.appendleft(start_ix)        # if max(max_dist0, max_dist2) > tolerance and max_dist1 <= tolerance:
         elif max_dist1 > tolerance :
-            #print(f'{max_dist0} or {max_dist2} > tolerance')
-            section_ix_q.appendleft(max_ix1)
-            section_ix_q.appendleft(start_ix)
+             #print(f'{max_dist0} or {max_dist2} > tolerance')
+             section_ix_q.appendleft(max_ix1)
+             section_ix_q.appendleft(start_ix)
         else:
             #print(f'{max_dist0}, {max_dist1}, {max_dist2} <= tolerance')
             simplified_ix_q.append(section_ix_q[0])
