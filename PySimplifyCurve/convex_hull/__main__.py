@@ -55,7 +55,7 @@ class PointXY:
     def __sub__(self, other):
         return PointXY( self.coord[0] - other.coord[0], self.coord[1] - other.coord[1])
     
-    ''' > 0 self is left of org-dst, < 0 self is right''' 
+    ''' < 0 ... self is left , > 0 ... self is right''' 
     def side_from_vector(self, orgpt, dstpt):
         return (dstpt - orgpt).outer_prod_norm(self - orgpt)
     
@@ -132,19 +132,22 @@ class ConvexHull:
         if len(self) <= 2 :
             self.leftpath.append(len(self)-1)
             self.rightpath.append(len(self)-1)
+            return True
         else:
-            if self.isinside(pt) :
-                #skipt adding isinside point to left and right paths
+            print(pt, self.xy[self.leftpath[-1]], self.xy[self.leftpath[-2]], pt.side_from_vector(self.xy[self.leftpath[-1]], self.xy[self.leftpath[-2]]))
+            if pt.side_from_vector(self.xy[self.leftpath[-1]], self.xy[self.leftpath[-2]]) < 0 \
+            and pt.side_from_vector(self.xy[self.rightpath[-1]], self.xy[self.rightpath[-2]]) > 0 :
+                # reject point if is is inside the last paths of leftpath and rightpath
                 print(f'skip adding {pt} to left and right paths.')
-                return
-            axorg = self.xy[0]
-            axlast = self.xy[self.leftpath[-1]]
-            if axorg.distance_to(axlast) > axorg.distance_to(pt) :
-                # print("a nearer point to axorg")
-                # if pt.side_from_vector(self.xy[self.leftpath[-1]], self.xy[self.leftpath[-2]]) < 0 \
-                # and pt.side_from_vector(self.xy[self.rightpath[-1]], self.xy[self.rightpath[-2]]) > 0 :
-                #    return
-                return
+                return False
+            # axorg = self.xy[0]
+            # axlast = self.xy[self.leftpath[-1]]
+            # if axorg.distance_to(axlast) > axorg.distance_to(pt) :
+            #     # print("a nearer point to axorg")
+            #     # if pt.side_from_vector(self.xy[self.leftpath[-1]], self.xy[self.leftpath[-2]]) < 0 \
+            #     # and pt.side_from_vector(self.xy[self.rightpath[-1]], self.xy[self.rightpath[-2]]) > 0 :
+            #     #    return
+            #     return False
             print(f'adding {pt} to convex hull')
             self.leftpath.append(len(self)-1)
             self.leftpath_convexing()
@@ -204,7 +207,7 @@ class ConvexHull:
         return
         
 if __name__ == '__main__':
-    xy = [(0, 0), (-1, 1.5), (0, 2.5), (1, 2), (1, 3), (3, 1), (1.5, 4), (3, 4), (2.5, 3), (3.2, 2), (2, 0.5)]
+    xy = [(0, 0), (-1, 1), (0.5, 1.5), (0, 2.5), (1, 2), (1, 3), (2, 1.5), (3, 1), (1.5, 4), (3, 4), (2.5, 3), (3.2, 2), (2, 0.5)]
     # if False:
     #     with open('xy.csv', 'w') as f :
     #         for x, y in xy:
@@ -237,9 +240,9 @@ if __name__ == '__main__':
     
     fig, ax = plt.subplots()
     ax.plot(x, y, 'y.-', lw=2.0)
-    # ax.plot(lx, ly, 'b.-', lw=0.75) #, alpha=0.75)
-    # ax.plot(rx, ry, 'r.-', lw=0.75) #, alpha=0.75)
-    ax.plot(rdpx, rdpy, 'g.-', lw=0.75) #, alpha=0.75)
+    ax.plot(lx, ly, 'b.-', lw=0.75) #, alpha=0.75)
+    ax.plot(rx, ry, 'r.-', lw=0.75) #, alpha=0.75)
+    #ax.plot(rdpx, rdpy, 'g.-', lw=0.75) #, alpha=0.75)
     #plt.plot(x_new, y_new, 'y-')
     plt.legend(['Input points', 'Selected points', 'Interpolated B-spline', 'True'],loc='best')
     plt.title('Convex Hull function Test')
