@@ -19,7 +19,7 @@ class Timer:
         self.end = time.time()
         print(self.message + f"Execution time: {self.end - self.start} seconds")
 
-class PointXY:
+class Point2D:
     def __init__(self, xy, yy = None):
         if yy != None :
             self.coord = (xy, yy)
@@ -50,10 +50,10 @@ class PointXY:
         return self.coord
     
     def __neg__(self):
-        return PointXY(-self.coord[0], -self.coord[1])
+        return Point2D(-self.coord[0], -self.coord[1])
         
     def __sub__(self, other):
-        return PointXY( self.coord[0] - other.coord[0], self.coord[1] - other.coord[1])
+        return Point2D( self.coord[0] - other.coord[0], self.coord[1] - other.coord[1])
     
     ''' < 0 ... self is left , > 0 ... self is right''' 
     def side_from_vector(self, orgpt, dstpt):
@@ -62,7 +62,7 @@ class PointXY:
     def norm(self):
         return math.sqrt(self.coord[0]*self.coord[0] + self.coord[1]*self.coord[1])
 
-    ''' distance between two PointXY points '''
+    ''' distance between two Point2D points '''
     def distance_to(self, vdst):
         return (vdst - self).norm()
 
@@ -107,7 +107,7 @@ def simplify_RDP(xy : np.array, epsilon):
 
 class ConvexHull:
     def __init__(self):
-        self.xy = list() # of PointXY
+        self.xy = list() # of Point2D
         self.leftpath = deque()
         self.rightpath = deque()
     
@@ -124,9 +124,9 @@ class ConvexHull:
     
     def add(self, pt):
         if isinstance(pt, (list, tuple)) and len(pt) >= 2 :
-            pt = PointXY(pt[:2])
-        if not isinstance(pt, PointXY) :
-            raise ValueError(f"PointXY or list/tuple needed {pt}.")
+            pt = Point2D(pt[:2])
+        if not isinstance(pt, Point2D) :
+            raise ValueError(f"Point2D or list/tuple needed {pt}.")
         
         self.xy.append(pt)
         if len(self) <= 2 :
@@ -205,7 +205,7 @@ class ConvexHull:
 
     def split(self):
         return
-        
+    
 if __name__ == '__main__':
     xy = [(0, 0), (-1, 1), (0.5, 1.5), (0, 2.5), (1, 2), (1, 3), (2, 1.5), (3, 1), (1.5, 4), (3, 4), (2.5, 3), (3.2, 2), (2, 0.5)]
     # if False:
@@ -217,7 +217,7 @@ if __name__ == '__main__':
     
     ch = ConvexHull()
     for pt in xy:
-        ch.add(PointXY(pt))
+        ch.add(Point2D(pt))
     
     print(ch)
     
