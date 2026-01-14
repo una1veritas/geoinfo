@@ -11,8 +11,14 @@ class Point2D:
         if yy != None :
             self.x = xy
             self.y = yy
+        elif isinstance(xy, Point2D) :
+            self.x = xy.x
+            self.y = xy.y
+        elif isinstance(xy, (list, tuple)) :
+            self.x = xy[0]
+            self.y = xy[1]
         else:
-            self.x, self.y = xy[:2]
+            raise ValueError(f"undefined conversion to Point2D from {xy} ({type(xy)})")
             
     def __getitem__(self, key):
         if key == 0 or key == 'x' :
@@ -57,8 +63,8 @@ class Point2D:
     def side_from_vector(self, orgpt, dstpt):
         return (dstpt - orgpt).outer_prod_norm(self - orgpt)
     
-    def left_of_line(self, a, b):
-        return (b.x - a.x) * self.y - (b.y - a.y) * self.x >= 0
+    def side_of_line(self, a, b):
+        return - (b.x - a.x) * self.y + (b.y - a.y) * self.x
 
     def inner_prod(self, other):
         return self.x * other.x + self.x * other.y
@@ -74,85 +80,79 @@ class Point2D:
             return bp.norm()
         return abs(ab.outer_prod_norm(ap)/ab.norm())
 
-class PathHull:
-    '''
-    struct PATH_HULL {
-        int top, bot;
-        int hp, op[TRICE_HULL_MAX];
-        POINT * elt[TWICE_HULL_MAX];
-        POINT *helt[TRICE_HULL_MAX];
-    };
-    '''
+class ConvexHull: 
+    def __init__(self, ptlist = None):
+        if ptlist == None or len(ptlist) < 3 :
+            raise ValueError("Empty or too short point list")
+        self.points = [Point2D(x, y) for x, y in ptlist]
+        self.hull = deque()
 
-    def __init__(self):
-        self.hist = deque()
-        self.elt = deque()
+        pts = deque(self.points)
+        print(f"starts with pts = {pts}")
+        ''' 1 '''
+        v1 = pts.popleft()
+        v2 = pts.popleft()
+        v3 = pts.popleft()
+        if v3.side_of_line(v1, v2) > 0 :
+            self.hull.append(v1)
+            self.hull.append(v2)
+        else:
+            self.hull.append(v2)
+            self.hull.append(v1)
+        self.hull.append(v3)
+        self.hull.appendleft(v3)
+        print(f"The first three points in hull: {self.hull}")
         
-    
+        while len(pts) > 0 :
+            ''' 2 '''
+            while True :
+                v = pts.popleft()
+                print(f"popped {v}, in pts remain {pts}.")
+                if ( self.hull[1].side_of_line(v, self.hull[0]) < 0 or v.side_of_line(self.hull[-2], self.hull[-1]) < 0 ) :
+                    break
+                if len(pts) == 0 :
+                    return
+            print(f"Step 2 result: v = {v}\n")
+            
+            ''' 3 '''
+            while True :
+                print(f"{v} is side {v.side_of_line(self.hull[0], self.hull[1])} of line from {self.hull[0]} to {self.hull[1]}")
+                if v.side_of_line(self.hull[0], self.hull[1]) > 0 :
+                    break
+                p = self.hull.pop()
+                print(f"{p} has been popped from self.hull = {self.hull}")
+            self.hull.append(v)
+            print(f"self.hull = {self.hull}")
+            
+            
+            ''' 4 '''
+            while True :
+                if self.hull[1].side_of_line(v, self.hull[0]) > 0 :
+                    break
+                self.hull.popleft()
+            self.hull.appendleft(v)
+            
+            
+        
+    def __repr__(self):
+        return f"ConvexHull({self.points}, {self.hull})"
+        
     def __str__(self):
-        return 'PathHull(' + str(self.hist) + ', ' + str(self.elt) + ') '
+        return f"ConvexHull({self.points}, {list(self.hull)})"
+        
+    def __len__(self):
+        return len(self.points)
     
-# pop from top
-#define Hull_Pop_Top(h) \
-#    (h)->helt[++(h)->hp] = (h)->elt[(h)->top--]; \
-#    (h)->op[(h)->hp] = TOP_OP
-
-    def pop_top(self):
-        self.hist.appendleft( (self.elt.pop(), 'TOP_OP') )                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           6`0 `````
     
-# pop from bottom
-#define Hull_Pop_Bot(h) \
-#    (h)->helt[++(h)->hp] = (h)->elt[(h)->bot++]; \
-#    (h)->op[(h)->hp] = BOT_OP
-
-    def pop_bottom(self):
-        self.hist.append( (self.elt.popleft(), 'BOT_TOP') )
-    
-# push element e onto path hull h
-#define Hull_Push(h, e) \
-#    (h)->elt[++(h)->top] = (h)->elt[--(h)->bot] = (h)->helt[++(h)->hp] = e; \
-#    (h)->op[(h)->hp] = PUSH_OP
-
-    def push(self, e):
-        self.hist.append( (e, 'PUSH_OP') )
-        self.elt.popleft()
-        self.elt[0] = e
-        self.elt.append(e)
-'''
-typedef double POINT[2];
-typedef double HOMOG[3];
-
-struct PATH_HULL {
-    int top, bot;
-    int hp, op[TRICE_HULL_MAX];
-    POINT * elt[TWICE_HULL_MAX];
-    POINT *helt[TRICE_HULL_MAX];
-};
-
-# inplements Melkman's Convex Hull 
-void Hull_Add(PATH_HULL * h, POINT *p) {
-    int topflag, botflag;
-    topflag = LEFT_OF(h->elt[h->top], h->elt[h->top - 1], p);
-    botflag = LEFT_OF(h->elt[h->bot + 1], h->elt[h->bot], p);
-
-    if (topflag or botflag) {
-        // if the new point is outside the hull
-        while (topflag) {
-            Hull_Pop_Top(h);
-            topflag = LEFT_OF(h->elt[h->top], h->elt[h->top - 1], p);
-        }
-        while (botflag) {
-            Hull_Pop_Bot(h);
-            botflag = LEFT_OF(h->elt[h->bot + 1], h->elt[h->bot], p);
-        }
-        Hull_Push(h, p);
-    }
-
-}
-'''
-
 if __name__ == '__main__':
-    a = Point2D(0,0)
-    b = Point2D(1, 1)
-    c = Point2D(0.5, 0.5)
-    print(a, b, c, c.left_of_line(a, b))
+    points = [(0, 0), (0, 1), (0.5, 0.5), (1, 0.2), ]
+    a = Point2D(points[0])
+    b = Point2D(points[1])
+    c = Point2D(points[2])
+    print(f"{c} is on side {c.side_of_line(a, b)} of the line from {a} to {b}.")
+    
+    cvh = ConvexHull(points)
+    print("\rFinally got :")
+    print(len(cvh))
+    print(cvh)
+    

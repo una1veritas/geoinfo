@@ -22,55 +22,59 @@ class Timer:
 class Point2D:
     def __init__(self, xy, yy = None):
         if yy != None :
-            self.coord = (xy, yy)
+            self.x = xy
+            self.y = yy
         else:
-            self.coord = (xy[0], xy[1])
+            self.x, self.y = xy[:2]
             
     def __getitem__(self, key):
         if key == 0 or key == 'x' :
-            return self.coord[0]
+            return self.x
         elif key == 1 or key == 'y' :
-            return self.coord[1]
+            return self.y
         raise KeyError('has no such key {key}')
 
     def __setitem__(self, key, value):
         if key == 0 or key == 'x' :
-            self.coord[0] = value
+            self.x = value
         elif key == 1 or key == 'y' :
-            self.coord[1] = value
+            self.y = value
         raise KeyError('has no such key {key}')
 
     def __repr__(self):
-        return f'({self.coord[0]}, {self.coord[1]})'
+        return f'({self.x}, {self.y})'
     
     def __str__(self):
-        return f'({self.coord[0]}, {self.coord[1]})'
+        return f'({self.x}, {self.y})'
     
     def __tuple__(self):
-        return self.coord
+        return (self.x, self.y)
     
     def __neg__(self):
-        return Point2D(-self.coord[0], -self.coord[1])
+        return Point2D(-self.x, -self.y)
         
     def __sub__(self, other):
-        return Point2D( self.coord[0] - other.coord[0], self.coord[1] - other.coord[1])
-    
-    ''' < 0 ... self is left , > 0 ... self is right''' 
-    def side_from_vector(self, orgpt, dstpt):
-        return (dstpt - orgpt).outer_prod_norm(self - orgpt)
-    
+        return Point2D( self.x - other.x, self.y - other.y)
+        
     def norm(self):
-        return math.sqrt(self.coord[0]*self.coord[0] + self.coord[1]*self.coord[1])
+        return math.sqrt(self.x*self.x + self.y*self.y)
 
     ''' distance between two Point2D points '''
     def distance_to(self, vdst):
         return (vdst - self).norm()
 
     def outer_prod_norm(self, other):
-        return self[0]*other[1] - self[1]*other[0]
+        return self.x * other.y - self.x * other.y
+
+    ''' < 0 ... self is left , > 0 ... self is right''' 
+    def side_from_vector(self, orgpt, dstpt):
+        return (dstpt - orgpt).outer_prod_norm(self - orgpt)
+    
+    def left_of_line(self, a, b):
+        return (b.x - a.x) * self.y - (b.y - a.y) * self.x >= 0
 
     def inner_prod(self, other):
-        return self[0]*other[0] + self[1]*other[1]
+        return self.x * other.x + self.x * other.y
 
     def distance_to_line(self, a, b):
         ab = b - a
@@ -205,7 +209,8 @@ class ConvexHull:
 
     def split(self):
         return
-    
+
+        
 if __name__ == '__main__':
     xy = [(0, 0), (-1, 1), (0.5, 1.5), (0, 2.5), (1, 2), (1, 3), (2, 1.5), (3, 1), (1.5, 4), (3, 4), (2.5, 3), (3.2, 2), (2, 0.5)]
     # if False:
