@@ -63,6 +63,7 @@ class Point2D:
     def side_from_vector(self, orgpt, dstpt):
         return (dstpt - orgpt).outer_prod_norm(self - orgpt)
     
+    ''' starboard, clock wise direction (right) is positive '''
     def side_of_line(self, a, b):
         return - (b.x - a.x) * self.y + (b.y - a.y) * self.x
 
@@ -86,44 +87,48 @@ class ConvexHull:
             raise ValueError("Empty or too short point list")
         self.points = [Point2D(x, y) for x, y in ptlist]
         self.hull = deque()
-
-        pts = deque(self.points)
-        print(f"starts with pts = {pts}")
+        print(f"starts with self.points = {self.points}\n")
+        
         ''' 1 '''
-        v1 = pts.popleft()
-        v2 = pts.popleft()
-        v3 = pts.popleft()
+        v1 = self.points[0]
+        v2 = self.points[1]
+        v3 = self.points[2]
         if v3.side_of_line(v1, v2) > 0 :
-            self.hull.append(v1)
-            self.hull.append(v2)
+            self.hull.append(0)
+            self.hull.append(1)
         else:
-            self.hull.append(v2)
-            self.hull.append(v1)
-        self.hull.append(v3)
-        self.hull.appendleft(v3)
+            self.hull.append(1)
+            self.hull.append(0)
+        self.hull.append(2)
+        self.hull.appendleft(2)
         print(f"The first three points in hull: {self.hull}")
         
-        while len(pts) > 0 :
+        pix = 3
+        while pix < len(self.points) :
             ''' 2 '''
-            while True :
-                v = pts.popleft()
-                print(f"popped {v}, in pts remain {pts}.")
-                if ( self.hull[1].side_of_line(v, self.hull[0]) < 0 or v.side_of_line(self.hull[-2], self.hull[-1]) < 0 ) :
+            while pix < len(self.points) :
+                v = self.points[pix]
+                pix += 1
+                print(f"popped {v}, remained input points =  {self.points[pix:]}.")
+                db0 = self[0]
+                db1 = self[1]
+                dt0 = self[-1]
+                dt1 = self[-2]
+                if ( db1.side_of_line(v, db0) < 0 or v.side_of_line(dt1, dt0) < 0 ) :
+                    print("found.")
                     break
-                if len(pts) == 0 :
-                    return
             print(f"Step 2 result: v = {v}\n")
             
             ''' 3 '''
             while True :
-                print(f"{v} is side {v.side_of_line(self.hull[0], self.hull[1])} of line from {self.hull[0]} to {self.hull[1]}")
-                if v.side_of_line(self.hull[0], self.hull[1]) > 0 :
+                print(f"{v} is side {v.side_of_line(self.hullpoint(0), self.hullpoint(1))} of line from {self.hullpoint(0)} to {self.hullpoint(1)}")
+                if v.side_of_line(self.hullpoint(0), self.hullpoint(1)) > 0 :
                     break
-                p = self.hull.pop()
-                print(f"{p} has been popped from self.hull = {self.hull}")
+                p = self.pop()
+                print(f"{p} has been popped from self.hull = {self.hull}\n")
             self.hull.append(v)
             print(f"self.hull = {self.hull}")
-            
+            print("Go Step 4\n")
             
             ''' 4 '''
             while True :
@@ -132,7 +137,10 @@ class ConvexHull:
                 self.hull.popleft()
             self.hull.appendleft(v)
             
-            
+    def __getitem__(self, key):
+        if isinstance(key, int) :
+            return self.points[self.hull[key]]
+        raise KeyError('has no such key {key}')
         
     def __repr__(self):
         return f"ConvexHull({self.points}, {self.hull})"
@@ -143,13 +151,27 @@ class ConvexHull:
     def __len__(self):
         return len(self.points)
     
+    def hullpoint(self, ix):
+        return self.points[self.hull[ix]]
+    
+    def push(self, ix):
+        self.hull.append(ix)
+        
+    def pop(self):
+        return self.points[self.hull.pop()]
+    
+    def insert(self, ix):
+        self.hull.appendleft(ix)
+        
+    def remove(self):
+        return self.points[self.hull.popleft()]
     
 if __name__ == '__main__':
     points = [(0, 0), (0, 1), (0.5, 0.5), (1, 0.2), ]
     a = Point2D(points[0])
     b = Point2D(points[1])
     c = Point2D(points[2])
-    print(f"{c} is on side {c.side_of_line(a, b)} of the line from {a} to {b}.")
+    print(f"{c} is on side {c.side_of_line(a, b)} of the line from {a} to {b}.\n")
     
     cvh = ConvexHull(points)
     print("\rFinally got :")
