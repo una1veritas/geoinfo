@@ -81,7 +81,7 @@ class Point2D:
             return bp.norm()
         return abs(ab.outer_prod_norm(ap)/ab.norm())
 
-class ConvexHull: 
+class ConvexHullOfSimplePolyline: 
     def __init__(self, ptlist = None):
         if ptlist == None or len(ptlist) < 3 :
             raise ValueError("Empty or too short point list")
@@ -94,48 +94,39 @@ class ConvexHull:
         v2 = self.points[1]
         v3 = self.points[2]
         if v3.side_of_line(v1, v2) > 0 :
-            self.hull.append(0)
-            self.hull.append(1)
+            self.push(0)
+            self.push(1)
         else:
-            self.hull.append(1)
-            self.hull.append(0)
-        self.hull.append(2)
-        self.hull.appendleft(2)
+            self.push(1)
+            self.push(0)
+        self.push(2)
+        self.push(2)
         print(f"The first three points in hull: {self.hull}")
         
         pix = 3
         while pix < len(self.points) :
             ''' 2 '''
-            while pix < len(self.points) :
+            v = self.points[pix]
+            pix += 1
+            print(f"v = {v}, points = {self.points[pix:]}")
+            while pix < len(self.points) and \
+            not ( self[1].side_of_line(v, self[0]) < 0 or v.side_of_line(self[-2], self[-1]) < 0 ) :
                 v = self.points[pix]
                 pix += 1
-                print(f"popped {v}, remained input points =  {self.points[pix:]}.")
-                db0 = self[0]
-                db1 = self[1]
-                dt0 = self[-1]
-                dt1 = self[-2]
-                if ( db1.side_of_line(v, db0) < 0 or v.side_of_line(dt1, dt0) < 0 ) :
-                    print("found.")
-                    break
-            print(f"Step 2 result: v = {v}\n")
+            print(f"v = {v}, points = {self.points[pix:]}")
             
             ''' 3 '''
-            while True :
-                print(f"{v} is side {v.side_of_line(self.hullpoint(0), self.hullpoint(1))} of line from {self.hullpoint(0)} to {self.hullpoint(1)}")
-                if v.side_of_line(self.hullpoint(0), self.hullpoint(1)) > 0 :
-                    break
-                p = self.pop()
-                print(f"{p} has been popped from self.hull = {self.hull}\n")
-            self.hull.append(v)
+            while not ( v.side_of_line(self[-2], self[-1]) > 0 ) :
+                self.pop()
+                print(f"d = {self.hull}\n")
+            self.push(pix)
             print(f"self.hull = {self.hull}")
             print("Go Step 4\n")
             
             ''' 4 '''
-            while True :
-                if self.hull[1].side_of_line(v, self.hull[0]) > 0 :
-                    break
-                self.hull.popleft()
-            self.hull.appendleft(v)
+            while not (self[1].side_of_line(v, self[0]) > 0) :
+                self.remove()
+            self.insert(pix)
             
     def __getitem__(self, key):
         if isinstance(key, int) :
@@ -173,7 +164,7 @@ if __name__ == '__main__':
     c = Point2D(points[2])
     print(f"{c} is on side {c.side_of_line(a, b)} of the line from {a} to {b}.\n")
     
-    cvh = ConvexHull(points)
+    cvh = ConvexHullOfSimplePolyline(points)
     print("\rFinally got :")
     print(len(cvh))
     print(cvh)
