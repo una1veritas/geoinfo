@@ -76,7 +76,7 @@ for trk in gpxroot.iter(gpxroot_namespace+'trk'):
     trkseg = trk.find(gpxroot_namespace+'trkseg') 
     exts = trk.find(gpxroot_namespace+'extensions')
 #            print(elem.)
-    if trkseg :
+    if trkseg is not None :
         tzinfo = exts.find(gpxroot_namespace+'mytracks:timezone')
         print('tzinfo = ' + str(tzinfo))
         if outfilename == '':
