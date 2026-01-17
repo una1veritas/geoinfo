@@ -7,6 +7,7 @@ from pyproj import Proj
 from collections import deque
 
 import time
+from numpy import ix_
 
 class Timer:
     def __init__(self, mess = ''):
@@ -114,188 +115,185 @@ def simplify_RDP(xy : np.array, epsilon):
     return xy_rdp, [int(i) for i in np.where(mask)[0]]
 
 class ConvexHull:
+    RIGHT_SIDE = -1
+    LEFT_SIDE  = 1
+    COLINEAR = 0
+    
     def __init__(self, points = None, SimplePolyline = False):
         self.xy = list() # of Point2D
-        self.cwpath = deque()
-        self.acwpath = deque()
+        self.leftpath = deque()     #clockwise path
+        self.rightpath = deque()    #anti-clockwise path
         
         if isinstance(points, (list, tuple)) :
             for p in points:
-                if SimplePolyline == False :
-                    if not self.add(p) :
-                        break
-                else:
-                    if not self.add_simplepolyline(p):
-                        break
+                if isinstance(p, (list, tuple)) and len(p) >= 2 :
+                    p = tuple(p[:2])
+                elif isinstance(p, (np.ndarray)) and len(p) >= 2 :
+                    p = (float(p[0]), float(p[1]))
+                else :
+                    #isinstance(pt, Point2D) 
+                    raise ValueError(f"list/tuple needed, {p} ({type(p)}).")
+                if not self.add(p, SimplePolyline) :
+                    break
     
     def __len__(self):
         return len(self.xy)
     
     def __str__(self):
-        return str(self.xy)+', '+str(self.cwpath)+', '+str(self.acwpath)
+        return str(self.xy)+', '+str(self.leftpath)+', '+str(self.rightpath)
     
-    def cwise(self, ix):
-        return self.xy[self.cwpath[ix]]
+    def leftq(self, ix):
+        return self.xy[self.leftpath[ix]]
     
-    def acwise(self, ix):
-        return self.xy[self.acwpath[ix]]
+    def rightq(self, ix):
+        return self.xy[self.rightpath[ix]]
     
+    ''' 1, 0, -1 for left, co linear with, right, respectively.'''
     @staticmethod
-    def left_side(a, b, c):
-        return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]) > 0
+    def side_of_line(a, b, c):
+        sval = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+        return 1 if sval > 0 else -1 if sval < 0 else 0 
 
-    @staticmethod
-    def right_side(a, b, c):
-        return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]) < 0
+    # @staticmethod
+    # def right_side(a, b, c):
+    #     return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]) < 0
     
     '''returns axis vector'''
     def axis(self):
         '''the first and the last points of the left and the right paths are identical.'''
-        return self.xy[self.cwpath[-1]] - self.xy[0]
+        return self.xy[self.leftpath[-1]] - self.xy[0]
     
-    def add(self, pt):
-        if isinstance(pt, (list, tuple)) and len(pt) >= 2 :
-            pt = tuple(pt[:2])
-        elif isinstance(pt, (np.ndarray)) and len(pt) >= 2 :
-            pt = (float(pt[0]), float(pt[1]))
-        else :
-            #isinstance(pt, Point2D) 
-            raise ValueError(f"Point2D or list/tuple needed, {pt} ({type(pt)}).")
-        
+    def add(self, pt, SimplePolyline=False):
         self.xy.append(pt)
         if len(self) <= 2 :
-            self.cwpath.append(len(self)-1)
-            self.acwpath.append(len(self)-1)
+            self.leftpath.append(len(self)-1)
+            self.rightpath.append(len(self)-1)
             return True
         
-        print(pt, self.cwise(-1), self.cwise(-2), self.right_side(self.cwise(-1), self.cwise(-2), pt))
-        if self.right_side(self.cwise(-2), self.cwise(-1), pt) and self.left_side(self.acwise(-2), self.acwise(-1), pt) :
+        #print(pt, self.leftq(-1), self.leftq(-2), self.side_of_line(self.leftq(-1), self.leftq(-2), pt))
+        if self.side_of_line(self.leftq(-2), self.leftq(-1), pt) < 0 and self.side_of_line(self.rightq(-2), self.rightq(-1), pt) > 0:
             # reject point if is is inside the last paths of clockwise path and anti-clockwise path
             #print(f'skip adding {pt} to left and right paths.\n')
-            return False
-        # axorg = self.xy[0]
-        # axlast = self.xy[self.leftpath[-1]]
-        # if axorg.distance_to(axlast) > axorg.distance_to(pt) :
-        #     # print("a nearer point to axorg")
-        #     # if pt.side_from_vector(self.xy[self.leftpath[-1]], self.xy[self.leftpath[-2]]) < 0 \
-        #     # and pt.side_from_vector(self.xy[self.rightpath[-1]], self.xy[self.rightpath[-2]]) > 0 :
-        #     #    return
-        #     return False
-        #print(f'adding {pt} to convex hull')
-        self.cwpath.append(len(self)-1)
-        self.cwpath_convexing()
-        self.acwpath.append(len(self)-1)
-        self.ccwpath_convexing()
+            return SimplePolyline
+        
+        self.leftpath.append(len(self)-1)
+        self.leftpath_convexing()
+        self.rightpath.append(len(self)-1)
+        self.rightpath_convexing()
         return True
     
-    def isinside(self, pt):
-        for ix in range(len(self.leftpath) - 1) : # from the first to the last
-            orgpt = self.xy[self.leftpath[ix]]
-            nxtpt = self.xy[self.leftpath[ix+1]]
-            if pt.side_from_vector(orgpt, nxtpt) < 0 :
-                # pt is left outer side of left path
-                #print(f'{pt} is outside of left-path {orgpt}, {nxtpt}')
-                return False
-        print(f'{pt} is isinside of left path.')
-        for ix in range(len(self.rightpath) - 1) : # from the first to the last
-            orgpt = self.xy[self.rightpath[ix]]
-            nxtpt = self.xy[self.rightpath[ix+1]]
-            if pt.side_from_vector(orgpt, nxtpt) > 0 :
-                # pt is right outer side of right path
-                print(f'{pt} is outside of right-path {orgpt}, {nxtpt}')
-                return False
-        print(f'{pt} is isinside of right path.')
-        return True
+    # def isinside(self, pt):
+    #     for ix in range(len(self.leftpath) - 1) : # from the first to the last
+    #         orgpt = self.xy[self.leftpath[ix]]
+    #         nxtpt = self.xy[self.leftpath[ix+1]]
+    #         if pt.side_from_vector(orgpt, nxtpt) < 0 :
+    #             # pt is left outer side of left path
+    #             #print(f'{pt} is outside of left-path {orgpt}, {nxtpt}')
+    #             return False
+    #     print(f'{pt} is isinside of left path.')
+    #     for ix in range(len(self.rightpath) - 1) : # from the first to the last
+    #         orgpt = self.xy[self.rightpath[ix]]
+    #         nxtpt = self.xy[self.rightpath[ix+1]]
+    #         if pt.side_from_vector(orgpt, nxtpt) > 0 :
+    #             # pt is right outer side of right path
+    #             print(f'{pt} is outside of right-path {orgpt}, {nxtpt}')
+    #             return False
+    #     print(f'{pt} is isinside of right path.')
+    #     return True
             
-    def cwpath_convexing(self):
-        #print(self.cwpath)
-        lastix = self.cwpath.pop() # from the lastpt to the first
+    def leftpath_convexing(self):
+        #print(self.leftpath)
+        lastix = self.leftpath.pop() # from the lastpt to the first
         lastpt = self.xy[lastix]
-        while len(self.cwpath) >= 2 :
-            prev = self.xy[self.cwpath[-1]]
-            befprev = self.xy[self.cwpath[-2]]
-            if self.right_side(lastpt, self.cwise(-1), self.cwise(-2)) : # left inner side
-                #print('pop!!!', lastpt, self.cwise(-1), self.cwise(-2), self.right_side(lastpt, self.cwise(-1), self.cwise(-2)))
-                self.cwpath.pop() # pop-out the prev point
-                #print(self.cwpath)
+        while len(self.leftpath) >= 2 :
+            if self.side_of_line(lastpt, self.leftq(-1), self.leftq(-2)) < 0 : # left inner point
+                #print('pop!!!', lastpt, self.leftq(-1), self.leftq(-2), self.right_side(lastpt, self.leftq(-1), self.leftq(-2)))
+                self.leftpath.pop() # pop-out the prev point
+                #print(self.leftpath)
             else:
                 break
-        self.cwpath.append(lastix)
+        self.leftpath.append(lastix)
         
-    def ccwpath_convexing(self):
-        lastix = self.acwpath.pop()
+    def rightpath_convexing(self):
+        lastix = self.rightpath.pop()
         last = self.xy[lastix]
-        while len(self.acwpath) >= 2 :
-            prev = self.xy[self.acwpath[-1]]
-            befprev = self.xy[self.acwpath[-2]]
-            if self.left_side(last, self.acwise(-1), self.acwise(-2)) :
-                self.acwpath.pop() # pop-out the prev point
+        while len(self.rightpath) >= 2 :
+            if self.side_of_line(last, self.rightq(-1), self.rightq(-2)) > 0 :
+                self.rightpath.pop() # pop-out the prev point
             else:
                 break
-        self.acwpath.append(lastix)
+        self.rightpath.append(lastix)
     
-    # def left_path_list(self):
-    #     return list(self.leftpath)
-    #
-    # def right_path_list(self):
-    #     return list(self.rightpath)
-
-    def add_simplepolyline(self, ptlist):
-        if ptlist == None or len(ptlist) < 3 :
-            raise ValueError("Empty or too short point list")
-        self.points = [Point2D(x, y) for x, y in ptlist]
-        self.hull = deque()
-        print(f"starts with self.points = {self.points}\n")
+    def push(self, ix):
+        self.leftpath.append(ix)
+    
+    def pop(self):
+        return self.leftpath.pop()
+    
+    def insert(self, ix):
+        self.leftpath.appendleft(ix)
+    
+    def remove(self):
+        return self.leftpath.popleft()
+    
+    def add_simplepolyline(self, pt):
+        self.xy.append(pt)
+        self.leftpath.append(len(self.xy) - 1)
+        self.rightpath.append(len(self.xy) - 1)
+        if len(self.xy) <= 2 :
+            return True
         
-        ''' 1 '''
-        v1 = self.points[0]
-        v2 = self.points[1]
-        v3 = self.points[2]
-        if v3.side_of_line(v1, v2) > 0 :
-            self.push(0)
-            self.push(1)
-        else:
-            self.push(1)
-            self.push(0)
-        self.push(2)
-        self.push(2)
-        print(f"The first three points in hull: {self.hull}")
+        ''' the 3rd point '''
+        if len(self.xy) == 3 :
+            #print('Step (1)', self.xy, self.leftpath, self.rightpath)
+            ptix = self.pop() # == 3
+            if self.side_of_line(self.leftq(-2), self.leftq(-1), pt) == self.LEFT_SIDE :
+                self.leftpath.reverse()
+            self.push(ptix)
+            self.rightpath[0] = self.leftpath[0]
+            self.rightpath[-1] = self.leftpath[-1]
+            print(f"Step (1), CVXH by the first three points: {self.leftpath}, {self.rightpath}\n")
+            return True
         
-        pix = 3
-        while pix < len(self.points) :
-            ''' 2 '''
-            v = self.points[pix]
-            pix += 1
-            print(f"v = {v}, points = {self.points[pix:]}")
-            while pix < len(self.points) and \
-            not ( self[1].side_of_line(v, self[0]) < 0 or v.side_of_line(self[-2], self[-1]) < 0 ) :
-                v = self.points[pix]
-                pix += 1
-            print(f"v = {v}, points = {self.points[pix:]}")
-            
-            ''' 3 '''
-            while not ( v.side_of_line(self[-2], self[-1]) > 0 ) :
-                self.pop()
-                print(f"d = {self.hull}\n")
-            self.push(pix)
-            print(f"self.hull = {self.hull}")
-            print("Go Step 4\n")
-            
-            ''' 4 '''
-            while not (self[1].side_of_line(v, self[0]) > 0) :
-                self.remove()
-            self.insert(pix)
+        ptix = self.pop() # pt's index
+        ''' the 4th and then '''
+        print('Step (2) ')
+        print(f"test whether {pt} is extending side of {self.leftpath}")
+        if ( self.side_of_line(self.leftq(-2), self.leftq(-1), pt) == self.RIGHT_SIDE \
+             and self.side_of_line(self.leftq(0), self.leftq(-1), pt) == self.LEFT_SIDE ) :
+            print(f"skip, {pt} is non extending side, may be inside.\n")
+            return False
+        print(f"{self.xy[ptix]} with index {ptix} will be added\n")
+        
+        print('Step (3)', self.leftpath)
+        ''' pop out inside point from the tail of leftpath '''
+        while self.side_of_line(self.leftq(-2), self.leftq(-1), pt) == self.LEFT_SIDE :
+            rix = self.pop()
+            print(f"popped out {self.xy[rix]} ({rix}) from self.leftpath {self.leftpath}\n")
+        self.push(ptix)
+        print(f"after popped inside points: self.leftpath = {self.leftpath}\n")
+        
+        print('Step (4), temporarily manage rightpath')
+        ''' pop out inside point from the head of leftpath  '''
+        while self.side_of_line(self.leftq(1), self.leftq(0), self.leftq(-1)) == self.RIGHT_SIDE :
+            self.remove()
+            print(f"removed inside point on self.leftpath {self.leftpath}\n")        
+        print(f"added point. leftpath = {self.leftpath}")
+        
+        self.rightpath[0] = self.leftpath[0]
+        self.rightpath[-1] = self.leftpath[-1]
+        return True
         
 if __name__ == '__main__':
-    xy = [(0, 0), (-1, 1), (0.5, 1.5), (0, 2.5), (1, 2), (1, 3), (2, 1.5), (3, 1), (1.5, 4), (3, 4), (2.5, 3), (3.2, 2), (2, 0.5)]
+    xy = [(-1, 1), (0, 0), (0.5, 1.5), (0, 2.5), (1, 2), (1, 3), (2, 1.5), (3, 1), (1.5, 4), (3, 4), (2.5, 3), (3.2, 2), (2, 0.5)]
     # if False:
     #     with open('xy.csv', 'w') as f :
     #         for x, y in xy:
     #             f.write(f'{x},{y}\n')
     print(xy, f'points in the input provided: {len(xy)}')
-    print(f'{xy[2]} is right side of line {xy[0]} to {xy[1]}? {ConvexHull.left_side(xy[0], xy[1], xy[2]) }\n')
+    print(f'{xy[2]} is right side of line {xy[0]} to {xy[1]}? {ConvexHull.side_of_line(xy[0], xy[1], xy[2]) }\n')
     
-    ch = ConvexHull(xy)    
+    ch = ConvexHull(xy, SimplePolyline=True)    
     print(ch)
     
     #rdpxy, indices = simplify_RDP(xy, 1.0)
@@ -310,15 +308,15 @@ if __name__ == '__main__':
     #drawparam = np.linspace(0, 1, len(sx)*8)
     #x_new, y_new = spl(drawparam).T
     
-    lxy = np.array([xy[i] for i in ch.cwpath])
-    rxy = np.array([xy[i] for i in ch.acwpath])
+    lxy = np.array([xy[i] for i in ch.leftpath])
+    rxy = np.array([xy[i] for i in ch.rightpath])
     lx , ly = lxy[:,0], lxy[:,1]
     rx, ry = rxy[:,0], rxy[:,1]
     
     fig, ax = plt.subplots()
-    ax.plot(x, y, 'y.-', lw=4.0)
+    ax.plot(x, y, 'y.-', lw=4.0, alpha=0.5)
     ax.plot(lx, ly, 'b.--', lw=1) #, alpha=0.75)
-    ax.plot(rx, ry, 'r.--', lw=1) #, alpha=0.75)
+    ax.plot(rx, ry, 'r.-.', lw=1) #, alpha=0.75)
     #ax.plot(rdpx, rdpy, 'g.-', lw=0.75) #, alpha=0.75)
     #plt.plot(x_new, y_new, 'y-')
     plt.legend(['Input points', 'clockwise path', 'counter-clockwise path', 'True'],loc='best')
