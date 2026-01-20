@@ -122,7 +122,11 @@ class ConvexHull:
     def __init__(self, points = None, SimplePolyline = False):
         self.xy = list() # of Point2D
         self.leftpath = deque()     #clockwise path
-        self.rightpath = deque()    #anti-clockwise path
+        self.rightpath = deque()    #anti/counter-clockwise path
+
+        #peak point on each convex path for 0 points
+        self.leftpeak_ix = None
+        self.rightpeak_ix = None
         
         if isinstance(points, (list, tuple)) :
             for p in points:
@@ -151,12 +155,12 @@ class ConvexHull:
     ''' 1, 0, -1 for left, co linear with, right, respectively.'''
     @staticmethod
     def side_of_line(a, b, c):
-        sval = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
-        return 1 if sval > 0 else -1 if sval < 0 else 0 
+        val = (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0])
+        return 1 if val > 0 else -1 if val < 0 else 0 
 
-    # @staticmethod
-    # def right_side(a, b, c):
-    #     return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]) < 0
+    @staticmethod
+    def distance_between(a, b):
+        return math.sqrt( (b[0] - a[0])** 2 + (b[1] - a[1])** 2 )
     
     '''returns axis vector'''
     def axis(self):
@@ -164,22 +168,27 @@ class ConvexHull:
         return self.xy[self.leftpath[-1]] - self.xy[0]
     
     def add(self, pt, SimplePolyline=False):
-        self.xy.append(pt)
-        if len(self) <= 2 :
+        if len(self) < 2 :
+            self.xy.append(pt)
             self.leftpath.append(len(self)-1)
             self.rightpath.append(len(self)-1)
+            self.leftpeak_ix = len(self)-1
+            self.rightpeak_ix = len(self)-1
+            print(f"len(self.xy) = {len(self.xy)}, self.leftpeak_ix = {self.leftpeak_ix}")
             return True
         
-        #print(pt, self.leftq(-1), self.leftq(-2), self.side_of_line(self.leftq(-1), self.leftq(-2), pt))
+        #if ( self.distance_between(self.xy[0], pt) < self.distance_between(self.xy[0], self.xy[-1]) ) or \
         if self.side_of_line(self.leftq(-2), self.leftq(-1), pt) < 0 and self.side_of_line(self.rightq(-2), self.rightq(-1), pt) > 0:
             # reject point if is is inside the last paths of clockwise path and anti-clockwise path
             #print(f'skip adding {pt} to left and right paths.\n')
-            return SimplePolyline
+            if not SimplePolyline :
+                return False
         
+        self.xy.append(pt)
         self.leftpath.append(len(self)-1)
-        self.leftpath_convexing()
+        self.make_leftpath_convex()
         self.rightpath.append(len(self)-1)
-        self.rightpath_convexing()
+        self.make_rightpath_convex()
         return True
     
     # def isinside(self, pt):
@@ -201,20 +210,23 @@ class ConvexHull:
     #     print(f'{pt} is isinside of right path.')
     #     return True
             
-    def leftpath_convexing(self):
+    def make_leftpath_convex(self):
         #print(self.leftpath)
-        lastix = self.leftpath.pop() # from the lastpt to the first
+        lastix = self.leftpath.pop()
         lastpt = self.xy[lastix]
+        
         while len(self.leftpath) >= 2 :
-            if self.side_of_line(lastpt, self.leftq(-1), self.leftq(-2)) < 0 : # left inner point
-                #print('pop!!!', lastpt, self.leftq(-1), self.leftq(-2), self.right_side(lastpt, self.leftq(-1), self.leftq(-2)))
-                self.leftpath.pop() # pop-out the prev point
-                #print(self.leftpath)
+            if self.side_of_line(lastpt, self.leftq(-1), self.leftq(-2)) < 0 : # right side (out side)
+                poppedix = self.leftpath.pop() # pop-out the prev point
+                if poppedix <= self.leftpeak_ix :
+                    print(f'poppedix = {poppedix}')
+                    self.leftpeak_ix = self.leftpath[-1]
             else:
                 break
         self.leftpath.append(lastix)
+        self.leftpeak_ix = self.find_left_peak() 
         
-    def rightpath_convexing(self):
+    def make_rightpath_convex(self):
         lastix = self.rightpath.pop()
         last = self.xy[lastix]
         while len(self.rightpath) >= 2 :
@@ -224,65 +236,19 @@ class ConvexHull:
                 break
         self.rightpath.append(lastix)
     
-    def push(self, ix):
-        self.leftpath.append(ix)
-    
-    def pop(self):
-        return self.leftpath.pop()
-    
-    def insert(self, ix):
-        self.leftpath.appendleft(ix)
-    
-    def remove(self):
-        return self.leftpath.popleft()
-    
-    def add_simplepolyline(self, pt):
-        self.xy.append(pt)
-        self.leftpath.append(len(self.xy) - 1)
-        self.rightpath.append(len(self.xy) - 1)
-        if len(self.xy) <= 2 :
-            return True
+    def find_left_peak(self):
+        ix = self.leftpeak_ix
+        lx = self.xy[-1][0] - self.xy[0][0]
+        ly = self.xy[-1][1] - self.xy[0][1]
+        a = self.leftq(ix-1)
+        b = self.leftq(ix)
+        ax = b[0] - a[0]
+        ay = b[1] - a[1]
+        width = 1
+        outp = ax * lx - ay * ly 
+        print(f"ix = {ix}, outp = {outp}") 
+        return ix
         
-        ''' the 3rd point '''
-        if len(self.xy) == 3 :
-            #print('Step (1)', self.xy, self.leftpath, self.rightpath)
-            ptix = self.pop() # == 3
-            if self.side_of_line(self.leftq(-2), self.leftq(-1), pt) == self.LEFT_SIDE :
-                self.leftpath.reverse()
-            self.push(ptix)
-            self.rightpath[0] = self.leftpath[0]
-            self.rightpath[-1] = self.leftpath[-1]
-            print(f"Step (1), CVXH by the first three points: {self.leftpath}, {self.rightpath}\n")
-            return True
-        
-        ptix = self.pop() # pt's index
-        ''' the 4th and then '''
-        print('Step (2) ')
-        print(f"test whether {pt} is extending side of {self.leftpath}")
-        if ( self.side_of_line(self.leftq(-2), self.leftq(-1), pt) == self.RIGHT_SIDE \
-             and self.side_of_line(self.leftq(0), self.leftq(-1), pt) == self.LEFT_SIDE ) :
-            print(f"skip, {pt} is non extending side, may be inside.\n")
-            return False
-        print(f"{self.xy[ptix]} with index {ptix} will be added\n")
-        
-        print('Step (3)', self.leftpath)
-        ''' pop out inside point from the tail of leftpath '''
-        while self.side_of_line(self.leftq(-2), self.leftq(-1), pt) == self.LEFT_SIDE :
-            rix = self.pop()
-            print(f"popped out {self.xy[rix]} ({rix}) from self.leftpath {self.leftpath}\n")
-        self.push(ptix)
-        print(f"after popped inside points: self.leftpath = {self.leftpath}\n")
-        
-        print('Step (4), temporarily manage rightpath')
-        ''' pop out inside point from the head of leftpath  '''
-        while self.side_of_line(self.leftq(1), self.leftq(0), self.leftq(-1)) == self.RIGHT_SIDE :
-            self.remove()
-            print(f"removed inside point on self.leftpath {self.leftpath}\n")        
-        print(f"added point. leftpath = {self.leftpath}")
-        
-        self.rightpath[0] = self.leftpath[0]
-        self.rightpath[-1] = self.leftpath[-1]
-        return True
         
 if __name__ == '__main__':
     xy = [(-1, 1), (0, 0), (0.5, 1.5), (0, 2.5), (1, 2), (1, 3), (2, 1.5), (3, 1), (1.5, 4), (3, 4), (2.5, 3), (3.2, 2), (2, 0.5)]
@@ -293,8 +259,9 @@ if __name__ == '__main__':
     print(xy, f'points in the input provided: {len(xy)}')
     print(f'{xy[2]} is right side of line {xy[0]} to {xy[1]}? {ConvexHull.side_of_line(xy[0], xy[1], xy[2]) }\n')
     
-    ch = ConvexHull(xy, SimplePolyline=True)    
+    ch = ConvexHull(xy, SimplePolyline=False)
     print(ch)
+    print(ch.rightpeak_ix)
     
     #rdpxy, indices = simplify_RDP(xy, 1.0)
     #print(rdpxy, indices)
