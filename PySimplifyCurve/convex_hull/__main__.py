@@ -3,11 +3,11 @@ import matplotlib.pyplot as plt
 #from scipy.interpolate import make_interp_spline
 import rdp
 import math
-from pyproj import Proj
+#from pyproj import Proj
 from collections import deque
-
 import time
-from numpy import ix_
+
+from point2d import vec, side_of_line, distance_between, outer_prod_z, distance_to_line
 
 class Timer:
     def __init__(self, mess = ''):
@@ -19,95 +19,6 @@ class Timer:
     def __exit__(self, *args):
         self.end = time.time()
         print(self.message + f"Execution time: {self.end - self.start} seconds")
-
-class Point2D:
-    def __init__(self, xy, yy = None):
-        if yy != None :
-            self.x = xy
-            self.y = yy
-        else:
-            self.x, self.y = xy[:2]
-            
-    def __getitem__(self, key):
-        if key == 0 or key == 'x' :
-            return self.x
-        elif key == 1 or key == 'y' :
-            return self.y
-        raise KeyError('has no such key {key}')
-
-    def __setitem__(self, key, value):
-        if key == 0 or key == 'x' :
-            self.x = value
-        elif key == 1 or key == 'y' :
-            self.y = value
-        raise KeyError('has no such key {key}')
-
-    def __repr__(self):
-        return f'({self.x}, {self.y})'
-    
-    def __str__(self):
-        return f'({self.x}, {self.y})'
-    
-    def __tuple__(self):
-        return (self.x, self.y)
-    
-    def __neg__(self):
-        return Point2D(-self.x, -self.y)
-        
-    def __sub__(self, other):
-        return Point2D( self.x - other.x, self.y - other.y)
-        
-    def norm(self):
-        return math.sqrt(self.x*self.x + self.y*self.y)
-
-    ''' distance between two Point2D points '''
-    def distance_to(self, vdst):
-        return (vdst - self).norm()
-
-    def outer_prod_norm(self, other):
-        return self.x * other.y - self.x * other.y
-
-    # ''' < 0 ... self is left , > 0 ... self is right''' 
-    # def side_from_vector(self, orgpt, dstpt):
-    #     return (dstpt - orgpt).outer_prod_norm(self - orgpt)
-    #
-    # def left_of_line(self, a, b):
-    #     return (b.x - a.x) * self.y - (b.y - a.y) * self.x >= 0
-    ''' starboard, clock wise direction (right) is positive '''
-    
-    def side_of_line(self, a, b):
-        return - (b.x - a.x) * self.y + (b.y - a.y) * self.x
-
-    def inner_prod(self, other):
-        return self.x * other.x + self.x * other.y
-
-    def distance_to_line(self, a, b):
-        ab = b - a
-        ap = self - a
-        if ab.inner_prod(ap) < 0.0 :
-            return ap.norm()
-        ba = -ab
-        bp = b - self
-        if ba.inner_prod(bp) < 0.0 :
-            return bp.norm()
-        return abs(ab.outer_prod_norm(ap)/ab.norm())
-    
-# def copilot_distance(a, b, p):
-#     ab = b - a
-#     ap = p - a
-#     distance = np.abs(np.cross(ab, ap)) / np.linalg.norm(ab)
-#     return distance
-'''
-double gpspoint::distanceTo(const gpspoint &q1, const gpspoint &q2) const {
-    if ( inner_prod(q1, q2, *this) < epsilon ) { // < 0.0
-        return q1.distanceTo(*this);
-    }
-    if ( inner_prod(q2, q1, *this) < epsilon ) { // < 0.0
-        return q2.distanceTo(*this);
-    }
-    return ABS(norm_outer_prod(q1, q2, *this)) / q1.distanceTo(q2);
-}
-'''
 
 def simplify_RDP(xy : np.array, epsilon):
     mask = rdp.rdp(xy, epsilon=epsilon, return_mask=True)
@@ -121,9 +32,9 @@ class ConvexHull:
         self.left_path = deque()     #clockwise path
         self.right_path = deque()    #anti/counter-clockwise path
 
-        #peak point on each convex path for 0 points
-        self.lpeak_ix = None
-        self.rpeak_ix = None
+        #the index of peak point on each convex path for 0 points
+        self.left_peak = None
+        self.right_peak = None
         
         if isinstance(points, (list, tuple)) :
             for p in points:
@@ -143,62 +54,25 @@ class ConvexHull:
     def __str__(self):
         return str(self.xy)+', '+str(self.left_path)+', '+str(self.right_path)
     
-    def lpath(self, ix):
+    def leftpoint(self, ix):
         return self.xy[self.left_path[ix]]
     
-    def rpath(self, ix):
+    def rightpoint(self, ix):
         return self.xy[self.right_path[ix]]
-
-    ''' (b-a) X (d-c)'''
-    @staticmethod
-    def outer_prod_z(a, b, c, d):
-        return (b[0] - a[0]) * (d[1] - c[1]) - (b[1] - a[1]) * (d[0] - c[0])
-    
-    @staticmethod
-    def right_side_of_line(a, b, c):
-        return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]) < 0
-
-    @staticmethod
-    def left_side_of_line(a, b, c):
-        return (b[0] - a[0]) * (c[1] - a[1]) - (b[1] - a[1]) * (c[0] - a[0]) > 0
-
-    @staticmethod
-    def distance_between(a, b):
-        return math.sqrt( (b[0] - a[0])** 2 + (b[1] - a[1])** 2 )
-    
-    def inner_prod(self, other):
-        return self.x * other.x + self.x * other.y
-
-    def distance_to_line(self, a, b):
-        ab = b - a
-        ap = self - a
-        if ab.inner_prod(ap) < 0.0 :
-            return ap.norm()
-        ba = -ab
-        bp = b - self
-        if ba.inner_prod(bp) < 0.0 :
-            return bp.norm()
-        return abs(ab.outer_prod_norm(ap)/ab.norm())
-
-    '''returns axis vector'''
-    def axis(self):
-        '''the first and the last points of the left and the right paths are identical.'''
-        return self.xy[self.left_path[-1]] - self.xy[0]
     
     def add(self, pt, SimplePolyline=False):
         if len(self) < 2 :
             self.xy.append(pt)
             self.left_path.append(len(self)-1)
             self.right_path.append(len(self)-1)
-            self.lpeak_ix = len(self)-1
-            self.rpeak_ix = len(self)-1
-            #print(f"len(self.xy) = {len(self.xy)}, self.lpeak_ix = {self.lpeak_ix}")
+            self.left_peak = len(self)-1
+            self.right_peak = len(self)-1
+            #print(f"len(self.xy) = {len(self.xy)}, self.left_peak = {self.left_peak}")
             return True
         
         #if ( self.distance_between(self.xy[0], pt) < self.distance_between(self.xy[0], self.xy[-1]) ) or \
-        if self.right_side_of_line(self.lpath(-2), self.lpath(-1), pt) and self.left_side_of_line(self.rpath(-2), self.rpath(-1), pt) :
-            # reject point if is is inside the last paths of clockwise path and anti-clockwise path
-            #print(f'skip adding {pt} to left and right paths.\n')
+        if side_of_line(self.leftpoint(-2), self.leftpoint(-1), pt) <= 0 and side_of_line(self.rightpoint(-2), self.rightpoint(-1), pt) >= 0 :
+            # reject point if is is inside the cone formed from the last segment of the clockwise path and that of the anti-clockwise path
             if not SimplePolyline :
                 return False
         
@@ -215,55 +89,71 @@ class ConvexHull:
         lastpt = self.xy[lastix]
         
         while len(self.left_path) >= 2 :
-            if self.right_side_of_line(lastpt, self.lpath(-1), self.lpath(-2)) : 
+            if side_of_line(lastpt, self.leftpoint(-1), self.leftpoint(-2)) < 0 : 
                 self.left_path.pop() # pop-out the prev point
             else:
                 break
         self.left_path.append(lastix)
-        self.lpeak_ix = self.find_lpeak() 
+        self.left_peak = self.find_lpeak(self.left_peak) 
         
     def make_rightpath_convex(self):
         lastix = self.right_path.pop()
         last = self.xy[lastix]
         while len(self.right_path) >= 2 :
-            if self.left_side_of_line(last, self.rpath(-1), self.rpath(-2)) :
+            if side_of_line(last, self.rightpoint(-1), self.rightpoint(-2)) >= 0 :
                 self.right_path.pop() # pop-out the prev point
             else:
                 break
         self.right_path.append(lastix)
-        self.rpeak_ix = self.find_rpeak() 
+        self.right_peak = self.find_rpeak(self.right_peak) 
     
-    def find_lpeak(self):
+    def find_lpeak(self, peakhint = None):
         lb, ub = 0, len(self.left_path)
-        while lb < ub :
+        if peakhint == None :
             mix = (lb + ub) >> 1
-            if self.outer_prod_z(self.lpath(mix-1), self.lpath(mix), self.lpath(0), self.lpath(-1)) <= 0 :
+        else:
+            mix = max(min(1, peakhint), len(self.left_path) - 2)
+        while lb < ub :
+            if outer_prod_z(vec(self.leftpoint(mix-1), self.leftpoint(mix)), vec(self.leftpoint(0), self.leftpoint(-1))) <= 0 :
                 lb = mix + 1
             else:
                 ub = mix
+            mix = (lb + ub) >> 1
         return max(0, ub - 1)
         
-    def find_rpeak(self):
+    def find_rpeak(self, peakhint = None):
         lb, ub = 0, len(self.right_path)
-        while lb < ub :
+        if peakhint == None :
             mix = (lb + ub) >> 1
-            if self.outer_prod_z(self.rpath(0), self.rpath(-1), self.rpath(mix-1), self.rpath(mix), ) <= 0 :
+        else:
+            mix = max(min(1, peakhint), len(self.right_path) - 2)
+        while lb < ub :
+            if outer_prod_z(vec(self.rightpoint(0), self.rightpoint(-1)), vec(self.rightpoint(mix-1), self.rightpoint(mix)) ) <= 0 :
                 lb = mix + 1
             else:
                 ub = mix
+            mix = (lb + ub) >> 1
         return max(0, ub - 1)        
-        
+    
+    def leftpeak_distance(self):
+        return distance_to_line(self.leftpoint(0), self.leftpoint(-1), self.leftpoint(self.left_peak))
+
+    def rightpeak_distance(self):
+        return distance_to_line(self.rightpoint(0), self.rightpoint(-1), self.rightpoint(self.right_peak))
+    
 if __name__ == '__main__':
-    xy = [(-1, 1), (0, 0), (0.5, 1.5), (0, 2.5), (1, 2), (1, 3), (2, 1.5), (3, 1), (1.5, 4), (3, 4), (2.5, 3), (3.2, 2), (2, 0.5)]
+    xy = [(-1, 0.5), (0.5, -0.25), (-0.75, 1), (0.5, 1.5), (0, 2.4), (1, 2), (1, 3), (1.5, 1), \
+          (2, 0), (1.5, 2.5), (2.5, 1), (1.5, 3.5), (2.5, 3.2), (3, 3.5), (3.2, 2), (3, 0.5),  \
+          (3.5, 1.5), (3.5, 3), (2.25, 2.6), (2.5, 0) ]
     # if False:
     #     with open('xy.csv', 'w') as f :
     #         for x, y in xy:
     #             f.write(f'{x},{y}\n')
     print(xy, f'points in the input provided: {len(xy)}')
     
-    ch = ConvexHull(xy, SimplePolyline=False)
-    print(ch)
-    print(f'left peak = {ch.lpeak_ix}, right peak = {ch.rpeak_ix}')
+    cvx = ConvexHull(xy, SimplePolyline=False)
+    print(cvx)
+    print(f'left peak dist @ {cvx.left_peak} = {cvx.leftpeak_distance()}, right peak dist @ {cvx.right_peak} = {cvx.rightpeak_distance()}')
     
     #rdpxy, indices = simplify_RDP(xy, 1.0)
     #print(rdpxy, indices)
@@ -277,18 +167,20 @@ if __name__ == '__main__':
     #drawparam = np.linspace(0, 1, len(sx)*8)
     #x_new, y_new = spl(drawparam).T
     
-    lxy = np.array([xy[i] for i in ch.left_path])
-    rxy = np.array([xy[i] for i in ch.right_path])
+    lxy = np.array([xy[i] for i in cvx.left_path])
+    rxy = np.array([xy[i] for i in cvx.right_path])
     lx , ly = lxy[:,0], lxy[:,1]
     rx, ry = rxy[:,0], rxy[:,1]
-    
+    axisx = [lx[0], lx[-1]]
+    axisy = [ly[0], ly[-1]]
     fig, ax = plt.subplots()
     ax.plot(x, y, 'y.-', lw=4.0, alpha=0.5)
     ax.plot(lx, ly, 'b.--', lw=1) #, alpha=0.75)
     ax.plot(rx, ry, 'r.-.', lw=1) #, alpha=0.75)
+    ax.plot(axisx, axisy, 'k.-', lw=1.0, alpha=0.5)
     #ax.plot(rdpx, rdpy, 'g.-', lw=0.75) #, alpha=0.75)
     #plt.plot(x_new, y_new, 'y-')
-    plt.legend(['Input points', 'clockwise path', 'counter-clockwise path', 'True'],loc='best')
+    plt.legend(['Input points', 'clockwise path', 'counter-clockwise path', 'simplified line'],loc='best')
     plt.title('Convex Hull function Test')
     ax.set_aspect('equal')
     plt.show()

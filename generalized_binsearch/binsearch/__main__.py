@@ -4,7 +4,6 @@ Created on 2026/01/20
 @author: sin
 '''
 import random
-from test.test_contains import seq
 
 def upper_bound(key, seq):
     lb, ub = 0, len(seq)
