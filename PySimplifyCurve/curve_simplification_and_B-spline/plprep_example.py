@@ -19,7 +19,7 @@ def read_csv(file_name, columns=[0,1]):
                 continue
             table.append([items[i] for i in columns])
     return table
-        
+    
 if __name__ == '__main__':
     
     tbl = np.loadtxt('2023-06-22_164837.csv', delimiter=',')

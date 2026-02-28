@@ -28,11 +28,15 @@ def side_of_line(a, b, p):
     return (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0])
 
 def distance_to_line(a, b, p):
-    if inner_prod(vec(a, b), vec(a, p)) < 0.0 :
-        return norm(vec(a, p))
-    if inner_prod(vec(b,a), vec(b, p)) < 0.0 :
-        return norm(vec(b, p))
-    return math.fabs(outer_prod_z(vec(a,b),vec(a,p))/distance_between(a,p))
+    d_a_p = distance_between(a,p)
+    d_b_p = distance_between(b,p)
+    if d_a_p == 0 or d_b_p == 0 :
+        return 0
+    if inner_prod(vec(a, b), vec(a, p)) <= 0.0 :
+        return d_a_p #norm(vec(a, p))
+    if inner_prod(vec(b,a), vec(b, p)) <= 0.0 :
+        return d_b_p #norm(vec(b, p))
+    return math.fabs(outer_prod_z(vec(a,b),vec(a,p))/d_a_p)
 
 
 '''
