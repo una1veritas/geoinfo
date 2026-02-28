@@ -2,8 +2,6 @@ import numpy as np
 import matplotlib.pyplot as plt
 #from scipy.interpolate import make_interp_spline
 import rdp
-import math
-#from pyproj import Proj
 from collections import deque
 import time
 
