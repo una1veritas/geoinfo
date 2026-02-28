@@ -1,7 +1,6 @@
 import sys
-from datetime import datetime, timezone
+import numpy as np
 from pyproj import Proj
-from statistics import mean
 
 # def copilot_distance(a, b, p):
 #     ab = b - a
@@ -22,10 +21,10 @@ double gpspoint::distanceTo(const gpspoint &q1, const gpspoint &q2) const {
 
 
 '''constant'''
-epoch_start = datetime(1970, 1, 1, 0, 0, tzinfo=timezone.utc)
+epoch_start = np.datetime64('1970-01-01T00:00:00Z')
 
 if __name__ == '__main__':
-    '''read csv into array.'''
+    '''read csv into numpy array.'''
     filename = ''
     outfilename = ''
     '''引数処理'''
@@ -45,34 +44,28 @@ if __name__ == '__main__':
             else:
                 filename = argstr
                 argi += 1
+                    
+    '''表形式に変換'''
+    tbl = np.genfromtxt(filename, delimiter=',', skip_header=1, missing_values='', dtype=str)
+    dt = np.datetime_as_string(tbl[:,3].astype(np.datetime64), timezone='UTC')
+    dt = dt.astype(np.datetime64)
+    print(f'raw data contains {len(dt)} points.')
     
-    tbl = list()
-    with open(filename, 'r') as file :
-        for l in file:
-            a = l.strip().split(',')
-            tbl.append(a)
+    lati = tbl[:,0].astype(np.float64)
+    longi = tbl[:,1].astype(np.float64)
+    center_lonlat = (np.mean(longi), np.mean(lati))
     
-    for ln in range(len(tbl)):
-        l = tbl[ln]
-        if ln == 0 :
-            tbl[ln] = tuple(l)
-        else:
-            lat = float(l[0])
-            lon = float(l[1])
-            alt = float(l[2])
-            dt = datetime.fromisoformat(l[3])
-            tbl[ln] = (lat, lon, alt, dt)
-
-    centre = (mean([ea[1] for ea in tbl[1:]]), mean([ea[0] for ea in tbl[1:]]))
-    
-    print(f'center coordinate (longitude, latitude) = {centre}')
+    print(f'center coordinate (longitude, latitude) = {center_lonlat}')
     
     '''convert (lon, lat) to points on the cartesian plane by azimuthal equidistance projection. '''
-    proj = Proj(proj='aeqd', lon_0 = centre[0], lat_0 = centre[1], datum='WGS84')
+    proj = Proj(proj='aeqd', lon_0=center_lonlat[0], lat_0=center_lonlat[1], datum='WGS84')
     xy = list()
     last_datetime = epoch_start
-    for t in tbl[1:] :
-            x, y = proj(t[1], t[0])
+    for i in range(len(tbl)):
+        past = dt[i] - last_datetime
+        if past.item().total_seconds() >= 5 :
+            last_datetime = dt[i]
+            x, y = proj(longi[i], lati[i])
             xy.append((x, y))
     
     '''返還後の出力'''
@@ -83,7 +76,8 @@ if __name__ == '__main__':
                 f.write(f'{x},{y}\n')
     else:
         '''めんどくさいので numpy 配列にしてnumpy風表示'''
+        xy = np.array(xy)
         print(f'points in the input provided: {len(xy)}')
-        for ea in xy[:10] + xy[-10:] :
-            print(ea)
+        print(xy)
+    
     print('Done.')

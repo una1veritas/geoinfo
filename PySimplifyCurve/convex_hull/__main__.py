@@ -179,16 +179,24 @@ class ConvexHull:
         return distance_to_line(self.rightpoint(0), self.rightpoint(-1), self.rightpoint(rpeak))
     
 if __name__ == '__main__':
-    xy = [(-1, 0.5), (-0.5, -0.25), (0.0, 0.5), (-0.75, 1), (0.0, 1.5), (0, 2.4), (1, 2), (1, 3), \
-          (1.5, 2.75), (2, 2.75),  (2.5, 3.2), (3, 3.5), (3.2, 2), (3, 0.5),  \
-          (3.5, 1.0), (2.75, 1), (3.5, 0.5), (4, 1.25), (3.5, 1.5), (3, 1.25), (2, 1) ]
+    # xy = [(-1, 0.5), (-0.5, -0.25), (0.0, 0.5), (-0.75, 1), (0.0, 1.5), (0, 2.4), (1, 2), (1, 3), \
+    #       (1.5, 2.75), (2, 2.75),  (2.5, 3.2), (3, 3.5), (3.2, 2), (3, 0.5),  \
+    #       (3.5, 1.0), (2.75, 1), (3.5, 0.5), (4, 1.25), (3.5, 1.5), (3, 1.25), (2, 1) ]
     #xy = [(0,0), (-0.5, -0.5), (-0.75,0), (-0.5,0.5), (0.5, 0.5), (0.5, -1), (-0.5, -1.5), (-1.0, -1.0), (-1.5, 0.25), (-0.5, 1)]
     #     with open('xy.csv', 'w') as f :
     #         for x, y in xy:
     #             f.write(f'{x},{y}\n')
-    print(xy, f'points in the input provided: {len(xy)}\n')
+    xy = list()
+    with open('2026-02-28-225436-metre.csv', 'r') as f :
+        for l in f:
+            
+            lonlat = [float(e) for e in l.strip().split(',')]
+            xy.append(tuple(lonlat))
+    print(xy[:10])
+    print(f'points in the input provided: {len(xy)}\n')
+    xy = xy[580:]
 
-    torelance = 1.0
+    torelance = 6.0
     cvx = ConvexHull() #xy, SimplePolyline=False)
     dq = deque(xy)
     dpath = deque()
@@ -241,7 +249,8 @@ if __name__ == '__main__':
         lpath += [cvx[i] for i in cvx.left_path]
         rpath += [cvx[i] for i in cvx.right_path]
     
-    print(lpath,"\n", rpath)
+    #print(lpath,"\n", rpath)
+    print(f'len(xy) = {len(xy)}, len(dpath) = {len(dpath)}')
     
     #rdpxy, indices = simplify_RDP(xy, 1.0)
     #print(rdpxy, indices)
@@ -273,7 +282,7 @@ if __name__ == '__main__':
     #ax.plot(rdpx, rdpy, 'g.-', lw=0.75) #, alpha=0.75)
     #plt.plot(x_new, y_new, 'y-')
     #plt.legend(['Input points', 'simplified line'],loc='best')
-    plt.legend(['Input points',  'simplified line', 'clockwise path', 'counter-clockwise path'],loc='best')
+    plt.legend(['Input points', 'clockwise path', 'counter-clockwise path', 'simplified line'],loc='best')
     plt.title('Convex Hull function Test')
     ax.set_aspect('equal')
     plt.show()
