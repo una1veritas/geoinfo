@@ -5,11 +5,43 @@ Created on 2026/01/23
 '''
 import math
 
-def neg(vec):
-    return (-vec[0], -vec[1])
+def negvec(v):
+    return (-v[0], -v[1])
     
 def vec(a, b):
-    return (a[0] - b[0], a[1] - b[1])
+    if isinstance(a, (tuple, list)) and isinstance(a, (tuple, list)) :
+        return (b[0] - a[0], b[1] - a[1])
+    elif isinstance(a, (int, float)) and isinstance(a, (int, float)) :
+        return (a, b)
+    
+def unitvec(a, b = None):
+    if b == None and isinstance(a, (tuple, list)) :
+        norm_a = norm(a)
+        return (a[0]/norm_a, a[1]/norm_a)
+    elif isinstance(a, (tuple, list)) and isinstance(a, (tuple, list)) :
+        v = (b[0] - a[0], b[1] - a[1])
+        norm_v = norm(v)
+        #print(f'v={v}, norm = {norm_v}')
+        return (v[0]/norm_v, v[1]/norm_v)
+    elif isinstance(a, (int, float)) and isinstance(a, (int, float)) :
+        v = (a, b)
+        norm_v = norm(v)
+        #print(f'v={v}', norm = {norm_v})
+        return (v[0]/norm_v, v[1]/norm_v)
+    else:
+        raise ValueError(*f'uintvec: illegal parameters {a}, {b}')
+
+def perpvec(a, b = None, clockwise = True):
+    if isinstance(b, (tuple, list)) :
+        if clockwise :
+            return (b[1] - a[1], a[0] - b[0])
+        else:
+            return (a[1] - b[1], b[0] - a[0])
+    elif b is None :
+        if clockwise :
+            return (a[1], -a[0])
+        else:
+            return (-a[1], a[0])
     
 def norm(va):
     return math.sqrt(va[0]*va[0] + va[1]*va[1])

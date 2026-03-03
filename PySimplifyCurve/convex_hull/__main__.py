@@ -18,10 +18,10 @@ class Timer:
         self.end = time.time()
         print(self.message + f"Execution time: {self.end - self.start} seconds")
 
-def simplify_RDP(xy : np.array, epsilon):
-    mask = rdp.rdp(xy, epsilon=epsilon, return_mask=True)
-    xy_rdp = xy[mask]
-    return xy_rdp, [int(i) for i in np.where(mask)[0]]
+def simplify_RDP(xy : list, epsilon):
+    nparray = np.array(xy)
+    mask = rdp.rdp(nparray, epsilon=epsilon, return_mask=True)
+    return [xy[i] for i in np.where(mask)[0]]
 
 class ConvexHull:
     
@@ -63,7 +63,7 @@ class ConvexHull:
     def rightpoint(self, ix):
         return self.xy[self.right_path[ix]]
     
-    def growth_direction(self, pt, Navel = False):
+    def growing_position(self, pt, Navel = False):
         if len(self) <= 2 :
             return True
         #if ( self.distance_between(self.xy[0], pt) < self.distance_between(self.xy[0], self.xy[-1]) ) or \
@@ -100,7 +100,7 @@ class ConvexHull:
         if Navel == True :
             self.make_navel()
         return
-    
+
     def make_navel(self):
         navelpt = self.leftpoint(0)  # == self.rightpoint(0)
         l2ndpt = self.leftpoint(1)
@@ -142,12 +142,11 @@ class ConvexHull:
     
     def find_left_peak(self):
         lb, ub = 0, len(self.left_path)
-        #if peakhint == None :
         mix = (lb + ub) >> 1
         # else:
         #     mix = max(min(1, peakhint), len(self.left_path) - 2)
         while lb < ub :
-            if outer_prod_z(vec(self.leftpoint(mix-1), self.leftpoint(mix)), vec(self.leftpoint(0), self.leftpoint(-1))) < 0 :
+            if outer_prod_z(vec(self.leftpoint(mix-1), self.leftpoint(mix)), vec(self.xy[0], self.xy[-1])) < 0 :
                 lb = mix + 1
             else:
                 ub = mix
@@ -176,26 +175,8 @@ class ConvexHull:
         rpeak = self.find_right_peak()
         return distance_to_line(self.rightpoint(0), self.rightpoint(-1), self.rightpoint(rpeak))
     
-if __name__ == '__main__':
-    # xy = [(-1, 0.5), (-0.5, -0.25), (0.0, 0.5), (-0.75, 1), (0.0, 1.5), (0, 2.4), (1, 2), (1, 3), \
-    #       (1.5, 2.75), (2, 2.75),  (2.5, 3.2), (3, 3.5), (3.2, 2), (3, 0.5),  \
-    #       (3.5, 1.0), (2.75, 1), (3.5, 0.5), (4, 1.25), (3.5, 1.5), (3, 1.25), (2, 1) ]
-    #xy = [(0,0), (-0.5, -0.5), (-0.75,0), (-0.5,0.5), (0.5, 0.5), (0.5, -1), (-0.5, -1.5), (-1.0, -1.0), (-1.5, 0.25), (-0.5, 1)]
-    #     with open('xy.csv', 'w') as f :
-    #         for x, y in xy:
-    #             f.write(f'{x},{y}\n')
-    xy = list()
-    with open('2026-02-28-225436-metre.csv', 'r') as f :
-        for l in f:
-            
-            lonlat = [float(e) for e in l.strip().split(',')]
-            xy.append(tuple(lonlat))
-    print(xy[:10])
-    print(f'points in the input provided: {len(xy)}\n')
-    xy = xy[580:]
-
-    torelance = 6.0
-    cvx = ConvexHull() #xy, SimplePolyline=False)
+def delta_decimation_alg(xy : list, delta) -> tuple:
+    cvx = ConvexHull() # xy, SimplePolyline=False)
     dq = deque(xy)
     dpath = deque()
     lpath = deque()
@@ -211,17 +192,17 @@ if __name__ == '__main__':
         prelastpt = cvx[-1]
         preleft = deque(cvx.left_path)
         preright = deque(cvx.right_path)
-        if cvx.growth_direction(pt, Navel = True) :
-            cvx.add(pt, Navel = True)
-            if cvx.leftpeak_distance() <= torelance and cvx.rightpeak_distance() <= torelance :
+        if cvx.growing_position(pt) : #, Navel = True) :
+            cvx.add(pt) #, Navel = True)
+            if cvx.leftpeak_distance() <= delta and cvx.rightpeak_distance() <= delta :
                 print(cvx)
                 if len(cvx) > 2 :
-                    print(f'left peak dist = {cvx.leftpeak_distance()}[{cvx.find_left_peak()}], right peak dist = {cvx.rightpeak_distance()}[{cvx.find_right_peak()}]')
+                    print(f'left peak {cvx[cvx.find_left_peak()]} dist = {cvx.leftpeak_distance()}, right peak {cvx[cvx.find_right_peak()]} dist = {cvx.rightpeak_distance()}')
                     print('cvx growing.\n')
             else:
                 # added but stuck out
                 print(f'left peak dist = {cvx.leftpeak_distance()}, right peak dist = {cvx.rightpeak_distance()}')
-                # close the previous convex hull as a simplified line segment
+                # close the previous convex hull as a simplifi ed line segment
                 lastpt = cvx[-1]
                 dpath.append(prelastpt) # close the path
                 lpath += [cvx[i] for i in preleft]
@@ -246,14 +227,37 @@ if __name__ == '__main__':
         dpath.append(cvx[-1])
         lpath += [cvx[i] for i in cvx.left_path]
         rpath += [cvx[i] for i in cvx.right_path]
+    return (dpath, lpath, rpath)
     
-    #print(lpath,"\n", rpath)
+if __name__ == '__main__':
+    # xy = [(-1, 0.5), (-0.5, -0.25), (0.0, 0.5), (-0.75, 1), (0.0, 1.5), (0, 2.4), (1, 2), (1, 3), \
+    #       (1.5, 2.75), (2, 2.75),  (2.5, 3.2), (3, 3.5), (3.2, 2), (3, 0.5),  \
+    #       (3.5, 1.0), (2.75, 1), (3.5, 0.5), (4, 1.25), (3.5, 1.5), (3, 1.25), (2, 1) ]
+    xy = [(0,0), (-0.2, -0.2), (-0.3, 0.0), (0,0.3), (0.3, 0.1), (0.3, -0.3), (-0.1, -0.4), ] #(-1.0, -1.0), (-1.5, 0.25), (-0.5, 1)]
+
+    # with open('xy.csv', 'w') as f :
+    #     for x, y in xy:
+    #         f.write(f'{x},{y}\n')
+    #
+    # xy = list()
+    # with open('2026-02-28-225436-metre.csv', 'r') as f :
+    #     for l in f:
+    #
+    #         lonlat = [float(e) for e in l.strip().split(',')]
+    #         xy.append(tuple(lonlat))
+    # print(xy[:10])
+    # print(f'points in the input provided: {len(xy)}\n')
+    # xy = xy[500:]
+
+    dpath, lpath, rpath = delta_decimation_alg(xy, 0.3)
     print(f'len(xy) = {len(xy)}, len(dpath) = {len(dpath)}')
+    print(dpath)
+    print(lpath)
+    print(rpath)
     
-    #rdpxy, indices = simplify_RDP(xy, 1.0)
-    #print(rdpxy, indices)
-    # exit(0)
-    #rdpx, rdpy = rdpxy[:,0], rdpxy[:,1]
+    res = simplify_RDP(xy, 0.3)
+    rdpx, rdpy = [x for x, y in res], [ y for x, y in res]
+    
     x, y = [ x for x, y in xy], [ y for x, y in xy]
     leftx, lefty = [x for x,y in lpath], [y for x,y in lpath]
     rightx, righty = [x for x,y in rpath], [y for x,y in rpath]    
@@ -274,13 +278,14 @@ if __name__ == '__main__':
     axisx, axisy = dpathxy[:,0], dpathxy[:,1]
     fig, ax = plt.subplots()
     ax.plot(x, y, 'y.-', lw=4.0, alpha=0.5)
+    ax.plot(rdpx, rdpy, 'r.-.', lw=2.0, alpha=0.75)
     ax.plot(leftx, lefty, 'b.--', lw=1) #, alpha=0.75)
     ax.plot(rightx, righty, 'r.-.', lw=1) #, alpha=0.75)
     ax.plot(axisx, axisy, 'k.-', lw=1.0, alpha=0.5)
     #ax.plot(rdpx, rdpy, 'g.-', lw=0.75) #, alpha=0.75)
     #plt.plot(x_new, y_new, 'y-')
     #plt.legend(['Input points', 'simplified line'],loc='best')
-    plt.legend(['Input points', 'clockwise path', 'counter-clockwise path', 'simplified line'],loc='best')
+    plt.legend(['Input points', 'rdp', 'clockwise path', 'counter-clockwise path', 'simplified line'],loc='best')
     plt.title('Convex Hull function Test')
     ax.set_aspect('equal')
     plt.show()
