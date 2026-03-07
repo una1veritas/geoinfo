@@ -5,7 +5,7 @@ Created on 2026/03/01
 '''
 import numpy as np
 import matplotlib.pyplot as plt
-#from scipy.interpolate import make_interp_spline
+import math
 import rdp
 from collections import deque
 import time
@@ -33,7 +33,7 @@ class ConvexHull:
     
     def __init__(self):
         self.xy = list() # of Point2D
-        self.polygon = deque()     #clockwise path
+        self.polygon = deque()     # in clockwise
     
     def clear(self):
         self.xy.clear()
@@ -48,130 +48,114 @@ class ConvexHull:
     def __getitem__(self, index):
         return self.xy[index]
     
-    def polypoint(self, ix):
-        return self.xy[self.polygon[ix]]
+    def polypoint(self, index):
+        return self.xy[self.polygon[index % len(self.polygon)]]
     
-    def growing_position(self, pt, Navel = False):
-        if len(self) <= 2 :
-            return True
-        #if ( self.distance_between(self.xy[0], pt) < self.distance_between(self.xy[0], self.xy[-1]) ) or \
-        # print('left:',self.leftpoint(-2), self.leftpoint(-1), pt, side_of_line(self.leftpoint(-2), self.leftpoint(-1), pt))
-        # print('right', self.rightpoint(-2), self.rightpoint(-1), pt, side_of_line(self.rightpoint(-2), self.rightpoint(-1), pt))
-        if side_of_line(self.leftpoint(-2), self.leftpoint(-1), pt) <= 0 and side_of_line(self.rightpoint(-2), self.rightpoint(-1), pt) >= 0 :
-            # reject the point if it is inside the cone of the last segment of left path and that of the right path
-            return False
-        # print('left 1->0, pt:', side_of_line(self.leftpoint(1), self.leftpoint(0), pt))
-        # print('right 1->0, pt:', side_of_line(self.rightpoint(1), self.rightpoint(0), pt))
-        if Navel == True :
-            return True
-        elif side_of_line(self.leftpoint(1), self.leftpoint(0), pt) < 0 :
-            # reject the point if it is inside the cone of the last segment of left path and that of the right path
-            return False
-        return True
+    def origin(self):
+        return self.xy[0]
+    
+    def destin(self):
+        return self.xy[-1]
     
     def add(self, pt):
         if len(self) == 0 :
             self.xy.append(pt)
-            self.polygon.appendleft(len(self)-1)
             self.polygon.append(len(self)-1)
-            return
+            return True
         if len(self) == 1 :
             self.xy.append(pt)
-            self.polygon.appendleft(len(self)-1)
-            self.polygon.pop()
             self.polygon.append(len(self)-1)
-            return
+            return True
         
         # add pt to xy and polygon
-        self.xy.append(pt)
-        if side_of_line(self.polypoint(1), self.polypoint(0), pt) <= 0 or side_of_line(self.polypoint(-2), self.polypoint(-1), pt) >= 0 :
-            #right or left of the beak
-            self.polygon.appendleft(len(self)-1)
-            self.polygon.append(len(self)-1)
-            self.remove_concave()
-        else:
-            print(f'{self.polypoint(-2)}, {self.polypoint(0)}, {self.polypoint(1)}')
-            self.xy.pop()
-            raise ValueError(f'inside???')
-        return
-    
-    def make_navel(self):
-        navelpt = self.leftpoint(0)  # == self.rightpoint(0)
-        l2ndpt = self.leftpoint(1)
-        r2ndpt = self.rightpoint(1)
-        if side_of_line(l2ndpt, navelpt, r2ndpt) < 0 :
-            if len(self.left_path) > 2 :
-                self.left_path.popleft()
-                self.right_path.popleft()
-                self.right_path.appendleft(self.left_path[0])
-            elif len(self.right_path) > 2 :
-                self.right_path.popleft()
-                self.left_path.popleft()
-                self.left_path.appendleft(self.right_path[0])
+        if distance_between(self.origin(), self.destin()) <= distance_between(self.origin(), pt)  :
+            self.xy.append(pt)
+            if side_of_line(self.polypoint(1), self.polypoint(0), pt) <= 0 :
+                # right or front of the mouth
+                self.polygon.append(self.polygon.popleft())
+                self.polygon.appendleft(len(self)-1)
+            elif side_of_line(self.polypoint(-1), self.polypoint(0), pt) >= 0 :
+                # outside of the left line of the mouth
+                self.polygon.appendleft(len(self)-1)
             else:
-                raise ValueError(f'leftpath and rightpath becomes length 1!!')
+                # error, not at growth position
+                print(f'point gets inside.')
+                self.xy.pop()
+                return False
+            
+            self.remove_concave()
+            return True
+        else:
+            print('point gets nearer.')
+        return False
            
     def remove_concave(self, reverse = False):
-        #print(self.left_path)
         # from tail
-        lastix = self.polygon.pop()
-        lastpt = self.xy[lastix]
-        while len(self.polygon) >= 2 :
-            if side_of_line(lastpt, self.polypoint(-1), self.polypoint(-2)) < 0 : 
+        mouthix = self.polygon.popleft()    # polygon is a ring sequence
+        mouthpt = self.xy[mouthix]
+        # anti clockwise
+        while len(self.polygon) > 2 :
+            if side_of_line(mouthpt, self.polypoint(-1), self.polypoint(-2)) < 0 : 
                 self.polygon.pop() # pop-out polygon[-1]
             else:
                 break
-        self.polygon.append(lastix)
-        # from head
-        firstix = self.polygon.popleft()
-        firstpt = self.xy[firstix]
-        while len(self.polygon) >= 2 :
-            if side_of_line(firstpt, self.polypoint(0), self.polypoint(1)) > 0 : 
+        # from month, clock wise
+        while len(self.polygon) > 2 :
+            if side_of_line(mouthpt, self.polypoint(0), self.polypoint(1)) > 0 : 
                 self.polygon.popleft() # pop-out polygon[0]
             else:
                 break
-        self.polygon.appendleft(firstix)
+        self.polygon.appendleft(mouthix)
     
-    def peak_distances(self):
-        # along the clockwise polygon edges, 
-        # outer_prod_z(axis vec, edge vec) changes
-        # negative -> right peak -> positive -> left peak -> negative -> beak
-        axis = unitvec(self.xy[0], self.xy[-1])
-        negaxis = negvec(axis)
-        threeoclock = perpvec(axis, clockwise = False)
-        nineoclock = negvec(threeoclock)
-        print('9 oclock = ', nineoclock)
-        
-        # firstly find the index in polygon-peaks of farthest point from the origin xy[0]
-        # by nine-oclock direction
-        lb, ub = 0, len(self.polygon)
+    # index of peak at which inner product with axis and polygon edge vector turns from negative to positive (non-negative)
+    def peak_on_polygon(self, axis, lb, ub):
         mix = (lb + ub) >> 1
-        # else:
-        #     mix = max(min(1, peakhint), len(self.left_path) - 2)
         while lb < ub :
             proj = inner_prod(vec(self.polypoint(mix), self.polypoint(mix+1)), axis)
-            if proj >= 0 :
+            if proj < 0 :
                 lb = mix + 1
             else:
                 ub = mix
             mix = (lb + ub) >> 1
-        nopeak = max(0, ub - 1)
-        return nopeak
+        return ub
     
-    def right_peak_distance(self):
+    def peak_indices(self):
+        fwix = 0    # forward peak index == mouth (polygon start)
+        axis = vec(self.origin(), self.destin())
+        # - --> +
         lb, ub = 0, len(self.polygon) - 1
         mix = (lb + ub) >> 1
-        axvec = vec(self.xy[0], self.xy[-1])
         while lb < ub :
-            if outer_prod_z(axvec, vec(self.polypoint(mix-1), self.polypoint(mix)) ) < 0 :
+            proj = inner_prod(vec(self.polypoint(mix), self.polypoint(mix+1)), axis)
+            if proj < 0 :
                 lb = mix + 1
             else:
                 ub = mix
             mix = (lb + ub) >> 1
-        return max(0, ub - 1)        
-
-        rpeak = self.find_right_peak()
-        return distance_to_line(self.rightpoint(0), self.rightpoint(-1), self.rightpoint(rpeak))
+        bkix = ub
+        # right peak
+        axis3oclk = (axis[1], -axis[0])
+        lb, ub = fwix, bkix
+        mix = (lb + ub) >> 1
+        while lb < ub :
+            proj = inner_prod(vec(self.polypoint(mix), self.polypoint(mix+1)), axis3oclk)
+            if proj > 0 :
+                lb = mix + 1
+            else:
+                ub = mix
+            mix = (lb + ub) >> 1
+        rightix = ub
+        lb, ub = bkix, len(self.polygon)
+        mix = (lb + ub) >> 1
+        while lb < ub :
+            proj = inner_prod(vec(self.polypoint(mix), self.polypoint(mix+1)), axis3oclk)
+            if proj < 0 :
+                lb = mix + 1
+            else:
+                ub = mix
+            mix = (lb + ub) >> 1
+        leftix = ub
+        return (fwix, rightix, bkix, leftix)
     
 # def delta_decimation_alg(xy : list, delta) -> tuple:
 #     cvx = ConvexHull() # xy, SimplePolyline=False)
@@ -226,13 +210,19 @@ class ConvexHull:
 #         lpath += [cvx[i] for i in cvx.left_path]
 #         rpath += [cvx[i] for i in cvx.right_path]
 #     return (dpath, lpath, rpath)
-    
+
+def sgn(val):
+    if isinstance(val, int) :
+        return -1 if val < 0 else 0 if val == 0 else 1
+    if isinstance(val, float) :
+        return -1.0 if val < 0.0 else 0.0 if val == 0.0 else 1.0
+     
 if __name__ == '__main__':
     # xy = [(-1, 0.5), (-0.5, -0), (0.0, 0.5), (-1, 1.25), (0.0, 1.5), (0, 2.4), (1.25, 2), (1, 3), \
-    #       (1.5, 2.75), (2, 2.75), (2.5, 3.2), (3, 3.5), (3.2, 2), (3, 0.5),  \
-    #       (3.5, 1.0), (2.75, 1), (3.5, 0.5), (4, 1.25), (3.5, 1.5), (3, 1.25), (2, 1), (1.5, -0.75) ]
-    xy = [(0, 0), (1, 0.5), (0, 1), (0.5, 2.5), (1.5, 0.5), (1.6, 1.5), ] #(2.0, -1.0), (0.8, -0.15), \
-    #(-0.25, -0.25), (1.0, -0.25), (1.5, 0.6), (1.25, 1.4), (0.5, 1.5), (-0.5, 0.9), ]#(2.0, -0.5), ]
+    #     (1.5, 2.75), (2, 2.75), (2.5, 3.2), (3, 3.5), (3.2, 2), (3, 0.5),  \
+    #     (3.5, 1.0), (2.5, -0.25), (3.5, 0.5), ] #(4, 1.25), (3.5, 1.5), (3, 1.25), (2, 1), (1.5, -0.75) ]
+    xy = [(0.0, 0.0), (0.4, 0.2), (-0.2, 0.5), (0.5, 0.4), (0.7, 0.2), (0.5, -0.65), (0.8, -0.3), (0.85, -0.5), \
+        (0.4, -1.0), (-0.25, -1.05), (-1.0, -0.6), (1.25, 1.4), (0.5, 1.5), (-0.5, 0.9), ]#(2.0, -0.5), ]
     # with open('xy.csv', 'w') as f :
     #     for x, y in xy:
     #         f.write(f'{x},{y}\n')
@@ -248,36 +238,44 @@ if __name__ == '__main__':
     # xy = xy[500:]
     
     cvx = ConvexHull()
+    distmax = 0.0
     for pt in xy :
-        try:
+        if len(cvx) == 0 :
             cvx.add(pt)
-            print(cvx)
-        except:
-            print('inside point error.')
-            break
+        else:
+            if not cvx.add(pt) :
+                print(f'failed to add {pt}')
+                break
+        print(cvx)
+        
+    peakixs = cvx.peak_indices()
+    print(f'peaks = {peakixs}, {[cvx.polygon[peakixs[i]] for i in (0,1,2,3)]} ')
+    print(distance_between(cvx.xy[0], cvx.xy[4]))
     
     print('-'*8)
-    ax0, ax1 = cvx.xy[0], cvx.xy[-1]
-    print(f'{ax0}, {ax1}, {ax1[0] - ax0[0]}, {ax1[1] - ax0[1]}, {norm(vec(ax0, ax1))}')
-    axvec = unitvec(ax0, ax1)
-    ax3oclock = perpvec(axvec, clockwise = True)
-    print(f'axvec = {axvec}, ax3 = {ax3oclock}')
+    p0, pn = cvx.origin(), cvx.destin()
+    axis = vec(p0, pn)
+    print(f'{p0}, {pn}, {axis}')
+    uaxis = unitvec(axis)
+    u3oclock = perpvec(uaxis, clockwise = True)
+    print(f'uaxis = {uaxis}, u3oclock = {u3oclock}')
     for ix in range(len(cvx.polygon)) :
-        pt0 = cvx.polypoint(ix)
-        pt1ix = (ix + 1) % (len(cvx.polygon) - 1)
-        pt1 = cvx.polypoint(pt1ix)
-        ptvec = vec(pt0, pt1)
-        print(f'{ix} ({cvx.polygon[ix]} - {cvx.polygon[pt1ix]}), {str(pt0):10}, \t{str(pt1):10}\t', end = ' ')
-        print(f'{float(inner_prod(axvec, ptvec)):.5},\t{float(inner_prod(ax3oclock, ptvec)):.5}')
-        print()
-    #print(f'peak= {cvx.peak_distances()}')
-    
+        pt0 = cvx.polypoint(ix - 1)
+        pt1 = cvx.polypoint(ix)
+        pt2 = cvx.polypoint(ix + 1)
+        ptvec0 = unitvec(pt0, pt1)
+        ptvec1 = unitvec(pt1, pt2)
+        print(f'{cvx.polygon[ix-1]} - {cvx.polygon[ix]}, \t', end = ' ')
+        print(f'{inner_prod(uaxis, ptvec0):.3}, {inner_prod(u3oclock, ptvec0):.3}, ')
+        #print()
+        
     #dpath, lpath, rpath = delta_decimation_alg(xy, 6)
     
 
     #rdpx, rdpy = rdpxy[:,0], rdpxy[:,1]
     x, y = [ x for x, y in cvx.xy], [ y for x, y in cvx.xy]
-    px, py = [xy[i][0] for i in cvx.polygon], [xy[i][1] for i in cvx.polygon]
+    polygon = list(cvx.polygon) + [cvx.polygon[0]]
+    px, py = [xy[i][0] for i in polygon], [xy[i][1] for i in polygon]
     axisx, axisy = [pt[0] for pt in cvx.xy[:1]+cvx.xy[-1:]], [pt[1] for pt in cvx.xy[:1]+cvx.xy[-1:]]
     fig, ax = plt.subplots()
     ax.plot(x, y, 'y.-', lw=4.0, alpha=0.5)
