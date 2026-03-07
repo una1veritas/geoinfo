@@ -4,14 +4,15 @@ Created on 2026/01/23
 @author: sin
 '''
 import math
-
-def negvec(v):
-    return (-v[0], -v[1])
     
-def vec(a, b):
-    if isinstance(a, (tuple, list)) and isinstance(a, (tuple, list)) :
+def vec(a, b = None):
+    if isinstance(a, (tuple, list)) and isinstance(b, (tuple, list)) :
+        # from two positions
         return (b[0] - a[0], b[1] - a[1])
-    elif isinstance(a, (int, float)) and isinstance(a, (int, float)) :
+    elif isinstance(a, (tuple, list)) and b == None :
+        return a
+    elif isinstance(a, (int, float)) and isinstance(b, (int, float)) :
+        # from two components
         return (a, b)
     
 def unitvec(a, b = None):
@@ -46,14 +47,31 @@ def perpvec(a, b = None, clockwise = True):
 def norm(va):
     return math.sqrt(va[0]*va[0] + va[1]*va[1])
 
+def vec_neg(v):
+    return (-v[0], -v[1])
+
+def sum_vec(v, w):
+    return (v[0]+w[0], v[1]+w[1])
+
+def subt_vec(v, w):
+    return (v[0]-w[0], v[1]-w[1])
+
+def mul_vec(c, v):
+    if isinstance(c, (int, float)) :
+        return (v[0]*c, v[1]*c)
+    elif isinstance(c, (tuple, list)) :
+        return dot_product(c, v)
+    else: 
+        raise ValueError(f'mul_vec({c}, {v}): arguments must be a pair of scalar and vector')
+
 ''' distance between two Point2D points '''
 def distance_between(a, b):
     return math.sqrt( (b[0] - a[0])**2 + (b[1] - a[1])**2 )
 
-def inner_prod(va, vb):
+def dot_product(va, vb):
     return va[0] * vb[0] + va[1] * vb[1]
 
-def outer_prod_z(va, vb):
+def cross_product_norm(va, vb):
     return va[0] * vb[1] - va[1] * vb[0]
 
 def side_of_line(a, b, p):
@@ -64,12 +82,11 @@ def distance_to_line(a, b, p):
     d_b_p = distance_between(b,p)
     if d_a_p == 0 or d_b_p == 0 :
         return 0
-    if inner_prod(vec(a, b), vec(a, p)) <= 0.0 :
+    if dot_product(vec(a, b), vec(a, p)) <= 0.0 :
         return d_a_p #norm(vec(a, p))
-    if inner_prod(vec(b,a), vec(b, p)) <= 0.0 :
+    if dot_product(vec(b,a), vec(b, p)) <= 0.0 :
         return d_b_p #norm(vec(b, p))
-    return math.fabs(outer_prod_z(vec(a,b),vec(a,p))/d_a_p)
-
+    return math.fabs(cross_product_norm(vec(a,b),vec(a,p))/d_a_p)
 
 '''
 double gpspoint::distanceTo(const gpspoint &q1, const gpspoint &q2) const {

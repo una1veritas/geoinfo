@@ -10,8 +10,8 @@ import rdp
 from collections import deque
 import time
 
-from point2d import vec, side_of_line, distance_between, outer_prod_z, inner_prod, \
-distance_to_line, norm, perpvec, unitvec, negvec, perpvec
+from point2d import vec, side_of_line, distance_between, cross_product_norm, dot_product, \
+distance_to_line, norm, perpvec, unitvec, vec_neg
 
 class Timer:
     def __init__(self, mess = ''):
@@ -51,10 +51,10 @@ class ConvexHull:
     def polypoint(self, index):
         return self.xy[self.polygon[index % len(self.polygon)]]
     
-    def origin(self):
+    def first_point(self):
         return self.xy[0]
     
-    def destin(self):
+    def last_point(self):
         return self.xy[-1]
     
     def add(self, pt):
@@ -68,7 +68,7 @@ class ConvexHull:
             return True
         
         # add pt to xy and polygon
-        if distance_between(self.origin(), self.destin()) <= distance_between(self.origin(), pt)  :
+        if distance_between(self.first_point(), self.last_point()) <= distance_between(self.first_point(), pt)  :
             self.xy.append(pt)
             if side_of_line(self.polypoint(1), self.polypoint(0), pt) <= 0 :
                 # right or front of the mouth
@@ -107,26 +107,14 @@ class ConvexHull:
                 break
         self.polygon.appendleft(mouthix)
     
-    # index of peak at which inner product with axis and polygon edge vector turns from negative to positive (non-negative)
-    def peak_on_polygon(self, axis, lb, ub):
-        mix = (lb + ub) >> 1
-        while lb < ub :
-            proj = inner_prod(vec(self.polypoint(mix), self.polypoint(mix+1)), axis)
-            if proj < 0 :
-                lb = mix + 1
-            else:
-                ub = mix
-            mix = (lb + ub) >> 1
-        return ub
-    
-    def peak_indices(self):
+    def peak_distances(self):
         fwix = 0    # forward peak index == mouth (polygon start)
-        axis = vec(self.origin(), self.destin())
-        # - --> +
+        axis = unitvec(self.first_point(), self.last_point())
+        # backward peak, - --> +
         lb, ub = 0, len(self.polygon) - 1
         mix = (lb + ub) >> 1
         while lb < ub :
-            proj = inner_prod(vec(self.polypoint(mix), self.polypoint(mix+1)), axis)
+            proj = dot_product(vec(self.polypoint(mix), self.polypoint(mix+1)), axis)
             if proj < 0 :
                 lb = mix + 1
             else:
@@ -134,28 +122,36 @@ class ConvexHull:
             mix = (lb + ub) >> 1
         bkix = ub
         # right peak
-        axis3oclk = (axis[1], -axis[0])
+        perp9 = (-axis[1], axis[0])
         lb, ub = fwix, bkix
         mix = (lb + ub) >> 1
         while lb < ub :
-            proj = inner_prod(vec(self.polypoint(mix), self.polypoint(mix+1)), axis3oclk)
-            if proj > 0 :
-                lb = mix + 1
-            else:
-                ub = mix
-            mix = (lb + ub) >> 1
-        rightix = ub
-        lb, ub = bkix, len(self.polygon)
-        mix = (lb + ub) >> 1
-        while lb < ub :
-            proj = inner_prod(vec(self.polypoint(mix), self.polypoint(mix+1)), axis3oclk)
+            proj = dot_product(vec(self.polypoint(mix), self.polypoint(mix+1)), perp9)
             if proj < 0 :
                 lb = mix + 1
             else:
                 ub = mix
             mix = (lb + ub) >> 1
-        leftix = ub
-        return (fwix, rightix, bkix, leftix)
+        rtix = ub
+        # left peak
+        perp3 = vec_neg(perp9)
+        lb, ub = bkix, len(self.polygon)
+        mix = (lb + ub) >> 1
+        while lb < ub :
+            proj = dot_product(vec(self.polypoint(mix), self.polypoint(mix+1)), perp3)
+            if proj < 0 :
+                lb = mix + 1
+            else:
+                ub = mix
+            mix = (lb + ub) >> 1
+        ltix = ub
+        print(f'{self.polygon[0]}, {self.polygon[rtix]}, {self.polygon[bkix]}, {self.polygon[ltix]}')
+        distances = [0.0] * 4
+        revvec = vec_neg(axis)
+        distances[2] = dot_product(revvec, vec(cvx.first_point(), cvx.polypoint(bkix)))
+        distances[1] = dot_product(perp3, vec(cvx.first_point(), cvx.polypoint(rtix)))        
+        distances[3] = -dot_product(perp3, vec(cvx.first_point(), cvx.polypoint(ltix)))
+        return tuple(distances)
     
 # def delta_decimation_alg(xy : list, delta) -> tuple:
 #     cvx = ConvexHull() # xy, SimplePolyline=False)
@@ -221,8 +217,7 @@ if __name__ == '__main__':
     # xy = [(-1, 0.5), (-0.5, -0), (0.0, 0.5), (-1, 1.25), (0.0, 1.5), (0, 2.4), (1.25, 2), (1, 3), \
     #     (1.5, 2.75), (2, 2.75), (2.5, 3.2), (3, 3.5), (3.2, 2), (3, 0.5),  \
     #     (3.5, 1.0), (2.5, -0.25), (3.5, 0.5), ] #(4, 1.25), (3.5, 1.5), (3, 1.25), (2, 1), (1.5, -0.75) ]
-    xy = [(0.0, 0.0), (0.4, 0.2), (-0.2, 0.5), (0.5, 0.4), (0.7, 0.2), (0.5, -0.65), (0.8, -0.3), (0.85, -0.5), \
-        (0.4, -1.0), (-0.25, -1.05), (-1.0, -0.6), (1.25, 1.4), (0.5, 1.5), (-0.5, 0.9), ]#(2.0, -0.5), ]
+    xy = [(0.0, 0.0), (-0.15, -0.1), (0.25, -0.35), (0.5, 0.25), (0.35, 0.65), (-0.25, 0.85), (0.25, 1.0), (0.45, 1.2)]
     # with open('xy.csv', 'w') as f :
     #     for x, y in xy:
     #         f.write(f'{x},{y}\n')
@@ -248,12 +243,25 @@ if __name__ == '__main__':
                 break
         print(cvx)
         
-    peakixs = cvx.peak_indices()
-    print(f'peaks = {peakixs}, {[cvx.polygon[peakixs[i]] for i in (0,1,2,3)]} ')
-    print(distance_between(cvx.xy[0], cvx.xy[4]))
-    
+    peakdists = [f'{d:.3}' for d in cvx.peak_distances()]
+    print(peakdists)
+    # axvec = vec(cvx.first_point(), cvx.last_point())
+    # revvec = vec_neg(axvec)
+    # bkpeak = cvx.polypoint(peaks[2])
+    # bkvec = vec(cvx.first_point(), cvx.polypoint(peaks[2]))
+    # print(revvec, bkpeak, bkvec, dot_product(revvec, bkvec))
+    #
+    # perp3vec = perpvec(axvec)
+    # rtpeak = cvx.polypoint(peaks[1])
+    # rtvec = vec(cvx.first_point(), rtpeak)
+    # print(perp3vec, rtpeak, rtvec, dot_product(perp3vec, rtvec))
+    #
+    # ltpeak = cvx.polypoint(peaks[3])
+    # ltvec = vec(cvx.first_point(), ltpeak)
+    # print(perp3vec, ltpeak, ltvec, -dot_product(perp3vec, ltvec))
     print('-'*8)
-    p0, pn = cvx.origin(), cvx.destin()
+    
+    p0, pn = cvx.first_point(), cvx.last_point()
     axis = vec(p0, pn)
     print(f'{p0}, {pn}, {axis}')
     uaxis = unitvec(axis)
@@ -266,7 +274,7 @@ if __name__ == '__main__':
         ptvec0 = unitvec(pt0, pt1)
         ptvec1 = unitvec(pt1, pt2)
         print(f'{cvx.polygon[ix-1]} - {cvx.polygon[ix]}, \t', end = ' ')
-        print(f'{inner_prod(uaxis, ptvec0):.3}, {inner_prod(u3oclock, ptvec0):.3}, ')
+        print(f'{dot_product(uaxis, ptvec0):.3}, {dot_product(u3oclock, ptvec0):.3}, ')
         #print()
         
     #dpath, lpath, rpath = delta_decimation_alg(xy, 6)
