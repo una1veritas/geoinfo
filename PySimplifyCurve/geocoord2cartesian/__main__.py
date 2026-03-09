@@ -59,8 +59,14 @@ if __name__ == '__main__':
         else:
             lat = float(l[0])
             lon = float(l[1])
-            alt = float(l[2])
-            dt = datetime.fromisoformat(l[3])
+            if len(l) >= 3 : 
+                alt = float(l[2])
+            else:
+                alt = 0.0
+            if len(l) >= 4 :
+                dt = datetime.fromisoformat(l[3])
+            else:
+                dt = epoch_start
             tbl[ln] = (lat, lon, alt, dt)
 
     centre = (mean([ea[1] for ea in tbl[1:]]), mean([ea[0] for ea in tbl[1:]]))

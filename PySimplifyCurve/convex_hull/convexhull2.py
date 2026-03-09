@@ -147,7 +147,7 @@ class ConvexHull:
                 ub = mix
             mix = (lb + ub) >> 1
         ltix = ub
-        print(f'peak indices = {self.polygon[0]}, {self.polygon[rtix]}, {self.polygon[bkix]}, {self.polygon[ltix % len(self.polygon)]}')
+        #print(f'peak indices = {self.polygon[0]}, {self.polygon[rtix]}, {self.polygon[bkix]}, {self.polygon[ltix % len(self.polygon)]}')
         distances = [0.0] * 4
         revvec = vec_neg(axis)
         distances[2] = dot_product(revvec, vec(self.first_point(), self.polypoint(bkix)))
@@ -163,19 +163,19 @@ def delta_decimation_alg(xy : list, delta) -> tuple:
     ix = 0
     dpath.append(xy[0])
     while ix < len(xy) :
-        print(ix, xy[ix], cvx, len(cvx))
+        #print(ix, xy[ix])
         if len(cvx) < 2 or distance_between(cvx.first_point(), cvx.last_point()) < distance_between(cvx.first_point(), xy[ix])  :
             # point xy[ix] is in the growth position
             growthposition = True
             cvx.add(xy[ix])     # test diameter/width
             peakdists = cvx.peak_distances()
-            print(peakdists, [e < delta for e in peakdists])
+            #print(peakdists, [e < delta for e in peakdists])
             if all([e < delta for e in peakdists]) is False :
                 oversized = True
             else :
                 oversized = False
         else:
-            print('got nearer')
+            #print('got nearer')
             growthposition = False
         
         if not growthposition :
@@ -192,24 +192,18 @@ def delta_decimation_alg(xy : list, delta) -> tuple:
             cvx.clear()
             cvx.add(lastpt)
         ix += 1
-        print(cvx,'\n')
+        #print(cvx)
     
     if len(cvx) > 0 :
-        print('points exhausted,', cvx)
+        #print('points exhausted,', cvx)
         dpath.append(cvx.last_point())
         polygons.append([cvx.polypoint(ix) for ix in range(len(cvx.polygon) + 1)])
     return (dpath, polygons)
 
-def sgn(val):
-    if isinstance(val, int) :
-        return -1 if val < 0 else 0 if val == 0 else 1
-    if isinstance(val, float) :
-        return -1.0 if val < 0.0 else 0.0 if val == 0.0 else 1.0
-     
 if __name__ == '__main__':
-    xy = [(-1, 0.5), (-0.5, -0), (0.0, 0.5), (-1, 1.25), (0.0, 1.5), (0, 2.4), (1.25, 2), (1, 3), \
-        (1.5, 2.75), (2, 2.75), (2.5, 3.2), (3, 3.5), (3.2, 2), (3, 0.5),  \
-        (3.5, 1.0), (2.5, -0.25), (3.5, 0.5), ] #(4, 1.25), (3.5, 1.5), (3, 1.25), (2, 1), (1.5, -0.75) ]
+    # xy = [(-1, 0.5), (-0.5, -0), (0.0, 0.5), (-1, 1.25), (0.0, 1.5), (0, 2.4), (1.25, 2), (1, 3), \
+    #     (1.5, 2.75), (2, 2.75), (2.5, 3.2), (3, 3.5), (3.2, 2), (3, 0.5),  \
+    #     (3.5, 1.0), (2.5, -0.25), (3.5, 0.5), ] #(4, 1.25), (3.5, 1.5), (3, 1.25), (2, 1), (1.5, -0.75) ]
     # xy = [ (3.2, 2), (3, 0.5), (3.5, 1.0), (2.5, -0.25), (3.5, 0.5), ] #(4, 1.25), (3.5, 1.5), (3, 1.25), (2, 1), (1.5, -0.75) ]
     # xy = [(0.0, 0.0), (-0.2, -0.3), (0.5, -0.3), (0.6, 0.2), (0.3, 0.8), (-0.1, 1.0), \
     #       (-0.2, 1.2), (0.3, 1.2), (0.5, 1.6), (0.8, 1.7), (0.9, 2.1), (1.3, 2.2), \
@@ -219,35 +213,29 @@ if __name__ == '__main__':
     #     for x, y in xy:
     #         f.write(f'{x},{y}\n')
     #
-    # xy = list()
-    # with open('2026-02-28-225436-metre.csv', 'r') as f :
-    #     for l in f:
-    #
-    #         lonlat = [float(e) for e in l.strip().split(',')]
-    #         xy.append(tuple(lonlat))
-    # print(xy[:10])
-    # print(f'points in the input provided: {len(xy)}\n')
-    # xy = xy[500:]
-    
-    # cvx = ConvexHull()
-    # distmax = 0.0
-    # for pt in xy :
-    #     if len(cvx) == 0 :
-    #         cvx.add(pt)
-    #     else:
-    #         if not cvx.add(pt) :
-    #             print(f'failed to add {pt}')
-    #             break
-    #     print(cvx)
-    #
-    # peakdists = [f'{d:.3}' for d in cvx.peak_distances()]
-    # print(peakdists)
+    xy = list()
+    #with open('2026-02-28-225436-metre.csv', 'r') as f :
+    with open('1836_xy-metre.csv', 'r') as f :
+        for l in f:
+            lonlat = [float(e) for e in l.strip().split(',')]
+            xy.append(tuple(lonlat))
+    #print(xy[:10])
+    print(f'points in the input provided: {len(xy)}\n')
+    #xy = xy[500:]
 
     print('-'*8)
     
-    dpath, polygons = delta_decimation_alg(xy, 0.6)
-    print(f'{dpath}, {polygons}')
-
+    plt_annotate = False
+    delta = 12.0
+    with Timer('delta_infinity: ') :
+        dpath, polygons = delta_decimation_alg(xy, delta)
+    print(f'len(xy) = {len(xy)}, len(dpath) = {len(dpath)}, len(polygon) = {len(polygons)}')
+    
+    npxy = np.array(xy)
+    with Timer('rdp: ') :
+        rdpxy, indices = simplify_RDP(npxy, delta)
+    print(len(indices))
+    
     #rdpx, rdpy = rdpxy[:,0], rdpxy[:,1]
     x, y = [ x for x, y in xy], [ y for x, y in xy]
     dpathx, dpathy = [pt[0] for pt in dpath], [pt[1] for pt in dpath]
@@ -259,14 +247,15 @@ if __name__ == '__main__':
         ax.plot(px, py, 'b.--', lw=1) #, alpha=0.75)
 
     labels = [f"{i}" for i in range(len(xy))]
-    for x, y, label in zip(x, y, labels):
-        plt.annotate(
-            label,          # The text to display
-            (x, y),         # The point to annotate (xy)
-            textcoords="offset points", # How to position the text
-            xytext=(5, 2), # Distance from the point to the text (offset)
-            ha='center'     # Horizontal alignment of the text
-        )
+    if plt_annotate :
+        for x, y, label in zip(x, y, labels):
+            plt.annotate(
+                label,          # The text to display
+                (x, y),         # The point to annotate (xy)
+                textcoords="offset points", # How to position the text
+                xytext=(5, 2), # Distance from the point to the text (offset)
+                ha='center'     # Horizontal alignment of the text
+            )
     plt.legend(['Input points', 'polygon path', 'dpath'],loc='best')
     plt.title('Convex Hull function Test')
     ax.set_aspect('equal')
