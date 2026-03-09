@@ -61,33 +61,33 @@ class ConvexHull:
         if len(self) == 0 :
             self.xy.append(pt)
             self.polygon.append(len(self)-1)
-            return True
+            return
         if len(self) == 1 :
             self.xy.append(pt)
             self.polygon.append(len(self)-1)
-            return True
+            return
         
         # add pt to xy and polygon
         if distance_between(self.first_point(), self.last_point()) <= distance_between(self.first_point(), pt)  :
-            self.xy.append(pt)
             if side_of_line(self.polypoint(1), self.polypoint(0), pt) <= 0 :
+                self.xy.append(pt)
                 # right or front of the mouth
                 self.polygon.append(self.polygon.popleft())
                 self.polygon.appendleft(len(self)-1)
             elif side_of_line(self.polypoint(-1), self.polypoint(0), pt) >= 0 :
+                self.xy.append(pt)
                 # outside of the left line of the mouth
                 self.polygon.appendleft(len(self)-1)
-            else:
-                # error, not at growth position
-                print(f'point gets inside.')
-                self.xy.pop()
-                return False
+            # else:
+            #     # error, not at growth position
+            #     raise ValueError(f'point {pt} is inside the polygon.')
+            #     return 
             
             self.remove_concave()
-            return True
+            return
         else:
-            print('point gets nearer.')
-        return False
+            raise ValueError(f'point {pt} is not the furthest.')
+        return
            
     def remove_concave(self, reverse = False):
         # from tail
@@ -109,6 +109,8 @@ class ConvexHull:
     
     def peak_distances(self):
         fwix = 0    # forward peak index == mouth (polygon start)
+        if len(self) <= 1 :
+            return (0.0, 0.0, 0.0, 0.0)
         axis = unitvec(self.first_point(), self.last_point())
         # backward peak, - --> +
         lb, ub = 0, len(self.polygon) - 1
@@ -145,67 +147,58 @@ class ConvexHull:
                 ub = mix
             mix = (lb + ub) >> 1
         ltix = ub
-        print(f'{self.polygon[0]}, {self.polygon[rtix]}, {self.polygon[bkix]}, {self.polygon[ltix]}')
+        print(f'peak indices = {self.polygon[0]}, {self.polygon[rtix]}, {self.polygon[bkix]}, {self.polygon[ltix % len(self.polygon)]}')
         distances = [0.0] * 4
         revvec = vec_neg(axis)
-        distances[2] = dot_product(revvec, vec(cvx.first_point(), cvx.polypoint(bkix)))
-        distances[1] = dot_product(perp3, vec(cvx.first_point(), cvx.polypoint(rtix)))        
-        distances[3] = -dot_product(perp3, vec(cvx.first_point(), cvx.polypoint(ltix)))
+        distances[2] = dot_product(revvec, vec(self.first_point(), self.polypoint(bkix)))
+        distances[1] = dot_product(perp3, vec(self.first_point(), self.polypoint(rtix)))        
+        distances[3] = -dot_product(perp3, vec(self.first_point(), self.polypoint(ltix)))
         return tuple(distances)
+
+
+def delta_decimation_alg(xy : list, delta) -> tuple:
+    cvx = ConvexHull() 
+    dpath = deque()     # decimated path
+    polygons = deque()   # considered polygons
+    ix = 0
+    dpath.append(xy[0])
+    while ix < len(xy) :
+        print(ix, xy[ix], cvx, len(cvx))
+        if len(cvx) < 2 or distance_between(cvx.first_point(), cvx.last_point()) < distance_between(cvx.first_point(), xy[ix])  :
+            # point xy[ix] is in the growth position
+            growthposition = True
+            cvx.add(xy[ix])     # test diameter/width
+            peakdists = cvx.peak_distances()
+            print(peakdists, [e < delta for e in peakdists])
+            if all([e < delta for e in peakdists]) is False :
+                oversized = True
+            else :
+                oversized = False
+        else:
+            print('got nearer')
+            growthposition = False
+        
+        if not growthposition :
+            lastpt = cvx.last_point()
+            dpath.append(lastpt)
+            polygons.append([cvx.polypoint(ix) for ix in range(len(cvx.polygon) + 1)])
+            cvx.clear()
+            cvx.add(lastpt)
+            cvx.add(xy[ix])        
+        elif oversized :
+            lastpt = cvx.last_point()
+            dpath.append(lastpt)
+            polygons.append([cvx.polypoint(ix) for ix in range(len(cvx.polygon) + 1)])
+            cvx.clear()
+            cvx.add(lastpt)
+        ix += 1
+        print(cvx,'\n')
     
-# def delta_decimation_alg(xy : list, delta) -> tuple:
-#     cvx = ConvexHull() # xy, SimplePolyline=False)
-#     dq = deque(xy)
-#     dpath = deque()
-#     lpath = deque()
-#     rpath = deque()
-#     dpath.append(dq[0])
-#     # cvx must have at least two points.
-#     while len(dq) :
-#         pt = dq.popleft()
-#         print(f'adding {pt}')
-#         if len(cvx) < 2 :
-#             cvx.add(pt)
-#             continue
-#         prelastpt = cvx[-1]
-#         preleft = deque(cvx.left_path)
-#         preright = deque(cvx.right_path)
-#         if cvx.growing_position(pt) : #, Navel = True) :
-#             cvx.add(pt) #, Navel = True)
-#             if cvx.leftpeak_distance() <= delta and cvx.rightpeak_distance() <= delta :
-#                 print(cvx)
-#                 if len(cvx) > 2 :
-#                     print(f'left peak {cvx[cvx.find_left_peak()]} dist = {cvx.leftpeak_distance()}, right peak {cvx[cvx.find_right_peak()]} dist = {cvx.rightpeak_distance()}')
-#                     print('cvx growing.\n')
-#             else:
-#                 # added but stuck out
-#                 print(f'left peak dist = {cvx.leftpeak_distance()}, right peak dist = {cvx.rightpeak_distance()}')
-#                 # close the previous convex hull as a simplifi ed line segment
-#                 lastpt = cvx[-1]
-#                 dpath.append(prelastpt) # close the path
-#                 lpath += [cvx[i] for i in preleft]
-#                 rpath += [cvx[i] for i in preright]
-#                 cvx.clear()
-#                 dq.appendleft(lastpt)
-#                 dq.appendleft(prelastpt)
-#                 print(f'cvx has been reset: {cvx}\n')
-#         else:
-#             print(f'not growing position {pt}')
-#             print(f'terminate the hull')
-#             lastpt = cvx[-1]
-#             dpath.append(lastpt)
-#             print(f'new line {dpath[-2]}, {dpath[-1]}')
-#             lpath += [cvx[i] for i in preleft]
-#             rpath += [cvx[i] for i in preright]
-#             cvx.clear()
-#             dq.appendleft(pt)
-#             dq.appendleft(lastpt)
-#             print('cvx has been reset.\n')
-#     if len(cvx) > 0 :
-#         dpath.append(cvx[-1])
-#         lpath += [cvx[i] for i in cvx.left_path]
-#         rpath += [cvx[i] for i in cvx.right_path]
-#     return (dpath, lpath, rpath)
+    if len(cvx) > 0 :
+        print('points exhausted,', cvx)
+        dpath.append(cvx.last_point())
+        polygons.append([cvx.polypoint(ix) for ix in range(len(cvx.polygon) + 1)])
+    return (dpath, polygons)
 
 def sgn(val):
     if isinstance(val, int) :
@@ -214,10 +207,14 @@ def sgn(val):
         return -1.0 if val < 0.0 else 0.0 if val == 0.0 else 1.0
      
 if __name__ == '__main__':
-    # xy = [(-1, 0.5), (-0.5, -0), (0.0, 0.5), (-1, 1.25), (0.0, 1.5), (0, 2.4), (1.25, 2), (1, 3), \
-    #     (1.5, 2.75), (2, 2.75), (2.5, 3.2), (3, 3.5), (3.2, 2), (3, 0.5),  \
-    #     (3.5, 1.0), (2.5, -0.25), (3.5, 0.5), ] #(4, 1.25), (3.5, 1.5), (3, 1.25), (2, 1), (1.5, -0.75) ]
-    xy = [(0.0, 0.0), (-0.15, -0.1), (0.25, -0.35), (0.65, 0.25), (0.35, 0.75), (-0.25, 0.85), (0.25, 1.0), (0.45, 1.2)]
+    xy = [(-1, 0.5), (-0.5, -0), (0.0, 0.5), (-1, 1.25), (0.0, 1.5), (0, 2.4), (1.25, 2), (1, 3), \
+        (1.5, 2.75), (2, 2.75), (2.5, 3.2), (3, 3.5), (3.2, 2), (3, 0.5),  \
+        (3.5, 1.0), (2.5, -0.25), (3.5, 0.5), ] #(4, 1.25), (3.5, 1.5), (3, 1.25), (2, 1), (1.5, -0.75) ]
+    # xy = [ (3.2, 2), (3, 0.5), (3.5, 1.0), (2.5, -0.25), (3.5, 0.5), ] #(4, 1.25), (3.5, 1.5), (3, 1.25), (2, 1), (1.5, -0.75) ]
+    # xy = [(0.0, 0.0), (-0.2, -0.3), (0.5, -0.3), (0.6, 0.2), (0.3, 0.8), (-0.1, 1.0), \
+    #       (-0.2, 1.2), (0.3, 1.2), (0.5, 1.6), (0.8, 1.7), (0.9, 2.1), (1.3, 2.2), \
+    #       (0.6, 1.8), (-0.1, 1.6), (-0.3, 2.1), \
+    #       ]
     # with open('xy.csv', 'w') as f :
     #     for x, y in xy:
     #         f.write(f'{x},{y}\n')
@@ -232,64 +229,36 @@ if __name__ == '__main__':
     # print(f'points in the input provided: {len(xy)}\n')
     # xy = xy[500:]
     
-    cvx = ConvexHull()
-    distmax = 0.0
-    for pt in xy :
-        if len(cvx) == 0 :
-            cvx.add(pt)
-        else:
-            if not cvx.add(pt) :
-                print(f'failed to add {pt}')
-                break
-        print(cvx)
-        
-    peakdists = [f'{d:.3}' for d in cvx.peak_distances()]
-    print(peakdists)
-    # axvec = vec(cvx.first_point(), cvx.last_point())
-    # revvec = vec_neg(axvec)
-    # bkpeak = cvx.polypoint(peaks[2])
-    # bkvec = vec(cvx.first_point(), cvx.polypoint(peaks[2]))
-    # print(revvec, bkpeak, bkvec, dot_product(revvec, bkvec))
+    # cvx = ConvexHull()
+    # distmax = 0.0
+    # for pt in xy :
+    #     if len(cvx) == 0 :
+    #         cvx.add(pt)
+    #     else:
+    #         if not cvx.add(pt) :
+    #             print(f'failed to add {pt}')
+    #             break
+    #     print(cvx)
     #
-    # perp3vec = perpvec(axvec)
-    # rtpeak = cvx.polypoint(peaks[1])
-    # rtvec = vec(cvx.first_point(), rtpeak)
-    # print(perp3vec, rtpeak, rtvec, dot_product(perp3vec, rtvec))
-    #
-    # ltpeak = cvx.polypoint(peaks[3])
-    # ltvec = vec(cvx.first_point(), ltpeak)
-    # print(perp3vec, ltpeak, ltvec, -dot_product(perp3vec, ltvec))
+    # peakdists = [f'{d:.3}' for d in cvx.peak_distances()]
+    # print(peakdists)
+
     print('-'*8)
     
-    p0, pn = cvx.first_point(), cvx.last_point()
-    axis = vec(p0, pn)
-    print(f'{p0}, {pn}, {axis}')
-    uaxis = unitvec(axis)
-    u3oclock = perpvec(uaxis, clockwise = True)
-    print(f'uaxis = {uaxis}, u3oclock = {u3oclock}')
-    for ix in range(len(cvx.polygon)) :
-        pt0 = cvx.polypoint(ix - 1)
-        pt1 = cvx.polypoint(ix)
-        pt2 = cvx.polypoint(ix + 1)
-        ptvec0 = unitvec(pt0, pt1)
-        ptvec1 = unitvec(pt1, pt2)
-        print(f'{cvx.polygon[ix-1]} - {cvx.polygon[ix]}, \t', end = ' ')
-        print(f'{dot_product(uaxis, ptvec0):.3}, {dot_product(u3oclock, ptvec0):.3}, ')
-        #print()
-        
-    #dpath, lpath, rpath = delta_decimation_alg(xy, 6)
-    
+    dpath, polygons = delta_decimation_alg(xy, 0.6)
+    print(f'{dpath}, {polygons}')
 
     #rdpx, rdpy = rdpxy[:,0], rdpxy[:,1]
-    x, y = [ x for x, y in cvx.xy], [ y for x, y in cvx.xy]
-    polygon = list(cvx.polygon) + [cvx.polygon[0]]
-    px, py = [xy[i][0] for i in polygon], [xy[i][1] for i in polygon]
-    axisx, axisy = [pt[0] for pt in cvx.xy[:1]+cvx.xy[-1:]], [pt[1] for pt in cvx.xy[:1]+cvx.xy[-1:]]
+    x, y = [ x for x, y in xy], [ y for x, y in xy]
+    dpathx, dpathy = [pt[0] for pt in dpath], [pt[1] for pt in dpath]
     fig, ax = plt.subplots()
     ax.plot(x, y, 'y.-', lw=4.0, alpha=0.5)
-    ax.plot(px, py, 'b.--', lw=1) #, alpha=0.75)
-    ax.plot(axisx, axisy, 'k.-', lw=1) #, alpha=0.75)
-    labels = [f"{i}" for i in range(len(cvx.xy))]
+    ax.plot(dpathx, dpathy, 'k.-', lw=1) #, alpha=0.75)
+    for polygon in polygons:
+        px, py = [p[0] for p in polygon], [p[1] for p in polygon]
+        ax.plot(px, py, 'b.--', lw=1) #, alpha=0.75)
+
+    labels = [f"{i}" for i in range(len(xy))]
     for x, y, label in zip(x, y, labels):
         plt.annotate(
             label,          # The text to display
@@ -298,7 +267,7 @@ if __name__ == '__main__':
             xytext=(5, 2), # Distance from the point to the text (offset)
             ha='center'     # Horizontal alignment of the text
         )
-    plt.legend(['Input points', 'clockwise polygon path'],loc='best')
+    plt.legend(['Input points', 'polygon path', 'dpath'],loc='best')
     plt.title('Convex Hull function Test')
     ax.set_aspect('equal')
     plt.show()
