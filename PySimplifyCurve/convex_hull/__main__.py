@@ -215,7 +215,7 @@ if __name__ == '__main__':
     #
     xy = list()
     #with open('2026-02-28-225436-metre.csv', 'r') as f :
-    with open('1836_xy-metre.csv', 'r') as f :
+    with open('4507_xy-metre.csv', 'r') as f :
         for l in f:
             lonlat = [float(e) for e in l.strip().split(',')]
             xy.append(tuple(lonlat))

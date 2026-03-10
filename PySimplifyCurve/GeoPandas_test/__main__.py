@@ -4,13 +4,34 @@ Created on 2026/03/09
 @author: sin
 '''
 import geopandas as gpd
-import matplotlib.pyplot as plt
+#import matplotlib.pyplot as plt
+import sys
 
-if __name__ == '__main__':    
-    shape_file = "/Users/sin/Downloads/N03-190101_40_GML/N03-19_40_190101.shp"
+if __name__ == '__main__':
+    if len(sys.argv) == 0 :
+        print('[options] input file name ')
+    opts = dict()
+    argix = 1
+    while argix < len(sys.argv) :
+        if not sys.argv[argix].startswith('-') :
+            if 'filepath' not in opts and len(sys.argv[argix].strip()) > 0 :
+                opts['filepath'] = sys.argv[argix].strip()
+                dsv = opts['filepath'].split('/')
+                if len(dsv) > 0 :
+                    ext = dsv[-1].split('.')[-1]
+                    if ext == 'shp' :
+                        opts['type'] = 'shp'
+                    elif ext == 'gpx' :
+                        opts['type'] = 'gpx'
+                    elif ext == 'csv' :
+                        opts['type'] = 'csv'
+        else:
+            print(f'option? {sys.argv[argix]}')
+        argix += 1
+            
     
     # GeoJSON を読み込み
-    gdf = gpd.read_file(shape_file)
+    gdf = gpd.read_file(opts['filepath'])
     
     mxid = -1
     mxl = []
