@@ -164,7 +164,9 @@ def delta_decimation_alg(xy : list, delta) -> tuple:
     dpath.append(xy[0])
     while ix < len(xy) :
         #print(ix, xy[ix])
-        if len(cvx) < 2 or distance_between(cvx.first_point(), cvx.last_point()) < distance_between(cvx.first_point(), xy[ix])  :
+        if len(cvx) < 2 or \
+        (distance_between(cvx.first_point(), xy[ix]) <= delta and (side_of_line(cvx.polypoint(-1), cvx.polypoint(0), xy[ix]) >= 0 or side_of_line(cvx.polypoint(1), cvx.polypoint(0), xy[ix]) <= 0) ) \
+        or distance_between(cvx.first_point(), cvx.last_point()) < distance_between(cvx.first_point(), xy[ix])  :
             # point xy[ix] is in the growth position
             growthposition = True
             cvx.add(xy[ix])     # test diameter/width
@@ -215,7 +217,7 @@ if __name__ == '__main__':
     #
     xy = list()
     #with open('2026-02-28-225436-metre.csv', 'r') as f :
-    with open('4507_xy-metre.csv', 'r') as f :
+    with open('kunashiri_4507_xy-metre.csv', 'r') as f :
         for l in f:
             lonlat = [float(e) for e in l.strip().split(',')]
             xy.append(tuple(lonlat))
