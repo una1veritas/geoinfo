@@ -4,6 +4,7 @@ Created on 2026/03/09
 @author: sin
 '''
 import geopandas as gpd
+import json
 #import matplotlib.pyplot as plt
 import sys
 
@@ -25,30 +26,62 @@ if __name__ == '__main__':
                         opts['type'] = 'gpx'
                     elif ext == 'csv' :
                         opts['type'] = 'csv'
+                    elif ext == 'geojson' :
+                        opts['type'] = 'json'
         else:
-            print(f'option? {sys.argv[argix]}')
+            if sys.argv[argix][1:] == 'out' :
+                argix += 1
+                opts['out'] = sys.argv[argix]
+            elif sys.argv[argix][1:] == 'list' :
+                opts['list'] = True
+            elif sys.argv[argix][1:] == 'load' :
+                argix += 1
+                opts['load'] = sys.argv[argix]
+            else:
+                print(f'option? {sys.argv[argix]}')
         argix += 1
             
+    if 'filepath' in opts and opts['type'] == 'shp' :
+        # shp を読み込み
+        filepath = opts['filepath']
+        gdf = gpd.read_file(filepath)
+        print(f'gp loaded {filepath} into df.')
+    elif 'filepath' in opts and opts['type'] == 'json' :
+        # json を読み込み
+        filepath = opts['filepath']
+        with open(filepath, 'r') as f:
+            gjdic = json.load(f)
+        for entry in gjdic['features']:
+            if len(entry['geometry']['coordinates'][0]) > 10000 :
+                print(entry['properties'])
+                print(len(entry['geometry']['coordinates'][0]))
+        
+    if 'list' in opts :
+        print(gdf.head())
+        for ix in range(gdf.shape[0]) :
+            parray = gdf.iloc[ix].geometry.exterior.xy
+            l = list(zip(parray[0], parray[1]))
+            if len(l) > 500 :
+                print(ix, len(l))
+
+    mxl = None
+    if 'load' in opts :
+        ix = int(opts['load'])
+        parray = gdf.iloc[ix].geometry.exterior.xy
+        mxl = list(zip(parray[0], parray[1]))
+        print(f'read {ix} in list of the length = {len(mxl)}')
     
-    # GeoJSON を読み込み
-    gdf = gpd.read_file(opts['filepath'])
-    
-    mxid = -1
-    mxl = []
-    print(gdf.head())
-    for id in range(gdf.shape[0]) :
-        parray = gdf.iloc[id].geometry.exterior.xy
-        l = list(zip(parray[0], parray[1]))
-        if len(l) > 10000 :
-            print(id, len(l))
-            if len(l) > len(mxl) :
-                mxid = id
-                mxl = l
-    
-    with open(f'{mxid}_xy.csv', 'w') as f:
-        for e in mxl:
-            f.write(f'{e[1]},{e[0]}\n')
-    
+    if 'out' in opts:
+        if mxl == None :
+            raise ValueError('empty list')
+        
+        outfile = opts['out']
+        if outfile.split('.')[-1] != 'csv' :
+            outfile += '.csv'
+        with open(outfile, 'w') as f:
+            for e in mxl:
+                f.write(f'{e[1]},{e[0]}\n')
+        
     # f = plt.figure(figsize=(6, 6))
     # a = f.gca()
     # a.plot(*gdf.iloc[0].geometry.exterior.xy)
