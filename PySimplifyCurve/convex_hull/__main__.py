@@ -170,35 +170,19 @@ def delta_decimation_alg(xy : list, delta, verbose = False) -> tuple:
             ix += 1
             continue
         
-        growthposition = False
-        verbose and print(f'distance {cvx_farthest_dist} < {distance_between(cvx.first_point(), pt)} ?')
+        verbose and print(f'distance {cvx_farthest_dist} <= {delta} ?')
         verbose and print(f'side {cvx.polygon[-1]}-{cvx.polygon[0]}, {side_of_line(cvx.polypoint(-1), cvx.polypoint(0), pt)} >= 0 or {cvx.polygon[1]}-{cvx.polygon[0]}, {side_of_line(cvx.polypoint(1), cvx.polypoint(0), pt)} <= 0 ?' )
-        if cvx_farthest_dist < distance_between(cvx.first_point(), pt) :
-            # pt is in the growth position
-            verbose and print('in growth distance')
-            growthposition = True
-        elif cvx_farthest_dist <= delta :
-            verbose and print('in growth direction')
-            if side_of_line(cvx.polypoint(-1), cvx.polypoint(0), pt) >= 0 or side_of_line(cvx.polypoint(1), cvx.polypoint(0), pt) <= 0 :
-                growthposition = True
-
-        if growthposition :
-            # preserve the outline of cvx before pt is added
-            prev_polygon = [cvx.polypoint(ix) for ix in range(len(cvx.polygon) + 1)]
-            
-            # add pt to test width
-            cvx.add(pt)
-            cvx_farthest_dist = max(cvx_farthest_dist, distance_between(cvx.first_point(), cvx.last_point()))
-            peakdists = cvx.peak_distances()
-            
-            verbose and print(peakdists, [e < delta for e in peakdists])
-            if all([e < delta for e in peakdists]) is False :
-                oversized = True
-                #print(f'oversized. ')
-            else :
-                oversized = False
         
-        if not growthposition :
+        if cvx_farthest_dist <= delta and \
+        side_of_line(cvx.polypoint(-1), cvx.polypoint(0), pt) >= 0 or side_of_line(cvx.polypoint(1), cvx.polypoint(0), pt) <= 0 :
+            verbose and print('within delta and in growth direction')
+            cvx.add(pt)
+            #update the furtherst dist
+            cvx_farthest_dist = max(cvx_farthest_dist, distance_between(cvx.first_point(), cvx.last_point()))
+            ix += 1
+            continue
+        
+        if not cvx_farthest_dist < distance_between(cvx.first_point(), pt) :
             prevlastpt = cvx.last_point()
             dpath.append(prevlastpt)
             polygons.append([cvx.polypoint(ix) for ix in range(len(cvx.polygon) + 1)])
@@ -206,7 +190,22 @@ def delta_decimation_alg(xy : list, delta, verbose = False) -> tuple:
             cvx.add(prevlastpt)
             cvx.add(pt)
             cvx_farthest_dist = distance_between(cvx.first_point(), cvx.last_point())
-        elif oversized :
+            ix += 1
+            continue
+                    
+        # pt is in the growth position
+        verbose and print('in growth distance')
+
+        # preserve the outline of cvx before pt is added
+        prev_polygon = [cvx.polypoint(ix) for ix in range(len(cvx.polygon) + 1)]
+        
+        # add pt to test width
+        cvx.add(pt)
+        cvx_farthest_dist = max(cvx_farthest_dist, distance_between(cvx.first_point(), cvx.last_point()))
+        peakdists = cvx.peak_distances()
+        verbose and print(peakdists, [e < delta for e in peakdists])
+        
+        if not all([e < delta for e in peakdists]) :
             prevlastpt = cvx.xy[-2]
             dpath.append(prevlastpt)
             polygons.append(prev_polygon)
@@ -214,7 +213,6 @@ def delta_decimation_alg(xy : list, delta, verbose = False) -> tuple:
             cvx.add(prevlastpt)
             cvx.add(pt)
             cvx_farthest_dist = distance_between(cvx.first_point(), cvx.last_point())
-        
         ix += 1
         verbose and print(cvx)
         verbose and print()
@@ -231,33 +229,34 @@ if __name__ == '__main__':
     #       (3, 3.5), (3.2, 2), (3, 0.5),  \
     #       (3.25, 1.0), (3.25, -0.25), (3.5, 0.5), (4, 1.25), (3.5, 1.5), (3, 1.25), (2, 1), (1.5, -0.0) ]
     
-    # xy = [ (0.0, 0.0), (0.3, 0.4), (0.5, -0.3), (-0.1, -0.4), (-0.3, -0.1), (-0.1, 0.2), (-0.5, 0.3), (-0.1, 0.4),  \
-    #       (0.0, 0.8), (0.2, 0.6), (0.5, 1.1), (0.1, 1.3), (0.4, 1.5), (0.8, 1.3), (1.2, 0.9) ]
+    xy = [ (0.0, 0.0), (0.3, 0.4), (0.5, -0.3), (-0.1, -0.4), (-0.3, -0.1), (-0.1, 0.2), (-0.5, 0.3), (-0.1, 0.4),  \
+          (0.0, 0.8), (0.2, 0.6), (0.5, 1.1), (0.1, 1.3), (0.4, 1.5), (0.8, 1.3), (1.2, 0.9) ]
     
     # xy = [(0.0, 0.0), (-0.2, -0.3), (0.5, -0.3), (0.6, 0.2), (0.3, 0.8), (-0.1, 1.0), \
     #       (-0.2, 1.2), (0.3, 1.2), (0.5, 1.6), (0.8, 1.7), (0.9, 2.1), (1.3, 2.2), \
     #       (0.6, 1.8), (-0.1, 1.6), (-0.3, 2.1), \
     #       ]
-    delta = 0.65
+    delta = 0.6
     # with open('xy.csv', 'w') as f :
     #     for x, y in xy:
     #         f.write(f'{x},{y}\n')
     #
     
-    xy = list()
-    with open('fukuoka_nishi_976_xy-metre.csv', 'r') as f :
-        for l in f:
-            lonlat = [float(e) for e in l.strip().split(',')]
-            xy.append(tuple(lonlat))
-    #print(xy[:10])
-    print(f'points in the input provided: {len(xy)}\n')
-    delta = 25
+    # xy = list()
+    # with open('fukuoka_nishi_976_xy-metre.csv', 'r') as f :
+    #     for l in f:
+    #         lonlat = [float(e) for e in l.strip().split(',')]
+    #         xy.append(tuple(lonlat))
+    # # extract a part
+    # xy = xy[9000:11000]
+    # print(f'points in the input provided: {len(xy)}\n')
+    # delta = 10
 
     print('-'*8)
     
     plt_annotate = False
     with Timer('delta_infinity: ') :
-        dpath, polygons = delta_decimation_alg(xy, delta)
+        dpath, polygons = delta_decimation_alg(xy, delta, verbose=True)
     print(f'len(xy) = {len(xy)}, len(dpath) = {len(dpath)}')
     
     npxy = np.array(xy)
@@ -265,12 +264,12 @@ if __name__ == '__main__':
         rdpxy, indices = simplify_RDP(npxy, delta)
     print(len(indices))
     
-    #rdpx, rdpy = rdpxy[:,0], rdpxy[:,1]
+    rdpx, rdpy = rdpxy[:,0], rdpxy[:,1]
     x, y = [ x for x, y in xy], [ y for x, y in xy]
-    dpathx, dpathy = [pt[0] for pt in dpath], [pt[1] for pt in dpath]
+    drx, dry = [pt[0] for pt in dpath], [pt[1] for pt in dpath]
     fig, ax = plt.subplots()
     ax.plot(x, y, 'y.-', lw=4.0, alpha=0.5)
-    ax.plot(dpathx, dpathy, 'k.-', lw=1) #, alpha=0.75)
+    ax.plot(drx, dry, 'k.-', lw=1) #, alpha=0.75)
     for polygon in polygons:
         px, py = [p[0] for p in polygon], [p[1] for p in polygon]
         ax.plot(px, py, 'b--', lw=1) #, alpha=0.75)
@@ -285,7 +284,7 @@ if __name__ == '__main__':
                 xytext=(5, 2), # Distance from the point to the text (offset)
                 ha='center'     # Horizontal alignment of the text
             )
-    plt.legend(['Input points', 'decimatedd path', 'polygon path'],loc='best')
-    plt.title('Convex Hull function Test')
+    plt.legend(['Input points', 'decimated path', 'polygon path'],loc='best')
+    plt.title('delta-rect decimation Test')
     ax.set_aspect('equal')
     plt.show()
