@@ -153,69 +153,74 @@ class ConvexHull:
 
 
 def delta_decimation_alg(xy : list, delta, verbose = False) -> tuple:
-    cvx = ConvexHull() 
-    cvx_farthest_dist = 0.0
     dpath = deque()     # decimated path
     polygons = deque()   # considered polygons
-    ix = 0
     dpath.append(xy[0])
+    cvx = ConvexHull() 
+    cvx.add(xy[0])
+    cvx.add(xy[1])
+    cvx_diameter = distance_between(cvx.first_point(), cvx.last_point())
+    ix = 2
     while ix < len(xy) :
         pt = xy[ix]
-        verbose and print(ix, pt, cvx)
-        
-        if len(cvx) < 2 :
-            cvx.add(pt)
-            if len(cvx) == 2 :
-                cvx_farthest_dist = distance_between(cvx.first_point(), cvx.last_point())
-            ix += 1
-            continue
-        
-        verbose and print(f'distance {cvx_farthest_dist} <= {delta} ?')
+
+        verbose and print(f'{ix}, {pt}, dia = {cvx_diameter}, delta = {delta}, {cvx}')
         verbose and print(f'side {cvx.polygon[-1]}-{cvx.polygon[0]}, {side_of_line(cvx.polypoint(-1), cvx.polypoint(0), pt)} >= 0 or {cvx.polygon[1]}-{cvx.polygon[0]}, {side_of_line(cvx.polypoint(1), cvx.polypoint(0), pt)} <= 0 ?' )
-        
-        if cvx_farthest_dist <= delta and \
-        side_of_line(cvx.polypoint(-1), cvx.polypoint(0), pt) >= 0 or side_of_line(cvx.polypoint(1), cvx.polypoint(0), pt) <= 0 :
-            verbose and print('within delta and in growth direction')
+        if cvx_diameter <= delta and \
+        ( side_of_line(cvx.polypoint(-1), cvx.polypoint(0), pt) >= 0 or side_of_line(cvx.polypoint(1), cvx.polypoint(0), pt) <= 0 ):
+            verbose and print('within delta and in growth position')
             cvx.add(pt)
-            #update the furtherst dist
-            cvx_farthest_dist = max(cvx_farthest_dist, distance_between(cvx.first_point(), cvx.last_point()))
+            cvx_diameter = max(cvx_diameter, distance_between(cvx.first_point(), cvx.last_point()) )
             ix += 1
+            verbose and print(cvx)
+            verbose and print()
             continue
         
-        if not cvx_farthest_dist < distance_between(cvx.first_point(), pt) :
-            prevlastpt = cvx.last_point()
-            dpath.append(prevlastpt)
+        verbose and print('check wether pt is furthest or not.')
+        if cvx_diameter > distance_between(cvx.first_point(), pt) :
+            verbose and print('getting nearer.')
+            cvx_lastpt = cvx.last_point()
+            dpath.append(cvx_lastpt)
             polygons.append([cvx.polypoint(ix) for ix in range(len(cvx.polygon) + 1)])
             cvx.clear()
-            cvx.add(prevlastpt)
+            # make new cvx for the 1st and 2nd points.
+            cvx.add(cvx_lastpt)
             cvx.add(pt)
-            cvx_farthest_dist = distance_between(cvx.first_point(), cvx.last_point())
+            cvx_diameter = distance_between(cvx.first_point(), cvx.last_point())
             ix += 1
+            verbose and print(cvx)
+            verbose and print()
             continue
-                    
+        
         # pt is in the growth position
-        verbose and print('in growth distance')
-
+        verbose and print('pt is at growth distance')
+        
         # preserve the outline of cvx before pt is added
-        prev_polygon = [cvx.polypoint(ix) for ix in range(len(cvx.polygon) + 1)]
+        prevcvx_polygon = [cvx.polypoint(ix) for ix in range(len(cvx.polygon) + 1)]
         
         # add pt to test width
         cvx.add(pt)
-        cvx_farthest_dist = max(cvx_farthest_dist, distance_between(cvx.first_point(), cvx.last_point()))
         peakdists = cvx.peak_distances()
         verbose and print(peakdists, [e < delta for e in peakdists])
         
-        if not all([e < delta for e in peakdists]) :
-            prevlastpt = cvx.xy[-2]
-            dpath.append(prevlastpt)
-            polygons.append(prev_polygon)
+        if all([e < delta for e in peakdists]) :
+            cvx_diameter = distance_between(cvx.first_point(), cvx.last_point())
+            ix += 1
+            verbose and print(cvx)
+            verbose and print()
+            continue
+        else:
+            prevcvx_lastpt = cvx.xy[-2]
+            dpath.append(prevcvx_lastpt)
+            polygons.append(prevcvx_polygon)
             cvx.clear()
-            cvx.add(prevlastpt)
+            cvx.add(prevcvx_lastpt)
             cvx.add(pt)
-            cvx_farthest_dist = distance_between(cvx.first_point(), cvx.last_point())
-        ix += 1
-        verbose and print(cvx)
-        verbose and print()
+            cvx_diameter = distance_between(cvx.first_point(), cvx.last_point())
+            ix += 1
+            verbose and print(cvx)
+            verbose and print()
+            continue
     
     if len(cvx) > 0 :
         #print('points exhausted,', cvx)
@@ -230,7 +235,7 @@ if __name__ == '__main__':
     #       (3.25, 1.0), (3.25, -0.25), (3.5, 0.5), (4, 1.25), (3.5, 1.5), (3, 1.25), (2, 1), (1.5, -0.0) ]
     
     xy = [ (0.0, 0.0), (0.3, 0.4), (0.5, -0.3), (-0.1, -0.4), (-0.3, -0.1), (-0.1, 0.2), (-0.5, 0.3), (-0.1, 0.4),  \
-          (0.0, 0.8), (0.2, 0.6), (0.5, 1.1), (0.1, 1.3), (0.4, 1.5), (0.8, 1.3), (1.2, 0.9) ]
+          (0.0, 0.8), (0.2, 0.6), (0.5, 1.1), (0.1, 1.3), (0.4, 1.5), (0.8, 1.3), (1.0, 1.3), (1.2, 0.9) ]
     
     # xy = [(0.0, 0.0), (-0.2, -0.3), (0.5, -0.3), (0.6, 0.2), (0.3, 0.8), (-0.1, 1.0), \
     #       (-0.2, 1.2), (0.3, 1.2), (0.5, 1.6), (0.8, 1.7), (0.9, 2.1), (1.3, 2.2), \
@@ -242,21 +247,21 @@ if __name__ == '__main__':
     #         f.write(f'{x},{y}\n')
     #
     
-    # xy = list()
-    # with open('fukuoka_nishi_976_xy-metre.csv', 'r') as f :
-    #     for l in f:
-    #         lonlat = [float(e) for e in l.strip().split(',')]
-    #         xy.append(tuple(lonlat))
-    # # extract a part
-    # xy = xy[9000:11000]
-    # print(f'points in the input provided: {len(xy)}\n')
-    # delta = 10
+    xy = list()
+    with open('fukuoka_nishi_976_xy-metre.csv', 'r') as f :
+        for l in f:
+            lonlat = [float(e) for e in l.strip().split(',')]
+            xy.append(tuple(lonlat))
+    # extract a part
+    #xy = xy[7000:10000]
+    print(f'points in the input provided: {len(xy)}\n')
+    delta = 15
 
     print('-'*8)
     
     plt_annotate = False
-    with Timer('delta_infinity: ') :
-        dpath, polygons = delta_decimation_alg(xy, delta, verbose=True)
+    with Timer('delta rect: ') :
+        dpath, polygons = delta_decimation_alg(xy, delta, verbose=False)
     print(f'len(xy) = {len(xy)}, len(dpath) = {len(dpath)}')
     
     npxy = np.array(xy)
