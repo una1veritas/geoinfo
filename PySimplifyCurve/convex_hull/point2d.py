@@ -80,13 +80,15 @@ def side_of_line(a, b, p):
 def distance_to_line(a, b, p):
     d_a_p = distance_between(a,p)
     d_b_p = distance_between(b,p)
+    d_a_b = distance_between(a, b)
+    #print(f'distance to line {d_a_p}, {d_b_p}, {dot_product(vec(a, b), vec(a, p))},  {dot_product(vec(b,a), vec(b, p))} {d_a_b}')
     if d_a_p == 0 or d_b_p == 0 :
         return 0
-    if dot_product(vec(a, b), vec(a, p)) <= 0.0 :
+    if dot_product(vec(a, b), vec(a, p)) <= 0.0 or a == b :
         return d_a_p #norm(vec(a, p))
     if dot_product(vec(b,a), vec(b, p)) <= 0.0 :
         return d_b_p #norm(vec(b, p))
-    return math.fabs(cross_product_norm(vec(a,b),vec(a,p))/d_a_p)
+    return math.fabs(cross_product_norm(vec(a,b),vec(a,p))/d_a_b)
 
 '''
 double gpspoint::distanceTo(const gpspoint &q1, const gpspoint &q2) const {
