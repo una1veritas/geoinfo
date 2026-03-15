@@ -65,7 +65,7 @@ def mul_vec(c, v):
         raise ValueError(f'mul_vec({c}, {v}): arguments must be a pair of scalar and vector')
 
 ''' distance between two Point2D points '''
-def distance_between(a, b):
+def distance(a, b):
     return math.sqrt( (b[0] - a[0])**2 + (b[1] - a[1])**2 )
 
 def dot_product(va, vb):
@@ -74,13 +74,13 @@ def dot_product(va, vb):
 def cross_product_norm(va, vb):
     return va[0] * vb[1] - va[1] * vb[0]
 
-def side_of_line(a, b, p):
+def rhombus(a, b, p):
     return (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0])
 
 def distance_to_line(a, b, p):
-    d_a_p = distance_between(a,p)
-    d_b_p = distance_between(b,p)
-    d_a_b = distance_between(a, b)
+    d_a_p = distance(a,p)
+    d_b_p = distance(b,p)
+    d_a_b = distance(a, b)
     #print(f'distance to line {d_a_p}, {d_b_p}, {dot_product(vec(a, b), vec(a, p))},  {dot_product(vec(b,a), vec(b, p))} {d_a_b}')
     if d_a_p == 0 or d_b_p == 0 :
         return 0

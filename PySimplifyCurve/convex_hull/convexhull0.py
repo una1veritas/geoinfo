@@ -5,7 +5,7 @@ import rdp
 from collections import deque
 import time
 
-from point2d import vec, side_of_line, distance_between, outer_prod_z, distance_to_line
+from point2d import vec, rhombus, distance, outer_prod_z, distance_to_line
 
 class Timer:
     def __init__(self, mess = ''):
@@ -66,17 +66,17 @@ class ConvexHull:
     def growing_position(self, pt, Navel = False):
         if len(self) <= 2 :
             return True
-        #if ( self.distance_between(self.xy[0], pt) < self.distance_between(self.xy[0], self.xy[-1]) ) or \
-        # print('left:',self.leftpoint(-2), self.leftpoint(-1), pt, side_of_line(self.leftpoint(-2), self.leftpoint(-1), pt))
-        # print('right', self.rightpoint(-2), self.rightpoint(-1), pt, side_of_line(self.rightpoint(-2), self.rightpoint(-1), pt))
-        if side_of_line(self.leftpoint(-2), self.leftpoint(-1), pt) <= 0 and side_of_line(self.rightpoint(-2), self.rightpoint(-1), pt) >= 0 :
+        #if ( self.distance(self.xy[0], pt) < self.distance(self.xy[0], self.xy[-1]) ) or \
+        # print('left:',self.leftpoint(-2), self.leftpoint(-1), pt, rhombus(self.leftpoint(-2), self.leftpoint(-1), pt))
+        # print('right', self.rightpoint(-2), self.rightpoint(-1), pt, rhombus(self.rightpoint(-2), self.rightpoint(-1), pt))
+        if rhombus(self.leftpoint(-2), self.leftpoint(-1), pt) <= 0 and rhombus(self.rightpoint(-2), self.rightpoint(-1), pt) >= 0 :
             # reject the point if it is inside the cone of the last segment of left path and that of the right path
             return False
-        # print('left 1->0, pt:', side_of_line(self.leftpoint(1), self.leftpoint(0), pt))
-        # print('right 1->0, pt:', side_of_line(self.rightpoint(1), self.rightpoint(0), pt))
+        # print('left 1->0, pt:', rhombus(self.leftpoint(1), self.leftpoint(0), pt))
+        # print('right 1->0, pt:', rhombus(self.rightpoint(1), self.rightpoint(0), pt))
         if Navel == True :
             return True
-        elif side_of_line(self.leftpoint(1), self.leftpoint(0), pt) < 0 :
+        elif rhombus(self.leftpoint(1), self.leftpoint(0), pt) < 0 :
             # reject the point if it is inside the cone of the last segment of left path and that of the right path
             return False
         return True
@@ -105,7 +105,7 @@ class ConvexHull:
         navelpt = self.leftpoint(0)  # == self.rightpoint(0)
         l2ndpt = self.leftpoint(1)
         r2ndpt = self.rightpoint(1)
-        if side_of_line(l2ndpt, navelpt, r2ndpt) < 0 :
+        if rhombus(l2ndpt, navelpt, r2ndpt) < 0 :
             if len(self.left_path) > 2 :
                 self.left_path.popleft()
                 self.right_path.popleft()
@@ -122,7 +122,7 @@ class ConvexHull:
         lastix = self.left_path.pop()
         lastpt = self.xy[lastix]
         while len(self.left_path) >= 2 :
-            if side_of_line(lastpt, self.leftpoint(-1), self.leftpoint(-2)) < 0 : 
+            if rhombus(lastpt, self.leftpoint(-1), self.leftpoint(-2)) < 0 : 
                 self.left_path.pop() # pop-out leftpoint(-1)
             else:
                 break
@@ -133,7 +133,7 @@ class ConvexHull:
         lastix = self.right_path.pop()
         last = self.xy[lastix]
         while len(self.right_path) >= 2 :
-            if side_of_line(last, self.rightpoint(-1), self.rightpoint(-2)) >= 0 :
+            if rhombus(last, self.rightpoint(-1), self.rightpoint(-2)) >= 0 :
                 self.right_path.pop() # pop-out the prev point
             else:
                 break

@@ -10,8 +10,8 @@ import rdp
 from collections import deque
 import time
 
-from point2d import vec, side_of_line, distance_between, cross_product_norm, dot_product, \
-distance_to_line, norm, perpvec, unitvec, vec_neg
+from point2d import vec, rhombus, distance, cross_product_norm, dot_product, \
+distance_to_line, norm, unitvec
 from myrdp import rdp_decimation_alg, rdp_decimation_alg_recursive
 
 class Timer:
@@ -72,12 +72,12 @@ class ConvexHull:
             return
         
         # add ptix to ptix and polygon
-        if side_of_line(self.polypoint(1), self.polypoint(0), self.xy[ptix]) <= 0 :
+        if rhombus(self.polypoint(1), self.polypoint(0), self.xy[ptix]) <= 0 :
             self.ptix.append(ptix)
             # right or front of the mouth
             self.polygon.append(self.polygon.popleft())
             self.polygon.appendleft(len(self)-1)
-        elif side_of_line(self.polypoint(-1), self.polypoint(0), self.xy[ptix]) >= 0 :
+        elif rhombus(self.polypoint(-1), self.polypoint(0), self.xy[ptix]) >= 0 :
             self.ptix.append(ptix)
             # outside of the left line of the mouth
             self.polygon.appendleft(len(self)-1)
@@ -95,13 +95,13 @@ class ConvexHull:
         mouthpt = self.point(mouthix)
         # anti clockwise
         while len(self.polygon) > 2 :
-            if side_of_line(mouthpt, self.polypoint(-1), self.polypoint(-2)) < 0 : 
+            if rhombus(mouthpt, self.polypoint(-1), self.polypoint(-2)) < 0 : 
                 self.polygon.pop() # pop-out polygon[-1]
             else:
                 break
         # from month, clock wise
         while len(self.polygon) > 2 :
-            if side_of_line(mouthpt, self.polypoint(0), self.polypoint(1)) > 0 : 
+            if rhombus(mouthpt, self.polypoint(0), self.polypoint(1)) > 0 : 
                 self.polygon.popleft() # pop-out polygon[0]
             else:
                 break
@@ -159,24 +159,24 @@ def delta_rect_decimation_alg(xy : list, delta, verbose = False, polygons = Fals
     cvx = ConvexHull(xy) 
     cvx.add(0)
     cvx.add(1)
-    cvx_diameter = distance_between(cvx.first_point(), cvx.last_point())
+    cvx_diameter = distance(cvx.first_point(), cvx.last_point())
     ptix = 2
     while ptix < len(xy) :
 
         verbose and print(f'{ptix}, {xy[ptix]}, dia = {cvx_diameter}, delta = {delta}, {cvx}')
-        verbose and print(f'side {cvx.polygon[-1]}-{cvx.polygon[0]}, {side_of_line(cvx.polypoint(-1), cvx.polypoint(0), xy[ptix])} >= 0 or {cvx.polygon[1]}-{cvx.polygon[0]}, {side_of_line(cvx.polypoint(1), cvx.polypoint(0), xy[ptix])} <= 0 ?' )
+        verbose and print(f'side {cvx.polygon[-1]}-{cvx.polygon[0]}, {rhombus(cvx.polypoint(-1), cvx.polypoint(0), xy[ptix])} >= 0 or {cvx.polygon[1]}-{cvx.polygon[0]}, {rhombus(cvx.polypoint(1), cvx.polypoint(0), xy[ptix])} <= 0 ?' )
         if cvx_diameter <= delta and \
-        ( side_of_line(cvx.polypoint(-1), cvx.polypoint(0), xy[ptix]) >= 0 or side_of_line(cvx.polypoint(1), cvx.polypoint(0), xy[ptix]) <= 0 ):
+        ( rhombus(cvx.polypoint(-1), cvx.polypoint(0), xy[ptix]) >= 0 or rhombus(cvx.polypoint(1), cvx.polypoint(0), xy[ptix]) <= 0 ):
             verbose and print('within delta and in growth position')
             cvx.add(ptix)
-            cvx_diameter = max(cvx_diameter, distance_between(cvx.first_point(), cvx.last_point()) )
+            cvx_diameter = max(cvx_diameter, distance(cvx.first_point(), cvx.last_point()) )
             ptix += 1
             verbose and print(cvx)
             verbose and print()
             continue
         
         verbose and print('check wether pt is furthest or not.')
-        if cvx_diameter > distance_between(cvx.first_point(), xy[ptix]) :
+        if cvx_diameter > distance(cvx.first_point(), xy[ptix]) :
             verbose and print('getting nearer. stop extending cvx')
             cvx_lastix = cvx.ptix[-1]
             dixpath.append(cvx_lastix)
@@ -188,7 +188,7 @@ def delta_rect_decimation_alg(xy : list, delta, verbose = False, polygons = Fals
             cvx.add(ptix)
             verbose and print(cvx)
             verbose and print(cvx.first_point(), cvx.last_point())
-            cvx_diameter = distance_between(cvx.first_point(), cvx.last_point())
+            cvx_diameter = distance(cvx.first_point(), cvx.last_point())
             ptix += 1
             verbose and print(cvx)
             verbose and print()
@@ -207,7 +207,7 @@ def delta_rect_decimation_alg(xy : list, delta, verbose = False, polygons = Fals
         verbose and print(peakdists, [e < delta for e in peakdists])
         
         if all([e < delta for e in peakdists]) :
-            cvx_diameter = distance_between(cvx.first_point(), cvx.last_point())
+            cvx_diameter = distance(cvx.first_point(), cvx.last_point())
             ptix += 1
             verbose and print(cvx)
             verbose and print()
@@ -220,7 +220,7 @@ def delta_rect_decimation_alg(xy : list, delta, verbose = False, polygons = Fals
             cvx.clear()
             cvx.add(prevcvx_lastix)
             cvx.add(ptix)
-            cvx_diameter = distance_between(cvx.first_point(), cvx.last_point())
+            cvx_diameter = distance(cvx.first_point(), cvx.last_point())
             ptix += 1
             verbose and print(cvx)
             verbose and print()
@@ -257,14 +257,14 @@ if __name__ == '__main__':
     #
     
     xy = list()
-    with open('40106.csv', 'r') as f :
+    with open('47-936_ishigakishi_xy-metre.csv', 'r') as f :
         for l in f:
             lonlat = [float(e) for e in l.strip().split(',')]
             xy.append(tuple(lonlat))
     # extract a part
     #xy = xy[7000:10000]
     print(f'points in the input provided: {len(xy)}\n')
-    delta = 50
+    delta = 25.0
 
     print('-'*8)
     
