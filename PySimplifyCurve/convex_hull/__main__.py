@@ -7,6 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import math
 import rdp
+import fastrdp
 from collections import deque
 import time
 
@@ -264,7 +265,7 @@ if __name__ == '__main__':
     # extract a part
     #xy = xy[7000:10000]
     print(f'points in the input provided: {len(xy)}\n')
-    delta = 25.0
+    delta = 12.5
 
     print('-'*8)
     
@@ -273,14 +274,19 @@ if __name__ == '__main__':
         drseq, polygons = delta_rect_decimation_alg(xy, delta, verbose = False, polygons = True)
     print(f'length of decimated seq = {len(drseq)}')
     
-    npxy = np.array(xy)
-    with Timer('module rdp: ') :
-        mask = rdp.rdp(npxy, epsilon=delta, return_mask=True)
-    rdpseq = [i for i in range(len(mask)) if mask[i]]
-    print(f'length of decimated seq = {len(rdpseq)}')    
-    
     with Timer('my rdp: ') :
         rdpseq = rdp_decimation_alg(xy, delta)
+    print(f'length of decimated seq = {len(rdpseq)}')
+    
+    npxy = np.array(xy)
+    # with Timer('module rdp: ') :
+    #     mask = rdp.rdp(npxy, epsilon=delta, return_mask=True)
+    # rdpseq = [i for i in range(len(mask)) if mask[i]]
+    # print(f'length of decimated seq = {len(rdpseq)}')    
+    
+    npx , npy = npxy[:,0], npxy[:,1]
+    with Timer('module fastrdp: ') :
+        frdpx, frdpy = fastrdp.rdp(npx, npy, delta)
     print(f'length of decimated seq = {len(rdpseq)}')
     
     rdpx, rdpy = [ xy[i][0] for i in rdpseq], [ xy[i][1] for i in rdpseq]
@@ -288,8 +294,8 @@ if __name__ == '__main__':
     drx, dry = [xy[ix][0] for ix in drseq], [xy[ix][1] for ix in drseq]
     fig, ax = plt.subplots()
     ax.plot(x, y, 'y.-', lw=2.0, alpha=0.35)
-    ax.plot(drx, dry, 'b.-', lw=1) #, alpha=0.75)
-    # ax.plot(rdpx, rdpy, 'b.-', lw=1) #, alpha=0.75)
+    #ax.plot(drx, dry, 'b.-', lw=1) #, alpha=0.75)
+    ax.plot(frdpx, frdpy, 'b.-', lw=1) #, alpha=0.75)
     if len(polygons) > 0 :
         for polygon in polygons:
             px, py = [xy[i][0] for i in polygon], [xy[i][1] for i in polygon]
