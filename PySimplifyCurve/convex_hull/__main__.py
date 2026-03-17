@@ -263,7 +263,6 @@ if __name__ == '__main__':
             lonlat = [float(e) for e in l.strip().split(',')]
             xy.append(tuple(lonlat))
     # extract a part
-    #xy = xy[7000:10000]
     print(f'points in the input provided: {len(xy)}\n')
     delta = 12.5
 
