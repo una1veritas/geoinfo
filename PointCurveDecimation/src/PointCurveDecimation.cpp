@@ -169,7 +169,12 @@ int main() {
 	cout << "CSV reader!!" << endl; // prints !!!Hello World!!!
 	Point2D sequence[5] = { Point2D(0, 0), Point2D(1, 1), Point2D(2, -2), Point2D(0, -3), Point2D(-4, -4) };
 	Point2D seq2[3] = { {0, 0}, {1, 1}, {2, -2} };
-	for (const auto & pt : sequence) {
+	for (int i = 0; i < 5; ++i) {
+		std::cout << sequence[i] << endl;
+		if (i+2 < 5)
+			std::cout << sequence[i].rhombus(sequence[i+1], sequence[i+2]) << endl;
+	}
+	for (const auto & pt : seq2) {
 		std::cout << pt << endl;
 	}
     return 0;
