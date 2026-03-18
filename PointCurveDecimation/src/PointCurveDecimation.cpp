@@ -96,7 +96,7 @@ struct Point2D {
 	}
 
 	bool operator!=(const Point2D& other) const {
-		return (x != other.x) or (y == other.y);
+		return (x != other.x) or (y != other.y);
 	}
 
 	double norm() const {
@@ -167,15 +167,21 @@ int csv_reader(const std::string& filename, std::vector<Point2D> & tbl) {
 
 int main() {
 	cout << "CSV reader!!" << endl; // prints !!!Hello World!!!
-	Point2D sequence[5] = { Point2D(0, 0), Point2D(1, 1), Point2D(2, -2), Point2D(0, -3), Point2D(-4, -4) };
-	Point2D seq2[3] = { {0, 0}, {1, 1}, {2, -2} };
-	for (int i = 0; i < 5; ++i) {
-		std::cout << sequence[i] << endl;
-		if (i+2 < 5)
-			std::cout << sequence[i].rhombus(sequence[i+1], sequence[i+2]) << endl;
+	std::vector<Point2D> seqs = { {0, 0}, {1, 1}, {2, -1}, {2.0, -1.0}, {-4, -4}, {0, 0}, {1, 1}, {2, -2} };
+	for (int i = 0; i + 2 < seqs.size() ; ++i) {
+		std::cout << seqs[i] << ", " << seqs[i+1] << ", " << seqs[i+2] << std::endl;
+		std::cout << " + " << seqs[i] + seqs[i+1] << std::endl;
+		std::cout << " == " << (seqs[i] == seqs[i+1]) << std::endl;
+		std::cout << " != " << (seqs[i] != seqs[i+1]) << std::endl;
+		std::cout << " dot " << seqs[i].dot(seqs[i+1]) << std::endl;
+		std::cout << " cross_norm " << seqs[i].cross_norm(seqs[i+1]) << std::endl;
+		std::cout << " rhombus " << seqs[i].rhombus(seqs[i+1], seqs[i+2]) << std::endl;
+		std::cout << " distance " << seqs[i].distance_to(seqs[i+1]) << std::endl;
+		std::cout << " distance to line " << seqs[i].distance_to(seqs[i+1], seqs[i+2]) << std::endl;
+		std::cout << " vector " << Point2D::vector(seqs[i], seqs[i+1]) << std::endl;
+		std::cout << " perpendicular vector "  << Point2D::perpvector(seqs[i], seqs[i+1]) << std::endl;
 	}
-	for (const auto & pt : seq2) {
-		std::cout << pt << endl;
-	}
+
+	std::cout << Point2D(0, 0).rhombus(Point2D(1, 1), Point2D(0.8, 0.6)) << endl;
     return 0;
 }
