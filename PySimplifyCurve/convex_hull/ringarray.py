@@ -104,6 +104,11 @@ class ringarray:
     def __str__(self):
         return f'{[e for e in self]}' #, array = {self.array}, head, tail = {(self.head, self.tail)}, capacity = {self.capacity}, length = {self.length}'
     
+    def clear(self):
+        self.head = 0
+        self.tail = 0
+        self.length = 0
+    
 if __name__ == '__main__':
     ring = ringarray()
     data = [9, 1, 3, -1, -5, 7, 7, 0, 11, -12, 99]

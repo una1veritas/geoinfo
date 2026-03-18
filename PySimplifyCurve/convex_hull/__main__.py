@@ -9,6 +9,7 @@ import math
 import rdp
 import fastrdp
 from collections import deque
+from ringarray import ringarray
 import time
 
 from point2d import vec, rhombus, distance, cross_product_norm, dot_product, \
@@ -36,7 +37,7 @@ class ConvexHull:
     def __init__(self, xyseq):
         self.xy = list(xyseq)
         self.ptix = list() # index seq of Point2Ds considering
-        self.polygon = deque()     # index seq in clockwise
+        self.polygon = ringarray(127)     # index seq in clockwise
     
     def clear(self):
         self.ptix.clear()
@@ -154,8 +155,8 @@ class ConvexHull:
 
 
 def delta_rect_decimation_alg(xy : list, delta, verbose = False, polygons = False) -> tuple:
-    dixpath = deque()     # index sequence of decimated path
-    polygon_seq = deque()   # considered polygons
+    dixpath = list()     # index sequence of decimated path
+    polygon_seq = list()   # considered polygons
     dixpath.append(0)
     cvx = ConvexHull(xy) 
     cvx.add(0)
@@ -240,10 +241,10 @@ def delta_rect_decimation_alg(xy : list, delta, verbose = False, polygons = Fals
         return (dixpath, polygon_seq)
 
 if __name__ == '__main__':
-    xy = [(-1, 0.5), (-0.5, -0), (0.0, 0.5), (-1.3, 1.5), (0.0, 1.5), (0, 2.4), (1.0, 2), (1, 2.5), \
-         (1.5, 2.75), (2, 2.75), (2.5, 3.2), \
-         (3, 3.5), (3.2, 2), (3, 0.5),  \
-         (3.25, 1.0), (3.25, -0.25), (3.5, 0.5), (4, 1.25), (3.5, 1.5), (3, 1.25), (2, 1), (1.5, -0.0) ]
+    # xy = [(-1, 0.5), (-0.5, -0), (0.0, 0.5), (-1.3, 1.5), (0.0, 1.5), (0, 2.4), (1.0, 2), (1, 2.5), \
+    #      (1.5, 2.75), (2, 2.75), (2.5, 3.2), \
+    #      (3, 3.5), (3.2, 2), (3, 0.5),  \
+    #      (3.25, 1.0), (3.25, -0.25), (3.5, 0.5), (4, 1.25), (3.5, 1.5), (3, 1.25), (2, 1), (1.5, -0.0) ]
     # xy = [ (0.0, 0.0), (0.3, 0.4), (0.5, -0.3), (-0.1, -0.4), (-0.3, -0.1), (-0.1, 0.2), (-0.5, 0.3), (-0.1, 0.4), \
     #       (0.0, 0.8), (0.2, 0.6), (0.5, 1.1), (0.1, 1.3), (0.4, 1.5), (0.8, 1.3), (1.0, 1.3), (1.2, 0.9) ]
     #
@@ -257,14 +258,14 @@ if __name__ == '__main__':
     #         f.write(f'{x},{y}\n')
     #
     
-    xy = list()
-    with open('47-936_ishigakishi_xy-metre.csv', 'r') as f :
-        for l in f:
-            lonlat = [float(e) for e in l.strip().split(',')]
-            xy.append(tuple(lonlat))
-    # extract a part
-    print(f'points in the input provided: {len(xy)}\n')
-    delta = 12.5
+    # xy = list()
+    # with open('47-936_ishigakishi_xy-metre.csv', 'r') as f :
+    #     for l in f:
+    #         lonlat = [float(e) for e in l.strip().split(',')]
+    #         xy.append(tuple(lonlat))
+    # # extract a part
+    # print(f'points in the input provided: {len(xy)}\n')
+    # delta = 25.0
 
     print('-'*8)
     
@@ -276,25 +277,27 @@ if __name__ == '__main__':
     with Timer('my rdp: ') :
         rdpseq = rdp_decimation_alg(xy, delta)
     print(f'length of decimated seq = {len(rdpseq)}')
+    mrdpx, mrdpy = [xy[i][0] for i in rdpseq], [xy[i][1] for i in rdpseq]
     
     npxy = np.array(xy)
-    # with Timer('module rdp: ') :
-    #     mask = rdp.rdp(npxy, epsilon=delta, return_mask=True)
-    # rdpseq = [i for i in range(len(mask)) if mask[i]]
-    # print(f'length of decimated seq = {len(rdpseq)}')    
+    with Timer('module rdp: ') :
+        mask = rdp.rdp(npxy, epsilon=delta, return_mask=True)
+    rdpseq = [i for i in range(len(mask)) if mask[i]]
+    print(f'length of decimated seq = {len(rdpseq)}')
     
     npx , npy = npxy[:,0], npxy[:,1]
     with Timer('module fastrdp: ') :
         frdpx, frdpy = fastrdp.rdp(npx, npy, delta)
-    print(f'length of decimated seq = {len(rdpseq)}')
+    print(f'length of decimated seq = {len(frdpx), len(frdpy)}')
     
-    rdpx, rdpy = [ xy[i][0] for i in rdpseq], [ xy[i][1] for i in rdpseq]
+    # rdpx, rdpy = [ xy[i][0] for i in rdpseq], [ xy[i][1] for i in rdpseq]
     x, y = [ x for x, y in xy], [ y for x, y in xy]
     drx, dry = [xy[ix][0] for ix in drseq], [xy[ix][1] for ix in drseq]
     fig, ax = plt.subplots()
     ax.plot(x, y, 'y.-', lw=2.0, alpha=0.35)
-    #ax.plot(drx, dry, 'b.-', lw=1) #, alpha=0.75)
-    ax.plot(frdpx, frdpy, 'b.-', lw=1) #, alpha=0.75)
+    ax.plot(drx, dry, 'b.-', lw=1) #, alpha=0.75)
+    #ax.plot(frdpx, frdpy, 'b.-', lw=1) #, alpha=0.75)
+    #ax.plot(mrdpx, mrdpy, 'b.-', lw=1) #, alpha=0.75)
     if len(polygons) > 0 :
         for polygon in polygons:
             px, py = [xy[i][0] for i in polygon], [xy[i][1] for i in polygon]
