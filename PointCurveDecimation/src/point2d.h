@@ -106,6 +106,10 @@ struct Point2D {
 		return std::sqrt((other.x - x) * (other.x - x) + (other.y - y) * (other.y - y));
 	}
 
+	/*
+	 * from the point self the distance to the line segment
+	 *  (or the infinite line if infinite = true) from a to b
+	 */
 	double distance_to(const Point2D & a, const Point2D & b, bool infinite = false) const {
 		double d_a_p = this->distance_to(a);
 		double d_b_p = this->distance_to(b);
