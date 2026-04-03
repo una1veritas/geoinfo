@@ -8,6 +8,7 @@
 #ifndef RINGARRAY_H_
 #define RINGARRAY_H_
 
+#include <cstddef>
 #include <vector>
 
 template <typename T>
@@ -19,6 +20,10 @@ public:
     RingArray(size_t capacity) : array(capacity) {}
 
 	~RingArray() = default;
+
+	size_t size() const {
+		return count;
+	}
 
 	bool is_empty() const {
 		return count == 0; // head == tail

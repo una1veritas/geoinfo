@@ -52,8 +52,8 @@ class ConvexHull:
     def __getitem__(self, index):
         return self.xy[self.ptix[index]]
     
-    def point(self, index):
-        return self.xy[self.ptix[index]]
+#    def point(self, index):
+#        return self.xy[self.ptix[index]]
     
     def polypoint(self, index):
         return self.xy[self.ptix[self.polygon[index % len(self.polygon)]]]

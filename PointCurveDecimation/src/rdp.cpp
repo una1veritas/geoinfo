@@ -27,7 +27,7 @@ std::deque<long> RDP::decimation(const std::vector<Point2D> & xy, double delta) 
 			}
 		}
 
-		ixseq.push_front(ix_last);	// the boundary that remains
+		ixseq.push_front(ix_last);	// this boundary of the whole or the 2nd range must remain
 		if (d_max <= delta) {
 			decseq.pop_front();
 			decseq.push_front(ix_first);
