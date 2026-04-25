@@ -83,7 +83,7 @@ public:
         return array[(_head + ix) % _capacity];
     }
 
-    void resize(size_t new_capa) {
+    void resize(const size_t & new_capa) {
     	if (new_capa <= _capacity)
 			return; // No shrinking
     	T * new_array = new T[new_capa];
