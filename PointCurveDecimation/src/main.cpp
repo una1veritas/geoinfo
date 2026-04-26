@@ -15,6 +15,8 @@
 
 #include "point2d.h"
 #include "ringarray.h"
+#include "convexhull.h"
+
 using namespace std;
 
 int csv_reader(const std::string& filename, std::vector<Point2D> & tbl) {
@@ -51,28 +53,30 @@ int csv_reader(const std::string& filename, std::vector<Point2D> & tbl) {
 
 int main() {
 	cout << "CSV reader!!" << endl; // prints !!!Hello World!!!
-	std::vector<Point2D> seqs; // = { {0, 0}, {1, 1}, {2, -1}, {2.0, -1.5}, {-4, -4}, {0, 0}, {1, 1}, {2, -2} };
-	csv_reader("test.csv", seqs);
-	ringarray<Point2D> ring(4);
-	for (const auto & elem : seqs ) {
+	std::vector<Point2D> pointseq; // = { {0, 0}, {1, 1}, {2, -1}, {2.0, -1.5}, {-4, -4}, {0, 0}, {1, 1}, {2, -2} };
+	csv_reader("2026-02-28-225436-metre.csv", pointseq);
+	ringarray<Point2D> ring(127);
+	for (const auto & elem : pointseq ) {
 		std::cout << elem << ", ";
 	}
 	std::cout << std::endl;
+	std::cout << "point sequence size = " << pointseq.size() << endl << endl;
+
 	std::cout << "ring size = " << ring.size() << ", ring capacity = " << ring.capacity() << endl;
-	ring.push_back(seqs[0]);
-	ring.push_front(seqs[1]);
-	ring.push_back(seqs[2]);
-	ring.push_back(seqs[3]);
+	ring.push_back(pointseq[0]);
+	ring.push_front(pointseq[1]);
+	ring.push_back(pointseq[2]);
+	ring.push_back(pointseq[3]);
 	ring.pop_front();
 	ring.pop_front();
-	ring.push_back(seqs[0]);
-	ring.push_back(seqs[1]);
-	ring.push_back(seqs[2]);
-	ring.push_front(seqs[4]);
-	ring.push_back(seqs[5]);
-	ring.push_front(seqs[6]);
-	ring.push_back(seqs[7]);
-	ring.push_front(seqs[3]);
+	ring.push_back(pointseq[0]);
+	ring.push_back(pointseq[1]);
+	ring.push_back(pointseq[2]);
+	ring.push_front(pointseq[4]);
+	ring.push_back(pointseq[5]);
+	ring.push_front(pointseq[6]);
+	ring.push_back(pointseq[7]);
+	ring.push_front(pointseq[3]);
 	for (int i= 0; i < ring.size(); ++i) {
 		std::cout << ring[i] << std::endl;
 	}

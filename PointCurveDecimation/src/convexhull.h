@@ -8,7 +8,7 @@
 #ifndef CONVEXHULL_H_
 #define CONVEXHULL_H_
 
-#include <cstddef.h>
+#include <cstddef>
 #include <vector>
 #include <deque>
 
@@ -17,12 +17,12 @@
 
 class ConvexHull {
 private:
-    const std::vector<const Point2D> & xy; 	// reference to the original point sequence
-    std::vector<long> ptix;					// index seq of points in this convex hull
-    RingArray<long> polygon(127);     // index seq in clockwise
+    const std::vector<Point2D> & xy; 	// reference to the original point sequence
+    std::vector<long> ptix;				// index seq of points in this convex hull
+    ringarray<long> polygon = ringarray<long>(128);    	// index seq in clockwise
 
 public:
-    ConvexHull(const std::vector<const Point2D> xyseq) : xy(xyseq) {
+    ConvexHull(const std::vector<Point2D> & xyseq) : xy(xyseq) {
          clear();
     }
 
@@ -47,46 +47,15 @@ public:
         return xy[ptix[polygon[index % polygon.size()]]];
     }
 
-    long polyptix(const long & index) const {
+    const long & polyptix(const long & index) const {
 		return ptix[polygon[index % polygon.size()]];
 	}
 
-    /*
-     *
+    bool add(long ix);
 
-    def polyptix(self, index):
-        return self.ptix[self.polygon[index % len(self.polygon)]]
+    void remove_concave(void);
 
-    def first_point(self):
-        return self.point(0)
-
-    def last_point(self):
-        return self.point(-1)
-
-    def add(self, ptix):
-        if len(self) <= 1 :
-            self.ptix.append(ptix)
-            self.polygon.append(len(self)-1)
-            return
-
-        # add ptix to ptix and polygon
-        if rhombus(self.polypoint(1), self.polypoint(0), self.xy[ptix]) <= 0 :
-            self.ptix.append(ptix)
-            # right or front of the mouth
-            self.polygon.append(self.polygon.popleft())
-            self.polygon.appendleft(len(self)-1)
-        elif rhombus(self.polypoint(-1), self.polypoint(0), self.xy[ptix]) >= 0 :
-            self.ptix.append(ptix)
-            # outside of the left line of the mouth
-            self.polygon.appendleft(len(self)-1)
-        # else:
-        #     # error, not at growth position
-        #     raise ValueError(f'point {pt} is inside the polygon.')
-        #     return
-
-        self.remove_concave()
-        return
-
+/*
     def remove_concave(self):
         # from tail
         mouthix = self.polygon.popleft()    # polygon is a ring sequence

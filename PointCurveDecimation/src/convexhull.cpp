@@ -5,43 +5,41 @@
  *      Author: sin
  */
 
+#include "convexhull.h"
 
+bool ConvexHull::add(long ix) {
+	// the first and the seconds
+	if ( size() <= 1 ) {
+		ptix.push_back(ix);
+		polygon.push_back(size() - 1);
+		return true;
+	}
+
+	// add ptix to ptix and polygon
+	if ( polypt(1).rhombus(polypt(0), xy[ix]) <= 0 ) {
+		ptix.push_back(ix);
+		// right or front of the mouth
+		polygon.push_back(polygon.pop_front());
+		polygon.push_front(size() - 1);
+	} else if ( polypt(-1).rhombus(polypt(0), xy[ix]) >= 0 ) {
+		ptix.push_back(ix);
+		// outside of the left line of the mouth
+		polygon.push_front(size() - 1);
+	}
+	//     # error, not at growth position
+	//raise ValueError(f'point {pt} is inside the polygon.')
+	//return
+
+	remove_concave();
+	return true;
+}
+
+void ConvexHull::remove_concave(void) {
+
+}
 
 /*
-class ConvexHull:
 
-    def __init__(self, xyseq):
-        self.xy = list(xyseq)
-        self.ptix = list() # index seq of Point2Ds considering
-        self.polygon = ringarray(127)     # index seq in clockwise
-
-    def clear(self):
-        self.ptix.clear()
-        self.polygon.clear()
-
-    def __len__(self):
-        return len(self.ptix)
-
-    def __str__(self):
-        return f'ConvexHull({self.ptix}, {[self.ptix[i] for i in self.polygon]})'
-
-    def __getitem__(self, index):
-        return self.xy[self.ptix[index]]
-
-    def point(self, index):
-        return self.xy[self.ptix[index]]
-
-    def polypoint(self, index):
-        return self.xy[self.ptix[self.polygon[index % len(self.polygon)]]]
-
-    def polyptix(self, index):
-        return self.ptix[self.polygon[index % len(self.polygon)]]
-
-    def first_point(self):
-        return self.point(0)
-
-    def last_point(self):
-        return self.point(-1)
 
     def add(self, ptix):
         if len(self) <= 1 :

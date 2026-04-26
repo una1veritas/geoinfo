@@ -61,12 +61,6 @@ class ConvexHull:
     def polyptix(self, index):
         return self.ptix[self.polygon[index % len(self.polygon)]]
     
-    def first_point(self):
-        return self.point(0)
-    
-    def last_point(self):
-        return self.point(-1)
-    
     def add(self, ptix):
         if len(self) <= 1 :
             self.ptix.append(ptix)

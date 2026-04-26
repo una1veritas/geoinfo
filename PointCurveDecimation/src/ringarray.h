@@ -17,7 +17,7 @@ class ringarray {
     std::size_t _capacity, _head = 0, _tail = 0, _count = 0;
 
 public:
-    ringarray(const size_t & capa) : _capacity(capa), _head(0), _tail(0), _count(0) {
+    ringarray(const size_t & capa = 8) : _capacity(capa), _head(0), _tail(0), _count(0) {
     	if (_capacity < 8)
     		_capacity = 8;
     	array = new T[_capacity];
@@ -38,6 +38,10 @@ public:
 
 	bool is_empty() const {
 		return _count == 0; // head == tail
+	}
+
+	void clear(void) {
+		_capacity = 0, _head = 0, _tail = 0, _count = 0;
 	}
 
 	// enqueue
@@ -77,10 +81,31 @@ public:
 	}
 
     // Random access to ix-th element from the head position
-    T& operator[](const size_t & ix) {
-    	if (ix > _count)
-    		throw std::out_of_range("Index is out of ringarray bounds");
-        return array[(_head + ix) % _capacity];
+    // takes signed integer as index
+    T& operator[](const long & ix) {
+    	if (ix < 0) {
+    		long iy = _count + ix;
+			if (iy < 0)
+				throw std::out_of_range("Index is out of ringarray bounds");
+			return array[(_head + iy) % _capacity];
+    	} else {
+			if (ix < _count)
+				return array[(_head + ix) % _capacity];
+			throw std::out_of_range("Index is out of ringarray bounds");
+    	}
+    }
+
+    const T& operator[](const long & ix) const {
+    	if (ix < 0) {
+    		long iy = _count + ix;
+			if (iy < 0)
+				throw std::out_of_range("Index is out of ringarray bounds");
+			return array[(_head + iy) % _capacity];
+    	} else {
+			if (ix < _count)
+				return array[(_head + ix) % _capacity];
+			throw std::out_of_range("Index is out of ringarray bounds");
+    	}
     }
 
     void resize(const size_t & new_capa) {
