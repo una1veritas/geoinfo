@@ -18,8 +18,8 @@
 class ConvexHull {
 private:
     const std::vector<Point2D> & xy; 	// reference to the original point sequence
-    std::vector<long> ptix;				// index seq of points in this convex hull
-    ringarray<long> polygon = ringarray<long>(128);    	// index seq in clockwise
+    std::vector<long> ptix;				// index seq of points on xy in this convex hull
+    ringarray<long> polygon = ringarray<long>(128);    	// subsequence of ptix forming the boundary polygon, in clockwise order
 
 public:
     ConvexHull(const std::vector<Point2D> & xyseq) : xy(xyseq) {

@@ -34,10 +34,32 @@ bool ConvexHull::add(long ix) {
 	return true;
 }
 
+/*
+def remove_concave(self):
+    # from tail
+    mouthix = self.polygon.popleft()    # polygon is a ring sequence
+    mouthpt = self.point(mouthix)
+    # anti clockwise
+    while len(self.polygon) > 2 :
+        if rhombus(mouthpt, self.polypoint(-1), self.polypoint(-2)) < 0 :
+            self.polygon.pop() # pop-out polygon[-1]
+        else:
+            break
+    # from month, clock wise
+    while len(self.polygon) > 2 :
+        if rhombus(mouthpt, self.polypoint(0), self.polypoint(1)) > 0 :
+            self.polygon.popleft() # pop-out polygon[0]
+        else:
+            break
+    self.polygon.appendleft(mouthix)
+*/
+/*
 void ConvexHull::remove_concave(void) {
+	long mouthix = polygon.pop_back();
+	Point2D mouthpt = point(mouthix);
 
 }
-
+*/
 /*
 
 
