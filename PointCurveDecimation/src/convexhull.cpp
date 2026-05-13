@@ -7,6 +7,29 @@
 
 #include "convexhull.h"
 
+std::ostream & ConvexHull::printOn(std::ostream & out) const {
+	out << "ConvexHull(";
+	/*
+	for(const auto & elem : xy) {
+		out << elem << ", ";
+	}
+	out << std::endl;
+	*/
+	out << " [";
+	for(const auto & elem : ptix) {
+		out << elem << ": " << xy[elem] << ", ";
+	}
+	out << "], " << std::endl;
+	out << "[";
+	for(long ix = 0; ix < polygon.size(); ++ix) {
+		out << polygon[ix] << ", ";
+	}
+	out << "] ";
+	out << ") ";
+	return out;
+}
+
+
 bool ConvexHull::add(long ix) {
 	// the first and the seconds
 	if ( size() <= 1 ) {
@@ -30,10 +53,11 @@ bool ConvexHull::add(long ix) {
 	//raise ValueError(f'point {pt} is inside the polygon.')
 	//return
 
-	remove_concave();
+	//remove_concave();
 	return true;
 }
 
+void remove_concave(void) {}
 /*
 def remove_concave(self):
     # from tail
