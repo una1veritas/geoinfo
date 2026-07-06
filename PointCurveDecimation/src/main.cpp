@@ -68,11 +68,19 @@ int main() {
 	//ringarray<Point2D> ring(127);
 
 	ConvexHull cvx(pointseq);
+	double cvx_dia;
 	cvx.add(0);
 	cvx.add(1);
 	cvx.add(2);
+	cout << "cvx = " << cvx << endl;
+	cout << "cvx first point, last point " << cvx[0] << ",  " << cvx[-1] << endl;
+	cvx_dia = cvx[0].distance_to(cvx[-1]);
+	cout << "cvx dia = " << cvx_dia << endl;
 	cvx.add(3);
 	cvx.add(4);
+	cout << "cvx = " << cvx << endl;
+	cvx_dia = cvx[0].distance_to(cvx[-1]);
+	cout << "cvx dia = " << cvx_dia << endl;
 	
 	cout << "Convex Hull = " << cvx << std::endl;
 	cout << "Finished." << endl;

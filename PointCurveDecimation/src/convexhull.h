@@ -39,21 +39,35 @@ public:
         return "ConvexHull( )" ;
     }
 
-    const Point2D & operator[](const long & ix) const {
+    const Point2D & operator[](long ix) const {
+    	if ( ix < 0 ) {
+    		ix = ptix.size() - (-ix % ptix.size());
+    	} else {
+			ix = ix % ptix.size();
+		}
     	return xy[ptix[ix]];
     }
 
     // get the point the index in polygon
-    const Point2D & polypt(const long & index) {
-        return xy[ptix[polygon[index % polygon.size()]]];
+    const Point2D & polypt(long ix) const {
+    	if ( ix < 0 ) {
+    		ix = polygon.size() - (-ix % polygon.size());
+    	} else {
+    		ix = ix % polygon.size();
+    	}
+        return xy[ptix[polygon[ ix ]]];
     }
 
-    const long & polyptix(const long & index) const {
-		return ptix[polygon[index % polygon.size()]];
+    const long & polyptix(long ix) const {
+    	if ( ix < 0 ) {
+    		ix = polygon.size() - (-ix % polygon.size());
+    	} else {
+    		ix %= polygon.size();
+    	}
+		return ptix[polygon[ ix ]];
 	}
 
-    bool add(long ix);
-
+	bool add(long ix);
     void remove_concave(void);
 
     std::ostream & printOn(std::ostream & out) const;

@@ -57,22 +57,6 @@ bool ConvexHull::add(long ix) {
 	return true;
 }
 
-void ConvexHull::remove_concave(void) {
-	long mouthix = polygon.pop_back(); 	// the last index in polygon is the index of the polygon mouth
-	std::cerr << "mouthix = " << mouthix << std::endl;
-	Point2D mouthpt = polypt(mouthix);	// the point of the polygon mouth
-	std::cerr << "mouthpt = " << mouthpt << std::endl;
-	// anti-clockwise check
-	while ( polygon.size() > 3 and mouthpt.rhombus(polypt(-1), polypt(2)) < 0 ) {
-		std::cerr << "remove concave point " << polypt(-1) << std::endl;
-		polygon.pop_back();
-	}
-	// clockwise check
-	while ( polygon.size() > 3 and mouthpt.rhombus(polypt(0), polypt(1)) > 0 ) {
-		std::cerr << "remove concave point " << polypt(0) << std::endl;
-		polygon.pop_front();
-	}
-	polygon.push_back(mouthix);	// add the mouth index back to polygon
 /*
 def remove_concave(self):
     # from tail
@@ -92,52 +76,44 @@ def remove_concave(self):
             break
     self.polygon.appendleft(mouthix)
 */
+
+void ConvexHull::remove_concave(void) {
+	long mouthix = polygon.pop_back(); 	// the last index in polygon is the index of the polygon mouth
+	std::cerr << "mouthix = " << mouthix << std::endl;
+	Point2D mouthpt = polypt(mouthix);	// the point of the polygon mouth
+	std::cerr << "mouthpt = " << mouthpt << std::endl;
+	// anti-clockwise check
+	while ( polygon.size() > 3 and mouthpt.rhombus(polypt(-1), polypt(2)) < 0 ) {
+		std::cerr << "remove concave point " << polypt(-1) << std::endl;
+		polygon.pop_back();
+	}
+	// clockwise check
+	while ( polygon.size() > 3 and mouthpt.rhombus(polypt(0), polypt(1)) > 0 ) {
+		std::cerr << "remove concave point " << polypt(0) << std::endl;
+		polygon.pop_front();
+	}
+	polygon.push_back(mouthix);	// add the mouth index back to polygon
+}
+
+double peak_distance_backward() {
+    //fwix = 0    # forward peak index == mouth (polygon start)
+    if ( size() <= 1 )
+    	return 0.0;
+    axis = unitvec(self.first_point(), self.last_point())
+    # backward peak, - --> +
+    lb, ub = 0, len(self.polygon) - 1
+    mix = (lb + ub) >> 1
+    while lb < ub :
+        proj = dot_product(vec(self.polypoint(mix), self.polypoint(mix+1)), axis)
+        if proj < 0 :
+            lb = mix + 1
+        else:
+            ub = mix
+        mix = (lb + ub) >> 1
+    bkix = ub
+
 }
 /*
-
-
-    def add(self, ptix):
-        if len(self) <= 1 :
-            self.ptix.append(ptix)
-            self.polygon.append(len(self)-1)
-            return
-
-        # add ptix to ptix and polygon
-        if rhombus(self.polypoint(1), self.polypoint(0), self.xy[ptix]) <= 0 :
-            self.ptix.append(ptix)
-            # right or front of the mouth
-            self.polygon.append(self.polygon.popleft())
-            self.polygon.appendleft(len(self)-1)
-        elif rhombus(self.polypoint(-1), self.polypoint(0), self.xy[ptix]) >= 0 :
-            self.ptix.append(ptix)
-            # outside of the left line of the mouth
-            self.polygon.appendleft(len(self)-1)
-        # else:
-        #     # error, not at growth position
-        #     raise ValueError(f'point {pt} is inside the polygon.')
-        #     return
-
-        self.remove_concave()
-        return
-
-    def remove_concave(self):
-        # from tail
-        mouthix = self.polygon.popleft()    # polygon is a ring sequence
-        mouthpt = self.point(mouthix)
-        # anti clockwise
-        while len(self.polygon) > 2 :
-            if rhombus(mouthpt, self.polypoint(-1), self.polypoint(-2)) < 0 :
-                self.polygon.pop() # pop-out polygon[-1]
-            else:
-                break
-        # from month, clock wise
-        while len(self.polygon) > 2 :
-            if rhombus(mouthpt, self.polypoint(0), self.polypoint(1)) > 0 :
-                self.polygon.popleft() # pop-out polygon[0]
-            else:
-                break
-        self.polygon.appendleft(mouthix)
-
     def peak_distances(self):
         fwix = 0    # forward peak index == mouth (polygon start)
         if len(self) <= 1 :
@@ -181,8 +157,9 @@ def remove_concave(self):
         #print(f'peak indices = {self.polygon[0]}, {self.polygon[rtix]}, {self.polygon[bkix]}, {self.polygon[ltix % len(self.polygon)]}')
         return (0.0, dot_product(perp3, vec(self.first_point(), self.polypoint(rtix))), \
                 dot_product( (-axis[0], -axis[1]), vec(self.first_point(), self.polypoint(bkix))), -dot_product(perp3, vec(self.first_point(), self.polypoint(ltix))), )
+*/
 
-
+/*
 def delta_rect_decimation_alg(xy : list, delta, verbose = False, polygons = False) -> tuple:
     dixpath = list()     # index sequence of decimated path
     polygon_seq = list()   # considered polygons
