@@ -88,7 +88,7 @@ class ConvexHull:
     def remove_concave(self):
         # from tail
         mouthix = self.polygon.popleft()    # polygon is a ring sequence
-        mouthpt = self.point(mouthix)
+        mouthpt = self[mouthix] #self.point(mouthix)
         # anti clockwise
         while len(self.polygon) > 2 :
             if rhombus(mouthpt, self.polypoint(-1), self.polypoint(-2)) < 0 : 
@@ -107,7 +107,7 @@ class ConvexHull:
         fwix = 0    # forward peak index == mouth (polygon start)
         if len(self) <= 1 :
             return (0.0, 0.0, 0.0, 0.0)
-        axis = unitvec(self.first_point(), self.last_point())
+        axis = unitvec(self[0], self[-1])
         # backward peak, - --> +
         lb, ub = 0, len(self.polygon) - 1
         mix = (lb + ub) >> 1
@@ -144,8 +144,8 @@ class ConvexHull:
             mix = (lb + ub) >> 1
         ltix = ub
         #print(f'peak indices = {self.polygon[0]}, {self.polygon[rtix]}, {self.polygon[bkix]}, {self.polygon[ltix % len(self.polygon)]}')
-        return (0.0, dot_product(perp3, vec(self.first_point(), self.polypoint(rtix))), \
-                dot_product( (-axis[0], -axis[1]), vec(self.first_point(), self.polypoint(bkix))), -dot_product(perp3, vec(self.first_point(), self.polypoint(ltix))), )
+        return (0.0, dot_product(perp3, vec(self[0], self.polypoint(rtix))), \
+                dot_product( (-axis[0], -axis[1]), vec(self[0], self.polypoint(bkix))), -dot_product(perp3, vec(self[0], self.polypoint(ltix))), )
 
 
 def delta_rect_decimation_alg(xy : list, delta, verbose = False, polygons = False) -> tuple:
@@ -155,7 +155,7 @@ def delta_rect_decimation_alg(xy : list, delta, verbose = False, polygons = Fals
     cvx = ConvexHull(xy) 
     cvx.add(0)
     cvx.add(1)
-    cvx_diameter = distance(cvx.first_point(), cvx.last_point())
+    cvx_diameter  = distance(cvx[0], cvx[-1]) #= distance(cvx.first_point(), cvx.last_point())
     ptix = 2
     while ptix < len(xy) :
 
@@ -165,14 +165,14 @@ def delta_rect_decimation_alg(xy : list, delta, verbose = False, polygons = Fals
         ( rhombus(cvx.polypoint(-1), cvx.polypoint(0), xy[ptix]) >= 0 or rhombus(cvx.polypoint(1), cvx.polypoint(0), xy[ptix]) <= 0 ):
             verbose and print('within delta and in growth position')
             cvx.add(ptix)
-            cvx_diameter = max(cvx_diameter, distance(cvx.first_point(), cvx.last_point()) )
+            cvx_diameter = max(cvx_diameter, distance(cvx[0], cvx[-1]) ) # = max(cvx_diameter, distance(cvx.first_point(), cvx.last_point()) )
             ptix += 1
             verbose and print(cvx)
             verbose and print()
             continue
         
         verbose and print('check wether pt is furthest or not.')
-        if cvx_diameter > distance(cvx.first_point(), xy[ptix]) :
+        if cvx_diameter > distance(cvx[0], xy[ptix]) : # distance(cvx.first_point(), xy[ptix]) :
             verbose and print('getting nearer. stop extending cvx')
             cvx_lastix = cvx.ptix[-1]
             dixpath.append(cvx_lastix)
@@ -183,8 +183,8 @@ def delta_rect_decimation_alg(xy : list, delta, verbose = False, polygons = Fals
             cvx.add(cvx_lastix)
             cvx.add(ptix)
             verbose and print(cvx)
-            verbose and print(cvx.first_point(), cvx.last_point())
-            cvx_diameter = distance(cvx.first_point(), cvx.last_point())
+            verbose and print(cvx[0], cvx[-1]) #print(cvx.first_point(), cvx.last_point())
+            cvx_diameter = distance(cvx[0], cvx[-1])
             ptix += 1
             verbose and print(cvx)
             verbose and print()
@@ -203,7 +203,7 @@ def delta_rect_decimation_alg(xy : list, delta, verbose = False, polygons = Fals
         verbose and print(peakdists, [e < delta for e in peakdists])
         
         if all([e < delta for e in peakdists]) :
-            cvx_diameter = distance(cvx.first_point(), cvx.last_point())
+            cvx_diameter = distance(cvx[0], cvx[-1])
             ptix += 1
             verbose and print(cvx)
             verbose and print()
@@ -216,7 +216,7 @@ def delta_rect_decimation_alg(xy : list, delta, verbose = False, polygons = Fals
             cvx.clear()
             cvx.add(prevcvx_lastix)
             cvx.add(ptix)
-            cvx_diameter = distance(cvx.first_point(), cvx.last_point())
+            cvx_diameter = distance(cvx[0], cvx[-1])
             ptix += 1
             verbose and print(cvx)
             verbose and print()
@@ -236,7 +236,7 @@ def delta_rect_decimation_alg(xy : list, delta, verbose = False, polygons = Fals
 
 if __name__ == '__main__':
     xy = [(-1, 0.5), (-0.5, -0), (0.0, 0.5), (-1.3, 1.5), (0.0, 1.5), (0, 2.4), (1.0, 2), (1, 2.5), \
-    #      (1.5, 2.75), (2, 2.75), (2.5, 3.2), \
+          (1.5, 2.75), (2, 2.75), (2.5, 3.2), \
     #      (3, 3.5), (3.2, 2), (3, 0.5),  \
     #      (3.25, 1.0), (3.25, -0.25), (3.5, 0.5), (4, 1.25), (3.5, 1.5), (3, 1.25), (2, 1), (1.5, -0.0) ]
     ]
@@ -247,7 +247,7 @@ if __name__ == '__main__':
     #       (-0.2, 1.2), (0.3, 1.2), (0.5, 1.6), (0.8, 1.7), (0.9, 2.1), (1.3, 2.2), \
     #       (0.6, 1.8), (-0.1, 1.6), (-0.3, 2.1), \
     #       ]
-    delta = 0.85
+    delta = 0.95
     # with open('xy.csv', 'w') as f :
     #     for x, y in xy:
     #         f.write(f'{x},{y}\n')
