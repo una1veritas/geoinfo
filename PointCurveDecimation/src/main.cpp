@@ -17,7 +17,11 @@
 #include "ringarray.h"
 #include "convexhull.h"
 
-using namespace std;
+using std::cout;
+using std::endl;
+using std::string;
+using std::vector;
+
 
 int csv_reader(const std::string& filename, std::vector<Point2D> & tbl) {
     // 1. Open the CSV file
@@ -53,13 +57,13 @@ int csv_reader(const std::string& filename, std::vector<Point2D> & tbl) {
 
 int main() {
 	cout << "CSV reader!!" << endl; // prints !!!Hello World!!!
-	std::vector<Point2D> pointseq; // = { {0, 0}, {1, 1}, {2, -1}, {2.0, -1.5}, {-4, -4}, {0, 0}, {1, 1}, {2, -2} };
-	csv_reader("2026-02-28-225436-metre.csv", pointseq);
+	vector<Point2D> pointseq; // = { {0, 0}, {1, 1}, {2, -1}, {2.0, -1.5}, {-4, -4}, {0, 0}, {1, 1}, {2, -2} };
+	csv_reader("test.csv", pointseq);
 	for (const auto & elem : pointseq ) {
-		std::cout << elem << ", ";
+		cout << elem << ", ";
 	}
-	std::cout << std::endl;
-	std::cout << "point sequence size = " << pointseq.size() << endl << endl;
+	cout << endl;
+	cout << "point sequence size = " << pointseq.size() << endl << endl;
 
 	//ringarray<Point2D> ring(127);
 
@@ -67,9 +71,11 @@ int main() {
 	cvx.add(0);
 	cvx.add(1);
 	cvx.add(2);
+	cvx.add(3);
+	cvx.add(4);
 	
-	std::cout << "Convex Hull = " << cvx << std::endl;
-
+	cout << "Convex Hull = " << cvx << std::endl;
+	cout << "Finished." << endl;
 
     return 0;
 }

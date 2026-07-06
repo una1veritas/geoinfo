@@ -86,6 +86,7 @@ struct Point2D {
 		return x * other.y - y * other.x;
 	}
 
+	// Returns the signed area of the parallelogram formed by two vectors, from this point to a and to b.
 	double rhombus(const Point2D& a, const Point2D& b) const {
 		return (a - *this).cross_norm(b - *this);
 	}

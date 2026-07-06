@@ -53,11 +53,26 @@ bool ConvexHull::add(long ix) {
 	//raise ValueError(f'point {pt} is inside the polygon.')
 	//return
 
-	//remove_concave();
+	remove_concave();
 	return true;
 }
 
-void remove_concave(void) {}
+void ConvexHull::remove_concave(void) {
+	long mouthix = polygon.pop_back(); 	// the last index in polygon is the index of the polygon mouth
+	std::cerr << "mouthix = " << mouthix << std::endl;
+	Point2D mouthpt = polypt(mouthix);	// the point of the polygon mouth
+	std::cerr << "mouthpt = " << mouthpt << std::endl;
+	// anti-clockwise check
+	while ( polygon.size() > 3 and mouthpt.rhombus(polypt(-1), polypt(2)) < 0 ) {
+		std::cerr << "remove concave point " << polypt(-1) << std::endl;
+		polygon.pop_back();
+	}
+	// clockwise check
+	while ( polygon.size() > 3 and mouthpt.rhombus(polypt(0), polypt(1)) > 0 ) {
+		std::cerr << "remove concave point " << polypt(0) << std::endl;
+		polygon.pop_front();
+	}
+	polygon.push_back(mouthix);	// add the mouth index back to polygon
 /*
 def remove_concave(self):
     # from tail
@@ -77,13 +92,7 @@ def remove_concave(self):
             break
     self.polygon.appendleft(mouthix)
 */
-/*
-void ConvexHull::remove_concave(void) {
-	long mouthix = polygon.pop_back();
-	Point2D mouthpt = point(mouthix);
-
 }
-*/
 /*
 
 

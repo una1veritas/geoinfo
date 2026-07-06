@@ -43,6 +43,7 @@ public:
     	return xy[ptix[ix]];
     }
 
+    // get the point the index in polygon
     const Point2D & polypt(const long & index) {
         return xy[ptix[polygon[index % polygon.size()]]];
     }
