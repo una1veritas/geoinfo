@@ -15,74 +15,64 @@
 #include "point2d.h"
 #include "ringarray.h"
 
+using std::vector;
+using std::cout;
+using std::endl;
+
 class ConvexHull {
 private:
-    const std::vector<Point2D> & xy; 	// reference to the original point sequence
-    std::vector<long> ptix;				// index seq of points on xy in this convex hull
-    ringarray<long> polygon = ringarray<long>(128);    	// subsequence of ptix forming the boundary polygon, in clockwise order
+    vector<Point2D> points; 	// the original input point sequence
+    ringarray<int> polygon = ringarray<int>(128);
+    // sequence of indices of points forming the convex hull polygon,
+    // in clock-wise order, starting from the mouth point (the first point of the polygon)
 
 public:
-    ConvexHull(const std::vector<Point2D> & xyseq) : xy(xyseq) {
+    ConvexHull(void) {
          clear();
     }
 
     void clear() {
-        ptix.clear();
+    	points.clear();
         polygon.clear();
     }
 
     size_t size() const {
-    	return ptix.size();
+    	return points.size();
     }
 
-    std::string to_string() const {
-        return "ConvexHull( )" ;
-    }
-
-    // get the i-th point of the points reagerded in this convex hull
-    const Point2D & point(long ix) const {
-       	if ( ix < 0 ) {
-       		ix = ptix.size() - (-ix % ptix.size());
+    // get the i-th point in this convex hull
+    const Point2D & point(int ix) const {
+       	if ( ix >= 0 ) {
+       		return points[ix];
        	} else {
-   			ix = ix % ptix.size();
-   		}
-       	return xy[ptix[ix]];
+       		return points[points.size() + ix];
+       	}
     }
 
-    const Point2D & operator[](long ix) const {
+    const Point2D & operator[](int ix) const {
     	return point(ix);
     }
 
 
     const Point2D & first_point(void) const {
-        return xy[ptix.front()];
+        return points[0];
     }
 
     const Point2D & last_point(void) const {
-        return xy[ptix.back()];
+        return points[points.size() - 1];
     }
 
     // get the i-th point in polygon
-    const Point2D & polypt(long ix) const {
+    const Point2D & polygon_point(int ix) const {
     	if ( ix < 0 ) {
-    		ix = polygon.size() - (-ix % polygon.size());
+    		return points[polygon[polygon.size() + ix]];
     	} else {
-    		ix = ix % polygon.size();
+    		return points[polygon[ix]];
     	}
-        return xy[ptix[polygon[ ix ]]];
     }
 
-    // get the index of the i-th point in polygon
-    const long & polyptix(long ix) const {
-    	if ( ix < 0 ) {
-    		ix = polygon.size() - (-ix % polygon.size());
-    	} else {
-    		ix %= polygon.size();
-    	}
-		return ptix[polygon[ ix ]];
-	}
+	bool add(const Point2D & pt);
 
-	bool add(long ix);
     void remove_concave(void);
 
     struct quad_double {
