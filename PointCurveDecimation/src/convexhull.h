@@ -39,16 +39,30 @@ public:
         return "ConvexHull( )" ;
     }
 
-    const Point2D & operator[](long ix) const {
-    	if ( ix < 0 ) {
-    		ix = ptix.size() - (-ix % ptix.size());
-    	} else {
-			ix = ix % ptix.size();
-		}
-    	return xy[ptix[ix]];
+    // get the i-th point of the points reagerded in this convex hull
+    const Point2D & point(long ix) const {
+       	if ( ix < 0 ) {
+       		ix = ptix.size() - (-ix % ptix.size());
+       	} else {
+   			ix = ix % ptix.size();
+   		}
+       	return xy[ptix[ix]];
     }
 
-    // get the point the index in polygon
+    const Point2D & operator[](long ix) const {
+    	return point(ix);
+    }
+
+
+    const Point2D & first_point(void) const {
+        return xy[ptix.front()];
+    }
+
+    const Point2D & last_point(void) const {
+        return xy[ptix.back()];
+    }
+
+    // get the i-th point in polygon
     const Point2D & polypt(long ix) const {
     	if ( ix < 0 ) {
     		ix = polygon.size() - (-ix % polygon.size());
@@ -58,6 +72,7 @@ public:
         return xy[ptix[polygon[ ix ]]];
     }
 
+    // get the index of the i-th point in polygon
     const long & polyptix(long ix) const {
     	if ( ix < 0 ) {
     		ix = polygon.size() - (-ix % polygon.size());
@@ -69,6 +84,12 @@ public:
 
 	bool add(long ix);
     void remove_concave(void);
+
+    struct quad_double {
+    	double fw, rt, bk, lt;
+    };
+
+    quad_double peak_distances() const;
 
     std::ostream & printOn(std::ostream & out) const;
 

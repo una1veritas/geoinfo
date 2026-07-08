@@ -90,13 +90,13 @@ class ConvexHull:
         mouthix = self.polygon.popleft()    # polygon is a ring sequence
         mouthpt = self[mouthix] #self.point(mouthix)
         # anti clockwise
-        while len(self.polygon) > 2 :
+        while len(self.polygon) > 3 :
             if rhombus(mouthpt, self.polypoint(-1), self.polypoint(-2)) < 0 : 
                 self.polygon.pop() # pop-out polygon[-1]
             else:
                 break
-        # from month, clock wise
-        while len(self.polygon) > 2 :
+        # from mouth, clock wise
+        while len(self.polygon) > 3 :
             if rhombus(mouthpt, self.polypoint(0), self.polypoint(1)) > 0 : 
                 self.polygon.popleft() # pop-out polygon[0]
             else:
@@ -235,8 +235,8 @@ def delta_rect_decimation_alg(xy : list, delta, verbose = False, polygons = Fals
         return (dixpath, polygon_seq)
 
 if __name__ == '__main__':
-    xy = [(-1, 0.5), (-0.5, -0), (0.0, 0.5), (-1.3, 1.5), (0.0, 1.5), (0, 2.4), (1.0, 2), (1, 2.5), \
-          (1.5, 2.75), (2, 2.75), (2.5, 3.2), \
+    xy = [ (0,0), (0.25, 0.6), (0.8, 0.25), (1.0, 0.75), (1.4, 0.7), (1.5, 1.0), \
+    #      (1.5, 2.75), (2, 2.75), (2.5, 3.2), \
     #      (3, 3.5), (3.2, 2), (3, 0.5),  \
     #      (3.25, 1.0), (3.25, -0.25), (3.5, 0.5), (4, 1.25), (3.5, 1.5), (3, 1.25), (2, 1), (1.5, -0.0) ]
     ]

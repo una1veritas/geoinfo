@@ -57,8 +57,8 @@ int csv_reader(const std::string& filename, std::vector<Point2D> & tbl) {
 
 int main() {
 	cout << "CSV reader!!" << endl; // prints !!!Hello World!!!
-	vector<Point2D> pointseq; // = { {0, 0}, {1, 1}, {2, -1}, {2.0, -1.5}, {-4, -4}, {0, 0}, {1, 1}, {2, -2} };
-	csv_reader("test.csv", pointseq);
+	vector<Point2D> pointseq = {  {0,0}, {0.25, 0.6}, {0.8, 0.25}, {1.0, 0.75}, {1.4, 0.7}, {1.5, 1.0}, };
+	//csv_reader("test.csv", pointseq);
 	for (const auto & elem : pointseq ) {
 		cout << elem << ", ";
 	}
@@ -81,9 +81,13 @@ int main() {
 	cout << "cvx = " << cvx << endl;
 	cvx_dia = cvx[0].distance_to(cvx[-1]);
 	cout << "cvx dia = " << cvx_dia << endl;
-	
+
+	cvx.add(5);
+
 	cout << "Convex Hull = " << cvx << std::endl;
 	cout << "Finished." << endl;
 
+	ConvexHull::quad_double dists = cvx.peak_distances();
+	cout << "peak distances = " << dists.fw << ", " << dists.rt << ", " << dists.bk << ", " << dists.lt << endl;
     return 0;
 }

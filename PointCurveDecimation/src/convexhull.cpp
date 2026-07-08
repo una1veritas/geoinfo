@@ -15,12 +15,12 @@ std::ostream & ConvexHull::printOn(std::ostream & out) const {
 	}
 	out << std::endl;
 	*/
-	out << " [";
+	out << " points = [";
 	for(const auto & elem : ptix) {
 		out << elem << ": " << xy[elem] << ", ";
 	}
-	out << "], " << std::endl;
-	out << "[";
+	out << "], ";
+	out << " polygon = [";
 	for(long ix = 0; ix < polygon.size(); ++ix) {
 		out << polygon[ix] << ", ";
 	}
@@ -53,6 +53,7 @@ bool ConvexHull::add(long ix) {
 	//raise ValueError(f'point {pt} is inside the polygon.')
 	//return
 
+	std::cout << "going to remove concave" << std::endl;
 	remove_concave();
 	return true;
 }
@@ -79,85 +80,88 @@ def remove_concave(self):
 
 void ConvexHull::remove_concave(void) {
 	long mouthix = polygon.pop_back(); 	// the last index in polygon is the index of the polygon mouth
-	std::cerr << "mouthix = " << mouthix << std::endl;
-	Point2D mouthpt = polypt(mouthix);	// the point of the polygon mouth
-	std::cerr << "mouthpt = " << mouthpt << std::endl;
-	// anti-clockwise check
-	while ( polygon.size() > 3 and mouthpt.rhombus(polypt(-1), polypt(2)) < 0 ) {
-		std::cerr << "remove concave point " << polypt(-1) << std::endl;
-		polygon.pop_back();
+	Point2D mouthpt = point(mouthix);	// the point of the polygon mouth
+	std::cout << "mouthix = " << mouthix << ", mouthpt = " << mouthpt << std::endl;
+	std::cout << "anti-clockwise check" << std::endl;
+	while ( polygon.size() > 3 ) {
+		std::cout << "polygon = ";
+		for(int i = 0; i < polygon.size(); ++i) {
+			std::cout << polygon[i] << " = " << polypt(i) << ", ";
+		}
+		std::cout << std::endl;
+		std::cout << "rhombus mouth, -1, -2 = " << mouthpt.rhombus(polypt(-1), polypt(-2)) << std::endl;
+		if (mouthpt.rhombus(polypt(-1), polypt(-2)) < 0 ) {
+			std::cout << "remove concave peak " << polypt(-2) << ", " << polypt(-1) << std::endl;
+			polygon.pop_back();
+		} else
+			break;
 	}
 	// clockwise check
-	while ( polygon.size() > 3 and mouthpt.rhombus(polypt(0), polypt(1)) > 0 ) {
-		std::cerr << "remove concave point " << polypt(0) << std::endl;
-		polygon.pop_front();
+	std::cout << "clockwise check" << std::endl;
+	while ( polygon.size() > 3 ) {
+		if ( mouthpt.rhombus(polypt(0), polypt(1)) > 0 ) {
+			std::cout << "remove concave peak " << polypt(1) << ", " << polypt(0) << std::endl;
+			polygon.pop_front();
+		} else
+			break;
 	}
 	polygon.push_back(mouthix);	// add the mouth index back to polygon
 }
 
-double peak_distance_backward() {
-    //fwix = 0    # forward peak index == mouth (polygon start)
+ConvexHull::quad_double ConvexHull::peak_distances(void) const {
+	quad_double result = {0.0, 0.0, 0.0, 0.0};
+	long fwix = 0;    //# forward peak index == mouth (polygon start)
     if ( size() <= 1 )
-    	return 0.0;
-    axis = unitvec(self.first_point(), self.last_point())
-    # backward peak, - --> +
-    lb, ub = 0, len(self.polygon) - 1
-    mix = (lb + ub) >> 1
-    while lb < ub :
-        proj = dot_product(vec(self.polypoint(mix), self.polypoint(mix+1)), axis)
-        if proj < 0 :
-            lb = mix + 1
-        else:
-            ub = mix
-        mix = (lb + ub) >> 1
-    bkix = ub
+    	return result;
+    Point2D axis = Point2D::vector( first_point(), last_point(), true);
+    //# backward peak, - --> +
+    long lb = 0, ub = polygon.size() - 1;
+    long mix = (lb + ub) >> 1;  // center index
+    while (lb < ub) {
+    	double proj = Point2D::vector(polypt(mix), polypt(mix+1)).dot(axis);
+		if (proj < 0)
+			lb = mix + 1;
+		else
+			ub = mix;
+		mix = (lb + ub) >> 1;
+    }
+    long bkix = ub;
 
+    //# right peak
+    Point2D perp9(-axis.y, axis.x);
+    lb = fwix, ub = bkix;
+    mix = (lb + ub) >> 1;
+
+	while (lb < ub) {
+		double proj = Point2D::vector(polypt(mix), polypt(mix+1)).dot(perp9);
+		if (proj < 0)
+			lb = mix + 1;
+		else
+			ub = mix;
+		mix = (lb + ub) >> 1;
+	}
+	long rtix = ub;
+
+	//# left peak
+	Point2D perp3 = -perp9;
+	lb = bkix, ub = polygon.size();
+	mix = (lb + ub) >> 1;
+	while (lb < ub) {
+		double proj = Point2D::vector(polypt(mix), polypt(mix+1)).dot(perp3);
+		if ( proj < 0 )
+			lb = mix + 1;
+		else
+			ub = mix;
+		mix = (lb + ub) >> 1;
+	}
+	long ltix = ub;
+
+    //#print(f'peak indices = {self.polygon[0]}, {self.polygon[rtix]}, {self.polygon[bkix]}, {self.polygon[ltix % len(self.polygon)]}')
+	result.rt = perp3.dot( Point2D::vector(first_point(), polypt(rtix)));
+	result.bk = -axis.dot(Point2D::vector(first_point(), polypt(bkix)));
+	result.lt = perp9.dot(Point2D::vector(first_point(), polypt(ltix)));
+	return result;
 }
-/*
-    def peak_distances(self):
-        fwix = 0    # forward peak index == mouth (polygon start)
-        if len(self) <= 1 :
-            return (0.0, 0.0, 0.0, 0.0)
-        axis = unitvec(self.first_point(), self.last_point())
-        # backward peak, - --> +
-        lb, ub = 0, len(self.polygon) - 1
-        mix = (lb + ub) >> 1
-        while lb < ub :
-            proj = dot_product(vec(self.polypoint(mix), self.polypoint(mix+1)), axis)
-            if proj < 0 :
-                lb = mix + 1
-            else:
-                ub = mix
-            mix = (lb + ub) >> 1
-        bkix = ub
-        # right peak
-        perp9 = (-axis[1], axis[0])
-        lb, ub = fwix, bkix
-        mix = (lb + ub) >> 1
-        while lb < ub :
-            proj = dot_product(vec(self.polypoint(mix), self.polypoint(mix+1)), perp9)
-            if proj < 0 :
-                lb = mix + 1
-            else:
-                ub = mix
-            mix = (lb + ub) >> 1
-        rtix = ub
-        # left peak
-        perp3 = (-perp9[0], -perp9[1])
-        lb, ub = bkix, len(self.polygon)
-        mix = (lb + ub) >> 1
-        while lb < ub :
-            proj = dot_product(vec(self.polypoint(mix), self.polypoint(mix+1)), perp3)
-            if proj < 0 :
-                lb = mix + 1
-            else:
-                ub = mix
-            mix = (lb + ub) >> 1
-        ltix = ub
-        #print(f'peak indices = {self.polygon[0]}, {self.polygon[rtix]}, {self.polygon[bkix]}, {self.polygon[ltix % len(self.polygon)]}')
-        return (0.0, dot_product(perp3, vec(self.first_point(), self.polypoint(rtix))), \
-                dot_product( (-axis[0], -axis[1]), vec(self.first_point(), self.polypoint(bkix))), -dot_product(perp3, vec(self.first_point(), self.polypoint(ltix))), )
-*/
 
 /*
 def delta_rect_decimation_alg(xy : list, delta, verbose = False, polygons = False) -> tuple:

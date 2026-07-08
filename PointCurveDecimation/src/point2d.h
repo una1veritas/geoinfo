@@ -51,6 +51,9 @@ struct Point2D {
 
 	Point2D(const Point2D& other) : x(other.x), y(other.y) {}
 
+	Point2D operator-() const {
+		return Point2D(-x, -y);
+	}
 
 	// instance methods
 
