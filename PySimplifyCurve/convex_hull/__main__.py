@@ -36,10 +36,10 @@ def simplify_RDP(xy : np.array, epsilon):
 
 def delta_rect_decimation_alg(xy : list, delta, verbose = False, polygons = False) -> tuple:
     dixpath = list()        # decimated path, the seq. of indices to the reference point sequence xy
-    polygon_seq = list()    # considered polygons
-    dixpath.append(0)       # the first point
+    polygon_seq = list()    # considered & finished polygons
+    dixpath.append(0)       # the index of the the first point
     cvx = ConvexHull() 
-    cvx_start_index = 0;    # offset to index to xy
+    cvx_start_index = dixpath[-1];    # offset to index to xy
     cvx.add(xy[0])
     cvx.add(xy[1])
     cvx_diameter = distance(cvx.first_point(), cvx.last_point())
@@ -96,8 +96,8 @@ def delta_rect_decimation_alg(xy : list, delta, verbose = False, polygons = Fals
             verbose and print()
             continue
         else:
-            prevcvx_lastix = cvx.ptix[-2]
-            dixpath.append(prevcvx_lastix)
+            prevcvx_lastix = len(cvx) - 2
+            dixpath.append(cvx_start_index + prevcvx_lastix)
             if polygons : 
                 polygon_seq.append(prevcvx_polygon)
             cvx.clear()
@@ -113,7 +113,7 @@ def delta_rect_decimation_alg(xy : list, delta, verbose = False, polygons = Fals
     
     if len(cvx) > 0 :
         #print('points exhausted,', cvx)
-        dixpath.append(cvx_start_index + len(cvx))
+        dixpath.append(cvx_start_index + len(cvx) - 1)
         if polygons : 
             polygon_seq.append([cvx.polygon_point(ix) for ix in range(len(cvx.polygon_index) + 1)])
     
@@ -124,7 +124,7 @@ def delta_rect_decimation_alg(xy : list, delta, verbose = False, polygons = Fals
 
 if __name__ == '__main__':
     xy = [ (0,0), (0.25, 0.6), (0.8, 0.25), (1.0, 0.75), (1.4, 0.7), (1.5, 1.0), \
-    #      (1.5, 2.75), (2, 2.75), (2.5, 3.2), \
+          (1.5, 2.75), (2, 2.75), (2.5, 3.2), \
     #      (3, 3.5), (3.2, 2), (3, 0.5),  \
     #      (3.25, 1.0), (3.25, -0.25), (3.5, 0.5), (4, 1.25), (3.5, 1.5), (3, 1.25), (2, 1), (1.5, -0.0) ]
     ]
@@ -135,7 +135,7 @@ if __name__ == '__main__':
     #       (-0.2, 1.2), (0.3, 1.2), (0.5, 1.6), (0.8, 1.7), (0.9, 2.1), (1.3, 2.2), \
     #       (0.6, 1.8), (-0.1, 1.6), (-0.3, 2.1), \
     #       ]
-    delta = 0.95
+    delta = 0.8
     # with open('xy.csv', 'w') as f :
     #     for x, y in xy:
     #         f.write(f'{x},{y}\n')
@@ -174,10 +174,9 @@ if __name__ == '__main__':
     # print(f'length of decimated seq = {len(frdpx), len(frdpy)}')
     
     # rdpx, rdpy = [ xy[i][0] for i in rdpseq], [ xy[i][1] for i in rdpseq]
-    print("drseq =", drseq)
     
     x, y = [ x for x, y in xy], [ y for x, y in xy]
-    drx, dry = [xy[ix][0] for ix in drseq], [xy[ix][1] for pt in drseq]
+    drx, dry = [xy[ix][0] for ix in drseq], [xy[ix][1] for ix in drseq]
     fig, ax = plt.subplots()
     ax.plot(x, y, 'y.-', lw=2.0, alpha=0.35)
     ax.plot(drx, dry, 'b.-', lw=1) #, alpha=0.75)
@@ -185,7 +184,7 @@ if __name__ == '__main__':
     #ax.plot(mrdpx, mrdpy, 'b.-', lw=1) #, alpha=0.75)
     if len(polygons) > 0 :
         for polygon in polygons:
-            px, py = [xy[i][0] for i in polygon], [xy[i][1] for i in polygon]
+            px, py = [pt[0] for pt in polygon], [pt[1] for pt in polygon]
             ax.plot(px, py, 'g--', lw=1) #, alpha=0.75)
     
     labels = [f"{i}" for i in range(len(xy))]

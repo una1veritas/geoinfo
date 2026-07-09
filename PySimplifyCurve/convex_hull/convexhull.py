@@ -47,13 +47,14 @@ class ConvexHull(object):
     def polygon_point(self, index):
         return self.points[self.polygon_index[index % len(self.polygon_index)]]
     
+    # test and add to points
     def add(self, pt):
         if len(self) <= 1 :
             self.points.append(pt)
             self.polygon_index.append(len(self)-1)
             return True
         
-        # add ptix to ptix and polygon_index
+        # point[0]-point[1]-pt
         if rhombus(self.polygon_point(1), self.polygon_point(0), pt) <= 0 :
             self.points.append(pt)
             # right or front of the mouth
@@ -72,9 +73,11 @@ class ConvexHull(object):
            
     def remove_concave(self):
         # from tail
+        print(self.polygon_index)
         beak_ix = self.polygon_index.popleft()    # polygon_index is a ring sequence
         beak = self.point(beak_ix)
         
+        print(f'beak = {beak} ({beak_ix})')
         # anti-clockwise check and pop
         while len(self.polygon_index) > 2 :
             if rhombus(beak, self.polygon_point(-1), self.polygon_point(-2)) < 0 : 
@@ -88,6 +91,7 @@ class ConvexHull(object):
             else:
                 break
         self.polygon_index.appendleft(beak_ix)
+        print(self.polygon_index)
     
     def peak_distances(self):
         fwix = 0    # forward peak index == mouth (polygon_index start)
