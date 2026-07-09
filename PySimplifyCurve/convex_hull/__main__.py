@@ -123,7 +123,7 @@ def delta_rect_decimation_alg(xy : list, delta, verbose = False, polygons = Fals
         return (dixpath, polygon_seq)
 
 if __name__ == '__main__':
-    xy = [ (0,0), (0.25, 0.6), (0.8, 0.25), (1.0, 0.75), (1.4, 0.7), (1.5, 1.0), \
+    xy = [ (0,0), (0.1, -0.1), (-0.2, 0.1), (-0.1, -0.1), (-0.1, -0.2), (0.25, 0.5), (0.8, 0.25), (1.0, 0.75), (1.4, 0.7), (1.5, 1.0), \
           (1.5, 2.75), (2, 2.75), (2.5, 3.2), \
     #      (3, 3.5), (3.2, 2), (3, 0.5),  \
     #      (3.25, 1.0), (3.25, -0.25), (3.5, 0.5), (4, 1.25), (3.5, 1.5), (3, 1.25), (2, 1), (1.5, -0.0) ]
@@ -151,11 +151,21 @@ if __name__ == '__main__':
     # delta = 25.0
 
     print('-'*8)
+    print(xy)
+    cvx = ConvexHull(0.5)
+    for ix in range(len(xy)) :
+        if cvx.add(xy[ix]) :
+            print("after point added:", cvx)
+        else:
+            break
+    
+    #exit(0)
+    
     
     plt_annotate = False
-    with Timer('delta rect: ') :
-        drseq, polygons = delta_rect_decimation_alg(xy, delta, verbose = True, polygons = True)
-    print(f'length of decimated seq = {len(drseq)}')
+    # with Timer('delta rect: ') :
+    #     drseq, polygons = delta_rect_decimation_alg(xy, delta, verbose = True, polygons = True)
+    # print(f'length of decimated seq = {len(drseq)}')
     
     # with Timer('my rdp: ') :
     #     rdpseq = rdp_decimation_alg(xy, delta)
@@ -176,16 +186,17 @@ if __name__ == '__main__':
     # rdpx, rdpy = [ xy[i][0] for i in rdpseq], [ xy[i][1] for i in rdpseq]
     
     x, y = [ x for x, y in xy], [ y for x, y in xy]
-    drx, dry = [xy[ix][0] for ix in drseq], [xy[ix][1] for ix in drseq]
+    # drx, dry = [xy[ix][0] for ix in drseq], [xy[ix][1] for ix in drseq]
     fig, ax = plt.subplots()
     ax.plot(x, y, 'y.-', lw=2.0, alpha=0.35)
-    ax.plot(drx, dry, 'b.-', lw=1) #, alpha=0.75)
+    # ax.plot(drx, dry, 'b.-', lw=1) #, alpha=0.75)
     #ax.plot(frdpx, frdpy, 'b.-', lw=1) #, alpha=0.75)
     #ax.plot(mrdpx, mrdpy, 'b.-', lw=1) #, alpha=0.75)
-    if len(polygons) > 0 :
-        for polygon in polygons:
-            px, py = [pt[0] for pt in polygon], [pt[1] for pt in polygon]
-            ax.plot(px, py, 'g--', lw=1) #, alpha=0.75)
+    
+    # if len(polygons) > 0 :
+    #     for polygon in polygons:
+    #         px, py = [pt[0] for pt in polygon], [pt[1] for pt in polygon]
+    #         ax.plot(px, py, 'g--', lw=1) #, alpha=0.75)
     
     labels = [f"{i}" for i in range(len(xy))]
     if plt_annotate :

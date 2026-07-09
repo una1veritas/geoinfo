@@ -17,10 +17,10 @@ class ConvexHull(object):
     #     Constructor
     #     '''
     
-    def __init__(self):
-        # self.xy = list(xyseq)
+    def __init__(self, delta = 0.0):
         self.points = list() # index seq of Point2Ds considering
         self.polygon_index = ringarray(127)     # index seq in clockwise
+        self.tolerance = delta
     
     def clear(self):
         self.points.clear()
@@ -49,9 +49,20 @@ class ConvexHull(object):
     
     # test and add to points
     def add(self, pt):
-        if len(self) <= 1 :
+        if len(self) == 0 :
             self.points.append(pt)
-            self.polygon_index.append(len(self)-1)
+            return True
+        elif self.tolerance > 0.0 and distance(self.first_point(), pt) <= self.tolerance :
+            self.points.append(pt)
+            return True
+        elif len(self.polygon_index) == 0 :
+            self.points.append(pt)
+            self.polygon_index.append(0)
+            self.polygon_index.append(len(self) - 1)
+            return True
+        elif len(self.polygon_index) == 2 :
+            self.points.append(pt)
+            self.polygon_index.append(len(self) - 1)
             return True
         
         # point[0]-point[1]-pt
@@ -66,6 +77,9 @@ class ConvexHull(object):
             self.polygon_index.appendleft(len(self)-1)
         else:
             # reject point and close convex-hull
+            print(self.polygon_point(1), self.polygon_point(0), pt, rhombus(self.polygon_point(1), self.polygon_point(0), pt))
+            print(self.polygon_point(-1), self.polygon_point(0), pt, rhombus(self.polygon_point(-1), self.polygon_point(0), pt))
+            print(f"failed on point {pt}")
             return False
         
         self.remove_concave()
