@@ -12,9 +12,9 @@ from collections import deque
 from convexhull import ConvexHull
 import time
 
-from point2d import vec, rhombus, distance, cross_product_norm, dot_product, \
-distance_to_line, norm, unitvec
+from point2d import rhombus, distance
 from myrdp import rdp_decimation_alg, rdp_decimation_alg_recursive
+
 
 class Timer:
     def __init__(self, mess = ''):
@@ -35,22 +35,22 @@ def simplify_RDP(xy : np.array, epsilon):
 
 
 def delta_rect_decimation_alg(xy : list, delta, verbose = False, polygons = False) -> tuple:
-    dixpath = list()     # index sequence of decimated path
-    polygon_seq = list()   # considered polygons
-    dixpath.append(0)
-    cvx = ConvexHull(xy) 
-    cvx.add(0)
-    cvx.add(1)
-    cvx_diameter  = distance(cvx[0], cvx[-1]) #= distance(cvx.first_point(), cvx.last_point())
+    dixpath = list()        # decimated path, the seq. of indices to the reference point sequence xy
+    polygon_seq = list()    # considered polygons
+    dixpath.append(0)       # the first point
+    cvx = ConvexHull() 
+    cvx_start_index = 0;    # offset to index to xy
+    cvx.add(xy[0])
+    cvx.add(xy[1])
+    cvx_diameter = distance(cvx.first_point(), cvx.last_point())
     ptix = 2
     while ptix < len(xy) :
-
         verbose and print(f'{ptix}, {xy[ptix]}, dia = {cvx_diameter}, delta = {delta}, {cvx}')
-        verbose and print(f'side {cvx.polygon[-1]}-{cvx.polygon[0]}, {rhombus(cvx.polypoint(-1), cvx.polypoint(0), xy[ptix])} >= 0 or {cvx.polygon[1]}-{cvx.polygon[0]}, {rhombus(cvx.polypoint(1), cvx.polypoint(0), xy[ptix])} <= 0 ?' )
+        verbose and print(f'side {cvx.polygon_index[-1]}-{cvx.polygon_index[0]}, {rhombus(cvx.polygon_point(-1), cvx.polygon_point(0), xy[ptix])} >= 0 or {cvx.polygon_index[1]}-{cvx.polygon_index[0]}, {rhombus(cvx.polygon_point(1), cvx.polygon_point(0), xy[ptix])} <= 0 ?' )
         if cvx_diameter <= delta and \
-        ( rhombus(cvx.polypoint(-1), cvx.polypoint(0), xy[ptix]) >= 0 or rhombus(cvx.polypoint(1), cvx.polypoint(0), xy[ptix]) <= 0 ):
+        ( rhombus(cvx.polygon_point(-1), cvx.polygon_point(0), xy[ptix]) >= 0 or rhombus(cvx.polygon_point(1), cvx.polygon_point(0), xy[ptix]) <= 0 ):
             verbose and print('within delta and in growth position')
-            cvx.add(ptix)
+            cvx.add(xy[ptix]) # should be succeeded
             cvx_diameter = max(cvx_diameter, distance(cvx[0], cvx[-1]) ) # = max(cvx_diameter, distance(cvx.first_point(), cvx.last_point()) )
             ptix += 1
             verbose and print(cvx)
@@ -60,14 +60,15 @@ def delta_rect_decimation_alg(xy : list, delta, verbose = False, polygons = Fals
         verbose and print('check wether pt is furthest or not.')
         if cvx_diameter > distance(cvx[0], xy[ptix]) : # distance(cvx.first_point(), xy[ptix]) :
             verbose and print('getting nearer. stop extending cvx')
-            cvx_lastix = cvx.ptix[-1]
+            cvx_lastix = cvx_start_index + cvx.size()
             dixpath.append(cvx_lastix)
             if polygons : 
-                polygon_seq.append([cvx.polyptix(i) for i in range(len(cvx.polygon) + 1)])
+                polygon_seq.append([cvx_start_index + cvx.polygon_index[i] for i in range(len(cvx.polygon_index) + 1)])
             cvx.clear()
             # make new cvx for the 1st and 2nd points.
-            cvx.add(cvx_lastix)
-            cvx.add(ptix)
+            cvx_start_index = cvx_lastix
+            cvx.add(xy[cvx_lastix])
+            cvx.add(xy[ptix])
             verbose and print(cvx)
             verbose and print(cvx[0], cvx[-1]) #print(cvx.first_point(), cvx.last_point())
             cvx_diameter = distance(cvx[0], cvx[-1])
@@ -81,10 +82,10 @@ def delta_rect_decimation_alg(xy : list, delta, verbose = False, polygons = Fals
         
         # preserve the outline of cvx before pt is added
         if polygons : 
-            prevcvx_polygon = [cvx.polyptix(i) for i in range(len(cvx.polygon) + 1)]
+            prevcvx_polygon = [cvx.polygon_point(i) for i in range(len(cvx.polygon_index) + 1)]
         
         # add pt to test width
-        cvx.add(ptix)
+        cvx.add(xy[ptix])
         peakdists = cvx.peak_distances()
         verbose and print(peakdists, [e < delta for e in peakdists])
         
@@ -100,8 +101,9 @@ def delta_rect_decimation_alg(xy : list, delta, verbose = False, polygons = Fals
             if polygons : 
                 polygon_seq.append(prevcvx_polygon)
             cvx.clear()
-            cvx.add(prevcvx_lastix)
-            cvx.add(ptix)
+            cvx_start_ix = prevcvx_lastix
+            cvx.add(xy[prevcvx_lastix])
+            cvx.add(xy[ptix])
             cvx_diameter = distance(cvx[0], cvx[-1])
             ptix += 1
             verbose and print(cvx)
@@ -111,9 +113,9 @@ def delta_rect_decimation_alg(xy : list, delta, verbose = False, polygons = Fals
     
     if len(cvx) > 0 :
         #print('points exhausted,', cvx)
-        dixpath.append(cvx.ptix[-1])
+        dixpath.append(cvx_start_index + len(cvx))
         if polygons : 
-            polygon_seq.append([cvx.polyptix(ix) for ix in range(len(cvx.polygon) + 1)])
+            polygon_seq.append([cvx.polygon_point(ix) for ix in range(len(cvx.polygon_index) + 1)])
     
     if not polygons :
         return dixpath
@@ -152,7 +154,7 @@ if __name__ == '__main__':
     
     plt_annotate = False
     with Timer('delta rect: ') :
-        drseq, polygons = delta_rect_decimation_alg(xy, delta, verbose = False, polygons = True)
+        drseq, polygons = delta_rect_decimation_alg(xy, delta, verbose = True, polygons = True)
     print(f'length of decimated seq = {len(drseq)}')
     
     # with Timer('my rdp: ') :
@@ -172,8 +174,10 @@ if __name__ == '__main__':
     # print(f'length of decimated seq = {len(frdpx), len(frdpy)}')
     
     # rdpx, rdpy = [ xy[i][0] for i in rdpseq], [ xy[i][1] for i in rdpseq]
+    print("drseq =", drseq)
+    
     x, y = [ x for x, y in xy], [ y for x, y in xy]
-    drx, dry = [xy[ix][0] for ix in drseq], [xy[ix][1] for ix in drseq]
+    drx, dry = [xy[ix][0] for ix in drseq], [xy[ix][1] for pt in drseq]
     fig, ax = plt.subplots()
     ax.plot(x, y, 'y.-', lw=2.0, alpha=0.35)
     ax.plot(drx, dry, 'b.-', lw=1) #, alpha=0.75)
@@ -194,7 +198,7 @@ if __name__ == '__main__':
                 xytext=(5, 2), # Distance from the point to the text (offset)
                 ha='center'     # Horizontal alignment of the text
             )
-    plt.legend(['Input points', 'decimated path', 'polygon path'],loc='best')
+    plt.legend(['Input points', 'decimated path', 'polygon_index path'],loc='best')
     plt.title('delta-rect decimation Test')
     ax.set_aspect('equal')
     plt.show()
