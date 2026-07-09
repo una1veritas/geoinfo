@@ -160,9 +160,12 @@ if __name__ == '__main__':
             break
     
     #exit(0)
+    polygon = [cvx.polygon_point(i) for i in range(len(cvx.polygon_index))]
+    polygons = [polygon]
+    print(cvx.peak_distances())
     
     
-    plt_annotate = False
+    plt_annotate = True
     # with Timer('delta rect: ') :
     #     drseq, polygons = delta_rect_decimation_alg(xy, delta, verbose = True, polygons = True)
     # print(f'length of decimated seq = {len(drseq)}')
@@ -193,10 +196,12 @@ if __name__ == '__main__':
     #ax.plot(frdpx, frdpy, 'b.-', lw=1) #, alpha=0.75)
     #ax.plot(mrdpx, mrdpy, 'b.-', lw=1) #, alpha=0.75)
     
-    # if len(polygons) > 0 :
-    #     for polygon in polygons:
-    #         px, py = [pt[0] for pt in polygon], [pt[1] for pt in polygon]
-    #         ax.plot(px, py, 'g--', lw=1) #, alpha=0.75)
+    if len(polygons) > 0 :
+        for polygon in polygons:
+            px, py = [pt[0] for pt in polygon], [pt[1] for pt in polygon]
+            px.append(polygon[0][0])
+            py.append(polygon[0][1])
+            ax.plot(px, py, 'g--', lw=1) #, alpha=0.75)
     
     labels = [f"{i}" for i in range(len(xy))]
     if plt_annotate :

@@ -30,7 +30,7 @@ class ConvexHull(object):
         return len(self.points)
     
     def __str__(self):
-        return f'ConvexHull({[ str(i)+":"+str(self[i]) for i in range(len(self))]}, {[i for i in self.polygon_index]})'
+        return f'ConvexHull({", ".join([ str(i)+":"+str(self[i]) for i in range(len(self))])} {[i for i in self.polygon_index]}'
     
     def __getitem__(self, index):
         return self.points[index]
@@ -60,7 +60,7 @@ class ConvexHull(object):
             self.polygon_index.append(0)
             self.polygon_index.append(len(self) - 1)
             return True
-        elif len(self.polygon_index) == 2 :
+        elif len(self.polygon_index) == 1 :
             self.points.append(pt)
             self.polygon_index.append(len(self) - 1)
             return True
@@ -77,9 +77,9 @@ class ConvexHull(object):
             self.polygon_index.appendleft(len(self)-1)
         else:
             # reject point and close convex-hull
+            print(f"failed on point {pt}")
             print(self.polygon_point(1), self.polygon_point(0), pt, rhombus(self.polygon_point(1), self.polygon_point(0), pt))
             print(self.polygon_point(-1), self.polygon_point(0), pt, rhombus(self.polygon_point(-1), self.polygon_point(0), pt))
-            print(f"failed on point {pt}")
             return False
         
         self.remove_concave()
@@ -108,10 +108,12 @@ class ConvexHull(object):
         print(self.polygon_index)
     
     def peak_distances(self):
-        fwix = 0    # forward peak index == mouth (polygon_index start)
+        fwix = self.polygon_index[0]    # forward peak index == mouth (polygon_index start)
         if len(self) <= 1 :
             return (0.0, 0.0, 0.0, 0.0)
         axis = unitvec(self[0], self[-1])
+        print(f'axis = {axis}')
+        print(f'fwix = {fwix}, {self.polygon_point(0)}')
         # backward peak, - --> +
         lb, ub = 0, len(self.polygon_index) - 1
         mix = (lb + ub) >> 1
@@ -122,7 +124,9 @@ class ConvexHull(object):
             else:
                 ub = mix
             mix = (lb + ub) >> 1
-        bkix = ub
+        bkix = self.polygon_index[ub]
+        print(f'ub = {ub}, bkix = {bkix}, {self.polygon_point(ub)}')
+        
         # right peak
         perp9 = (-axis[1], axis[0])
         lb, ub = fwix, bkix
@@ -134,7 +138,9 @@ class ConvexHull(object):
             else:
                 ub = mix
             mix = (lb + ub) >> 1
-        rtix = ub
+        rtix = self.polygon_index[ub]
+        print(f'ub = {ub}, rtix = {rtix}')
+
         # left peak
         perp3 = vec_neg(perp9)
         lb, ub = bkix, len(self.polygon_index)
@@ -146,7 +152,9 @@ class ConvexHull(object):
             else:
                 ub = mix
             mix = (lb + ub) >> 1
-        ltix = ub
+        ltix = self.polygon_index[ub]
+        print(f'ub = {ub}, ltix = {ltix}')
+
         #print(f'peak indices = {self.polygon_index[0]}, {self.polygon_index[rtix]}, {self.polygon_index[bkix]}, {self.polygon_index[ltix % len(self.polygon_index)]}')
         return (0.0, \
                 dot_product(perp3, vec(self[0], self.polygon_point(rtix))), \
