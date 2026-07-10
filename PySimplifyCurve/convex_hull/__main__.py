@@ -152,23 +152,23 @@ if __name__ == '__main__':
 
     print('-'*8)
     print(xy)
-    cvx = ConvexHull(0.5)
-    for ix in range(len(xy)) :
-        if cvx.add(xy[ix]) :
-            print("after point added:", cvx)
-        else:
-            break
-    
-    #exit(0)
-    polygon = [cvx.polygon_point(i) for i in range(len(cvx.polygon_index))]
-    polygons = [polygon]
-    print(cvx.peak_distances())
+    # cvx = ConvexHull(0.5)
+    # for ix in range(len(xy)) :
+    #     if cvx.add(xy[ix]) :
+    #         print("after point added:", cvx)
+    #     else:
+    #         break
+    #
+    # #exit(0)
+    # polygon = [cvx.polygon_point(i) for i in range(len(cvx.polygon_index))]
+    # polygons = [polygon]
+    # print(cvx.peak_distances())
     
     
     plt_annotate = True
-    # with Timer('delta rect: ') :
-    #     drseq, polygons = delta_rect_decimation_alg(xy, delta, verbose = True, polygons = True)
-    # print(f'length of decimated seq = {len(drseq)}')
+    with Timer('delta rect: ') :
+        drseq, polygons = delta_rect_decimation_alg(xy, delta, verbose = True, polygons = True)
+    print(f'length of decimated seq = {len(drseq)}')
     
     # with Timer('my rdp: ') :
     #     rdpseq = rdp_decimation_alg(xy, delta)
@@ -189,10 +189,10 @@ if __name__ == '__main__':
     # rdpx, rdpy = [ xy[i][0] for i in rdpseq], [ xy[i][1] for i in rdpseq]
     
     x, y = [ x for x, y in xy], [ y for x, y in xy]
-    # drx, dry = [xy[ix][0] for ix in drseq], [xy[ix][1] for ix in drseq]
+    drx, dry = [xy[ix][0] for ix in drseq], [xy[ix][1] for ix in drseq]
     fig, ax = plt.subplots()
     ax.plot(x, y, 'y.-', lw=2.0, alpha=0.35)
-    # ax.plot(drx, dry, 'b.-', lw=1) #, alpha=0.75)
+    ax.plot(drx, dry, 'b.-', lw=1) #, alpha=0.75)
     #ax.plot(frdpx, frdpy, 'b.-', lw=1) #, alpha=0.75)
     #ax.plot(mrdpx, mrdpy, 'b.-', lw=1) #, alpha=0.75)
     

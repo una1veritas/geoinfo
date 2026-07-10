@@ -10,13 +10,8 @@ distance_to_line, norm, unitvec, vec_neg
 
 class ConvexHull(object):
     '''
-    classdocs
+    Convex Hull for simple polygon points by double ended queue
     '''
-    # def __init__(self, params):
-    #     '''
-    #     Constructor
-    #     '''
-    
     def __init__(self, delta = 0.0):
         self.points = list() # index seq of Point2Ds considering
         self.polygon_index = ringarray(127)     # index seq in clockwise
@@ -65,6 +60,12 @@ class ConvexHull(object):
             self.polygon_index.append(len(self) - 1)
             return True
         
+        axvec = vec(self.points[0], self.points[-1])
+        newvec = vec(self.points[0], pt)
+        if norm(axvec) > norm(newvec) :
+            # pt getting nearer.
+            return False
+        
         # point[0]-point[1]-pt
         if rhombus(self.polygon_point(1), self.polygon_point(0), pt) <= 0 :
             self.points.append(pt)
@@ -108,57 +109,80 @@ class ConvexHull(object):
         print(self.polygon_index)
     
     def peak_distances(self):
-        fwix = self.polygon_index[0]    # forward peak index == mouth (polygon_index start)
         if len(self) <= 1 :
             return (0.0, 0.0, 0.0, 0.0)
-        axis = unitvec(self[0], self[-1])
-        print(f'axis = {axis}')
-        print(f'fwix = {fwix}, {self.polygon_point(0)}')
-        # backward peak, - --> +
-        lb, ub = 0, len(self.polygon_index) - 1
-        mix = (lb + ub) >> 1
+        
+        axis = unitvec(self[0], self[-1])   #代表線ベクトル
+        # print(f'axis = {axis}')
+
+        # forward peak -- the beak of the polygon
+        fwix = 0
+        print(f'fwix = {fwix}, point ix = {self.polygon_index[fwix]}, {self.polygon_point(fwix)}')
+        
+        # print('polygon index array head = ',self.polygon_index.array_head())
+        # backward peak -- 
+        # backard peak exists between the first point and the last point (beak), 
+        # because the beak cannot be the backward peak
+        # determine which side, clockwise or counter-clock wise, of the polygon has backward peak 
+        # by taking dot product with the lines to or from the first point
+
+        # backward peak
+        # the starting point == self.points[0] is possibly not on self.polygon
+        # so we search it as the point where dot product with axis switches to negative to positive
+        # by binary search on polygon cycle in clockwise direction
+        
+        lb, ub = fwix, len(self.polygon_index) - 1
         while lb < ub :
+            mix = (lb + ub) >> 1
+            # print(f'lb = {lb}, ub = {ub}, mix = {mix}')
             proj = dot_product(vec(self.polygon_point(mix), self.polygon_point(mix+1)), axis)
             if proj < 0 :
                 lb = mix + 1
             else:
                 ub = mix
-            mix = (lb + ub) >> 1
-        bkix = self.polygon_index[ub]
-        print(f'ub = {ub}, bkix = {bkix}, {self.polygon_point(ub)}')
+            #mix = (lb + ub) >> 1
+        bkix = ub   # (bkix)-th of polygon_index
+        print(f'bkix = {bkix},  point ix = {self.polygon_index[bkix]}, {self.polygon_point(bkix)}')
+        
+        # anti-clockwise
+        perp9 = (-axis[1], axis[0])
+        # clockwise
+        perp3 = vec_neg(perp9)
+        # print(f'perp3 = {perp3}, perp9 = {perp9}')
         
         # right peak
-        perp9 = (-axis[1], axis[0])
         lb, ub = fwix, bkix
+        # print(f'rtix lb = {lb}, ub = {ub}')
+        while lb < ub :
+            mix = (lb + ub) >> 1
+            proj = dot_product(vec(self.polygon_point(mix), self.polygon_point(mix+1)), perp3)
+            # mvec = vec(self.polygon_point(mix), self.polygon_point(mix+1))
+            # print(f'lb = {lb}, ub = {ub}, mix = {mix}, mvec = {mvec}, proj = {proj}')
+            if proj > 0 :
+                lb = mix + 1
+            else:
+                ub = mix
+            #mix = (lb + ub) >> 1
+        rtix = ub
+        print(f'rtix = {rtix},  point ix = {self.polygon_index[rtix]}, {self.polygon_point(rtix)}')
+        
+        # left peak
+        lb, ub = bkix, len(self.polygon_index) # last index + 1 -> 0
         mix = (lb + ub) >> 1
         while lb < ub :
             proj = dot_product(vec(self.polygon_point(mix), self.polygon_point(mix+1)), perp9)
-            if proj < 0 :
+            if proj > 0 :
                 lb = mix + 1
             else:
                 ub = mix
             mix = (lb + ub) >> 1
-        rtix = self.polygon_index[ub]
-        print(f'ub = {ub}, rtix = {rtix}')
-
-        # left peak
-        perp3 = vec_neg(perp9)
-        lb, ub = bkix, len(self.polygon_index)
-        mix = (lb + ub) >> 1
-        while lb < ub :
-            proj = dot_product(vec(self.polygon_point(mix), self.polygon_point(mix+1)), perp3)
-            if proj < 0 :
-                lb = mix + 1
-            else:
-                ub = mix
-            mix = (lb + ub) >> 1
-        ltix = self.polygon_index[ub]
-        print(f'ub = {ub}, ltix = {ltix}')
+        ltix = ub
+        print(f'ltix = {ltix},  point ix = {self.polygon_index[ltix]}, {self.polygon_point(ltix)}')
 
         #print(f'peak indices = {self.polygon_index[0]}, {self.polygon_index[rtix]}, {self.polygon_index[bkix]}, {self.polygon_index[ltix % len(self.polygon_index)]}')
         return (0.0, \
                 dot_product(perp3, vec(self[0], self.polygon_point(rtix))), \
-                dot_product( (-axis[0], -axis[1]), vec(self[0], self.polygon_point(bkix))), \
-                -dot_product(perp3, vec(self[0], self.polygon_point(ltix))), )
+                dot_product( vec_neg(axis), vec(self[0], self.polygon_point(bkix))), \
+                -dot_product(perp9, vec(self[0], self.polygon_point(ltix))), )
 
         

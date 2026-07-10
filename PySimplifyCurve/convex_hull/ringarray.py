@@ -22,6 +22,9 @@ class ringarray:
     def __len__(self):
         return self.length
     
+    def array_head(self):
+        return self.array[0]
+    
     def double_capacity(self):
         self.array += ([None] * self.capacity)
         #print('before move', self)
