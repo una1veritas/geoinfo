@@ -5,8 +5,7 @@ Created on 2026/07/09
 '''
 
 from ringarray import ringarray
-from point2d import vec, rhombus, distance, cross_product_norm, dot_product, \
-distance_to_line, norm, unitvec, vec_neg
+from point2d import *　
 
 class ConvexHull(object):
     '''
@@ -19,7 +18,7 @@ class ConvexHull(object):
     
     def clear(self):
         self.points.clear()
-        self.polygon_index.clear()
+        self.polygon_index.clear()　　
         
     def __len__(self):
         return len(self.points)
@@ -151,10 +150,10 @@ class ConvexHull(object):
         bkix = ub   # (bkix)-th of polygon_index
         #print(f'bkix = {bkix},  point ix = {self.polygon_index[bkix]}, {self.polygon_point(bkix)}')
         
-        # anti-clockwise
-        perp9 = (-axis[1], axis[0])
         # clockwise
-        perp3 = vec_neg(perp9)
+        perp3 = perpvec(axis)
+        # anti-clockwise
+        perp9 = perpvec(axis, clockwise=False)
         # print(f'perp3 = {perp3}, perp9 = {perp9}')
         
         # right peak
