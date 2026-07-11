@@ -35,7 +35,7 @@ if __name__ == '__main__':
         x += step + rf*int(width/num)
         y = rg*dev*2.5*(1+math.fabs(width/2.0 - i*step)/(width/4))
         x, y = round(x, 3), round(y, 3)
-        seq.append( (x,y) )
+        seq.add( (x,y) )
         print(x,y)
     
     with open('gen.csv', 'w') as f :

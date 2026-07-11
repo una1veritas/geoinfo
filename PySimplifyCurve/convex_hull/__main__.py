@@ -37,7 +37,7 @@ def simplify_RDP(xy : np.array, epsilon):
 def delta_rect_decimation_alg(xy : list, delta, verbose = False, polygons = False) -> tuple:
     dixpath = list()        # decimated path, the seq. of indices to the reference point sequence xy
     polygon_seq = list()    # considered & finished polygons
-    dixpath.append(0)       # the index of the the first point
+    dixpath.add(0)       # the index of the the first point
     cvx = ConvexHull() 
     cvx_start_index = dixpath[-1];    # offset to index to xy
     cvx.add(xy[0])
@@ -61,9 +61,9 @@ def delta_rect_decimation_alg(xy : list, delta, verbose = False, polygons = Fals
         if cvx_diameter > distance(cvx[0], xy[ptix]) : # distance(cvx.first_point(), xy[ptix]) :
             verbose and print('getting nearer. stop extending cvx')
             cvx_lastix = cvx_start_index + cvx.size()
-            dixpath.append(cvx_lastix)
+            dixpath.add(cvx_lastix)
             if polygons : 
-                polygon_seq.append([cvx_start_index + cvx.polygon_index[i] for i in range(len(cvx.polygon_index) + 1)])
+                polygon_seq.add([cvx_start_index + cvx.polygon_index[i] for i in range(len(cvx.polygon_index) + 1)])
             cvx.clear()
             # make new cvx for the 1st and 2nd points.
             cvx_start_index = cvx_lastix
@@ -97,9 +97,9 @@ def delta_rect_decimation_alg(xy : list, delta, verbose = False, polygons = Fals
             continue
         else:
             prevcvx_lastix = len(cvx) - 2
-            dixpath.append(cvx_start_index + prevcvx_lastix)
+            dixpath.add(cvx_start_index + prevcvx_lastix)
             if polygons : 
-                polygon_seq.append(prevcvx_polygon)
+                polygon_seq.add(prevcvx_polygon)
             cvx.clear()
             cvx_start_ix = prevcvx_lastix
             cvx.add(xy[prevcvx_lastix])
@@ -113,42 +113,105 @@ def delta_rect_decimation_alg(xy : list, delta, verbose = False, polygons = Fals
     
     if len(cvx) > 0 :
         #print('points exhausted,', cvx)
-        dixpath.append(cvx_start_index + len(cvx) - 1)
+        dixpath.add(cvx_start_index + len(cvx) - 1)
         if polygons : 
-            polygon_seq.append([cvx.polygon_point(ix) for ix in range(len(cvx.polygon_index) + 1)])
+            polygon_seq.add([cvx.polygon_point(ix) for ix in range(len(cvx.polygon_index) + 1)])
     
     if not polygons :
         return dixpath
     else:
         return (dixpath, polygon_seq)
 
+
+def delta_rect_decimation(xy : list, delta : float) -> tuple:
+    decpath = list()        # index seq. of decimated point seq.
+    polygons = list()    # considered & finished polygons
+    decpath.append(0)   # add the first point
+    cvx = ConvexHull(delta)     # reusable convex hull
+    
+    ix = 0
+    while ix < len(xy) :
+        print(ix, xy[ix])
+        if len(cvx) == 0 :
+            cvx.add(xy[decpath[-1]])
+            start_ix = decpath[-1]
+            print(f'X: start_ix = {start_ix}')
+            polygons.append(cvx.polygon_points())
+            ix += 1
+            continue
+        
+        if cvx.add(xy[ix]) :
+            fw, bk, rt, lt = cvx.peak_distances()
+            if max(fw, bk, rt, lt ) > delta :
+                print(f'adding {xy[ix]} caused over size: ', fw, bk, rt, lt)
+                # cancel the last addition
+                print(len(cvx), f'start ix = {start_ix}', cvx)
+                last_ix = ix - 1
+                decpath.append(last_ix)
+                cvx.clear()
+                start_ix = last_ix
+                print(f'A: start_ix = {start_ix}')
+                cvx.add(xy[start_ix])
+                cvx.add(xy[start_ix + 1])
+                polygons.append(cvx.polygon_points())
+                ix += 1     # advances to the next
+                continue
+            polygons[-1] = cvx.polygon_points()     # update
+            ix += 1
+        else:
+            # rejected xy[ix], so close cvx and restart
+            last_ix = ix - 1
+            decpath.append(last_ix)
+            cvx.clear()
+            start_ix = decpath[-1]
+            print(f'B: start_ix = {start_ix}')
+            cvx.add(xy[start_ix])
+            cvx.add(xy[ix])
+            polygons.append(cvx.polygon_points())
+            ix += 1     # advances to the next
+            continue
+    if len(cvx) > 0 :
+        # add the last line segment
+        print(len(cvx), cvx)
+        last_ix = start_ix + len(cvx) - 1
+        print(start_ix, last_ix, xy[start_ix:last_ix])
+        decpath.append(last_ix)
+        polygons.append(cvx.polygon_points())
+        print(f'remained cvx = {cvx}, {start_ix}, {len(cvx)}')
+        #cvx.clear()
+    
+    return decpath, polygons
+
 if __name__ == '__main__':
-    xy = [ (0,0), (0.1, -0.1), (-0.2, 0.1), (-0.1, -0.1), (-0.1, -0.2), (0.25, 0.5), (0.8, 0.25), (1.0, 0.75), (1.4, 0.7), (1.5, 1.0), \
-          (1.5, 2.75), (2, 2.75), (2.5, 3.2), \
-    #      (3, 3.5), (3.2, 2), (3, 0.5),  \
-    #      (3.25, 1.0), (3.25, -0.25), (3.5, 0.5), (4, 1.25), (3.5, 1.5), (3, 1.25), (2, 1), (1.5, -0.0) ]
-    ]
-    # xy = [ (0.0, 0.0), (0.3, 0.4), (0.5, -0.3), (-0.1, -0.4), (-0.3, -0.1), (-0.1, 0.2), (-0.5, 0.3), (-0.1, 0.4), \
-    #       (0.0, 0.8), (0.2, 0.6), (0.5, 1.1), (0.1, 1.3), (0.4, 1.5), (0.8, 1.3), (1.0, 1.3), (1.2, 0.9) ]
-    #
-    # xy = [(0.0, 0.0), (-0.2, -0.3), (0.5, -0.3), (0.6, 0.2), (0.3, 0.8), (-0.1, 1.0), \
-    #       (-0.2, 1.2), (0.3, 1.2), (0.5, 1.6), (0.8, 1.7), (0.9, 2.1), (1.3, 2.2), \
-    #       (0.6, 1.8), (-0.1, 1.6), (-0.3, 2.1), \
+    # xy = [ (0,0), (0.1, -0.1), (-0.2, 0.1), (-0.1, -0.1), (-0.1, -0.2), (0.25, 0.5), \
+    #       (0.8, 0.25), (1.0, 0.75), (1.4, 0.7), (1.5, 1.0), \
+    #       (1.5, 2.75), (2, 2.75), (2.5, 3.2), \
+    #       (3, 3.5), (3.2, 2), (3, 0.5),  \
+    #       (3.25, 1.0), (3.25, -0.25), (3.5, 0.5), (4, 1.25), (3.5, 1.5), (3, 1.25), (2, 1), (1.5, -0.0) \
+    # ]
+    # xy = [ (0.0, 0.0), (0.3, 0.4), (0.5, -0.3), (-0.1, -0.4), (-0.3, -0.1), (-0.1, 0.2), \
+    #       (-0.5, 0.3), (-0.1, 0.4), (0.0, 0.8), (0.2, 0.6), (0.5, 1.1), \
+    #       (0.1, 1.3), (0.4, 1.5), (0.8, 1.3), (1.0, 1.3), (1.2, 0.9) 
     #       ]
-    delta = 0.8
+    xy = [(0.0, 0.0), (-0.2, -0.3), (0.5, -0.3), (0.6, 0.2), (0.3, 0.8), (-0.1, 1.0), \
+          (-0.2, 1.2), (0.3, 1.2), (0.5, 1.6), (0.8, 1.7), (0.9, 2.1), (1.3, 2.2), \
+          (0.6, 1.8), (-0.1, 1.6), (-0.3, 2.1), \
+          ]
+    
+    delta = 0.5
     # with open('xy.csv', 'w') as f :
     #     for x, y in xy:
     #         f.write(f'{x},{y}\n')
     #
     
     # xy = list()
-    # with open('47-936_ishigakishi_xy-metre.csv', 'r') as f :
+    # with open('40-1836_itoshima_xy-metre.csv', 'r') as f :
     #     for l in f:
     #         lonlat = [float(e) for e in l.strip().split(',')]
     #         xy.append(tuple(lonlat))
     # # extract a part
     # print(f'points in the input provided: {len(xy)}\n')
-    # delta = 25.0
+    # delta = 75.0
 
     print('-'*8)
     print(xy)
@@ -165,10 +228,14 @@ if __name__ == '__main__':
     # print(cvx.peak_distances())
     
     
-    plt_annotate = True
+    plt_annotate = False
     with Timer('delta rect: ') :
-        drseq, polygons = delta_rect_decimation_alg(xy, delta, verbose = True, polygons = True)
+        drseq, polygons = delta_rect_decimation(xy, delta) #, verbose = True, polygons = True)
     print(f'length of decimated seq = {len(drseq)}')
+    if len(drseq) < 100 : 
+        print(f'{drseq}, {polygons}')
+    else:
+        polygons.clear()
     
     # with Timer('my rdp: ') :
     #     rdpseq = rdp_decimation_alg(xy, delta)
@@ -199,8 +266,6 @@ if __name__ == '__main__':
     if len(polygons) > 0 :
         for polygon in polygons:
             px, py = [pt[0] for pt in polygon], [pt[1] for pt in polygon]
-            px.append(polygon[0][0])
-            py.append(polygon[0][1])
             ax.plot(px, py, 'g--', lw=1) #, alpha=0.75)
     
     labels = [f"{i}" for i in range(len(xy))]

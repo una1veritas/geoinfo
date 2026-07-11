@@ -66,7 +66,7 @@ if __name__ == '__main__':
         if past.item().total_seconds() >= 5 :
             last_datetime = dt[i]
             x, y = proj(longi[i], lati[i])
-            xy.append((x, y))
+            xy.add((x, y))
     
     '''返還後の出力'''
     #xy =xy[:10]

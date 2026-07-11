@@ -22,10 +22,10 @@ class Timer:
 
 def rdp_decimation_alg(xy : list, delta) -> tuple:
     ixseq = deque()
-    ixseq.append(0)
-    ixseq.append(len(xy)-1)
+    ixseq.add(0)
+    ixseq.add(len(xy)-1)
     declimatseq = deque()
-    declimatseq.append(0)
+    declimatseq.add(0)
     while len(ixseq) > 1 :
         #print(ixseq, declimatseq)
         ix_first = ixseq.popleft()

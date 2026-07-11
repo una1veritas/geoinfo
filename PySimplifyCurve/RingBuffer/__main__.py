@@ -34,7 +34,7 @@ class ringarray:
         self.capacity <<= 1
         return 
     
-    def append(self, elem):
+    def add(self, elem):
         if not (self.length < self.capacity) :
             self.double_capacity()
         
@@ -109,7 +109,7 @@ if __name__ == '__main__':
     data = [9, 1, 3, -1, -5, 7, 7, 0, 11, -12, 99]
     for ea in data:
         if ea >= 0 :
-            ring.append(ea)
+            ring.add(ea)
         else:
             ring.appendleft(ea)
         print('ring = ', ring)

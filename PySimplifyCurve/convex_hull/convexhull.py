@@ -42,24 +42,30 @@ class ConvexHull(object):
     def polygon_point(self, index):
         return self.points[self.polygon_index[index % len(self.polygon_index)]]
     
-    # test and add to points
+    def polygon_points(self):
+        if len(self.polygon_index) == 0 :
+            return []
+        return [self.polygon_point(i) for i in range(len(self.polygon_index) + 1)]
+    
+    # test and add pt to points
     def add(self, pt):
+        #print(pt)
         if len(self) == 0 :
             self.points.append(pt)
             return True
-        elif self.tolerance > 0.0 and distance(self.first_point(), pt) <= self.tolerance :
+        if self.tolerance > 0.0 and distance(self.first_point(), pt) <= self.tolerance :
             self.points.append(pt)
             return True
-        elif len(self.polygon_index) == 0 :
+        if len(self.polygon_index) == 0 :
             self.points.append(pt)
-            self.polygon_index.append(0)
-            self.polygon_index.append(len(self) - 1)
+            self.polygon_index.add(0)
+            self.polygon_index.add(len(self) - 1)
             return True
-        elif len(self.polygon_index) == 1 :
-            self.points.append(pt)
-            self.polygon_index.append(len(self) - 1)
+        if len(self.polygon_index) == 1 :
+            self.points.add(pt)
+            self.polygon_index.add(len(self) - 1)
             return True
-        
+
         axvec = vec(self.points[0], self.points[-1])
         newvec = vec(self.points[0], pt)
         if norm(axvec) > norm(newvec) :
@@ -70,7 +76,7 @@ class ConvexHull(object):
         if rhombus(self.polygon_point(1), self.polygon_point(0), pt) <= 0 :
             self.points.append(pt)
             # right or front of the mouth
-            self.polygon_index.append(self.polygon_index.popleft())
+            self.polygon_index.add(self.polygon_index.popleft())
             self.polygon_index.appendleft(len(self) - 1)
         elif rhombus(self.polygon_point(-1), self.polygon_point(0), pt) >= 0 :
             self.points.append(pt)
@@ -88,11 +94,11 @@ class ConvexHull(object):
            
     def remove_concave(self):
         # from tail
-        print(self.polygon_index)
+        #print(self.polygon_index)
         beak_ix = self.polygon_index.popleft()    # polygon_index is a ring sequence
         beak = self.point(beak_ix)
         
-        print(f'beak = {beak} ({beak_ix})')
+        #print(f'beak = {beak} ({beak_ix})')
         # anti-clockwise check and pop
         while len(self.polygon_index) > 2 :
             if rhombus(beak, self.polygon_point(-1), self.polygon_point(-2)) < 0 : 
@@ -106,10 +112,10 @@ class ConvexHull(object):
             else:
                 break
         self.polygon_index.appendleft(beak_ix)
-        print(self.polygon_index)
-    
+        #print(self.polygon_index)
+        
     def peak_distances(self):
-        if len(self) <= 1 :
+        if len(self) <= 2 or len(self.polygon_index) <= 2 :
             return (0.0, 0.0, 0.0, 0.0)
         
         axis = unitvec(self[0], self[-1])   #代表線ベクトル
@@ -117,7 +123,8 @@ class ConvexHull(object):
 
         # forward peak -- the beak of the polygon
         fwix = 0
-        print(f'fwix = {fwix}, point ix = {self.polygon_index[fwix]}, {self.polygon_point(fwix)}')
+        #print(self)
+        #print(f'fwix = {fwix}, point ix = {self.polygon_index[fwix]}, {self.polygon_point(fwix)}')
         
         # print('polygon index array head = ',self.polygon_index.array_head())
         # backward peak -- 
@@ -142,7 +149,7 @@ class ConvexHull(object):
                 ub = mix
             #mix = (lb + ub) >> 1
         bkix = ub   # (bkix)-th of polygon_index
-        print(f'bkix = {bkix},  point ix = {self.polygon_index[bkix]}, {self.polygon_point(bkix)}')
+        #print(f'bkix = {bkix},  point ix = {self.polygon_index[bkix]}, {self.polygon_point(bkix)}')
         
         # anti-clockwise
         perp9 = (-axis[1], axis[0])
@@ -164,7 +171,7 @@ class ConvexHull(object):
                 ub = mix
             #mix = (lb + ub) >> 1
         rtix = ub
-        print(f'rtix = {rtix},  point ix = {self.polygon_index[rtix]}, {self.polygon_point(rtix)}')
+        #print(f'rtix = {rtix},  point ix = {self.polygon_index[rtix]}, {self.polygon_point(rtix)}')
         
         # left peak
         lb, ub = bkix, len(self.polygon_index) # last index + 1 -> 0
@@ -177,7 +184,7 @@ class ConvexHull(object):
                 ub = mix
             mix = (lb + ub) >> 1
         ltix = ub
-        print(f'ltix = {ltix},  point ix = {self.polygon_index[ltix]}, {self.polygon_point(ltix)}')
+        #print(f'ltix = {ltix}, point ix = {self.polygon_index[ltix % len(self.polygon_index)]}, {self.polygon_point(ltix)}')
 
         #print(f'peak indices = {self.polygon_index[0]}, {self.polygon_index[rtix]}, {self.polygon_index[bkix]}, {self.polygon_index[ltix % len(self.polygon_index)]}')
         return (0.0, \
