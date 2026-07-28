@@ -20,12 +20,12 @@ class Timer:
         print(self.message + f"Execution time: {self.end - self.start} seconds")
 
 
-def rdp_decimation_alg(xy : list, delta) -> tuple:
+def rdp_simplification(xy : list, delta) -> tuple:
     ixseq = deque()
-    ixseq.add(0)
-    ixseq.add(len(xy)-1)
+    ixseq.append(0)
+    ixseq.append(len(xy)-1)
     declimatseq = deque()
-    declimatseq.add(0)
+    declimatseq.append(0)
     while len(ixseq) > 1 :
         #print(ixseq, declimatseq)
         ix_first = ixseq.popleft()
@@ -53,7 +53,7 @@ def rdp_decimation_alg(xy : list, delta) -> tuple:
     # in divide-and-conquer like manner
     return declimatseq
 
-def rdp_decimation_alg_recursive(xy : list, delta, first = None, last = None) -> tuple:
+def rdp_simplification_recursive(xy : list, delta, first = None, last = None) -> tuple:
     #print('input: ', delta, first, last)
     if first == None or last == None :
         first = 0
@@ -99,7 +99,7 @@ if __name__ == '__main__':
     
     plt_annotate = True
     
-    # with Timer('delta rect: ') :
+    # with Timer('delta width: ') :
     #     dpath, polygons = delta_decimation_alg(xy, delta, verbose=False)
     # print(f'len(xy) = {len(xy)}, len(dpath) = {len(dpath)}')
     

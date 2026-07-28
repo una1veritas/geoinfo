@@ -11,7 +11,8 @@ class ringarray:
     
     def __init__(self, initcapacity = None):
         if initcapacity is not None :
-            self.capacity = 1 << ceil(log2(int(initcapacity) + 1))
+            initcapacity = 1 << ceil(log2(int(initcapacity) + 1))
+            self.capacity = max(ringarray.INITIAL_CAPACITY, initcapacity)
         else:
             self.capacity = ringarray.INITIAL_CAPACITY
         self.array = [None] * self.capacity

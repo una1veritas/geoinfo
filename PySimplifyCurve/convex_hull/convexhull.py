@@ -5,7 +5,7 @@ Created on 2026/07/09
 '''
 
 from ringarray import ringarray
-from point2d import *　
+from point2d import *
 
 class ConvexHull(object):
     '''
@@ -18,7 +18,7 @@ class ConvexHull(object):
     
     def clear(self):
         self.points.clear()
-        self.polygon_index.clear()　　
+        self.polygon_index.clear()
         
     def __len__(self):
         return len(self.points)
@@ -83,9 +83,9 @@ class ConvexHull(object):
             self.polygon_index.appendleft(len(self)-1)
         else:
             # reject point and close convex-hull
-            print(f"failed on point {pt}")
-            print(self.polygon_point(1), self.polygon_point(0), pt, rhombus(self.polygon_point(1), self.polygon_point(0), pt))
-            print(self.polygon_point(-1), self.polygon_point(0), pt, rhombus(self.polygon_point(-1), self.polygon_point(0), pt))
+            #print(f"failed on point {pt}")
+            #print(self.polygon_point(1), self.polygon_point(0), pt, rhombus(self.polygon_point(1), self.polygon_point(0), pt))
+            #print(self.polygon_point(-1), self.polygon_point(0), pt, rhombus(self.polygon_point(-1), self.polygon_point(0), pt))
             return False
         
         self.remove_concave()
