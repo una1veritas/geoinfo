@@ -38,7 +38,7 @@ class ringarray:
         self.capacity <<= 1
         return 
     
-    def add(self, elem):
+    def append(self, elem):
         if not (self.length < self.capacity) :
             self.double_capacity()
         

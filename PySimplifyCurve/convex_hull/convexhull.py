@@ -57,12 +57,12 @@ class ConvexHull(object):
             return True
         if len(self.polygon_index) == 0 :
             self.points.append(pt)
-            self.polygon_index.add(0)
-            self.polygon_index.add(len(self) - 1)
+            self.polygon_index.append(0)
+            self.polygon_index.append(len(self) - 1)
             return True
         if len(self.polygon_index) == 1 :
             self.points.add(pt)
-            self.polygon_index.add(len(self) - 1)
+            self.polygon_index.append(len(self) - 1)
             return True
 
         axvec = vec(self.points[0], self.points[-1])
@@ -75,7 +75,7 @@ class ConvexHull(object):
         if rhombus(self.polygon_point(1), self.polygon_point(0), pt) <= 0 :
             self.points.append(pt)
             # right or front of the mouth
-            self.polygon_index.add(self.polygon_index.popleft())
+            self.polygon_index.append(self.polygon_index.popleft())
             self.polygon_index.appendleft(len(self) - 1)
         elif rhombus(self.polygon_point(-1), self.polygon_point(0), pt) >= 0 :
             self.points.append(pt)
