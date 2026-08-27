@@ -17,7 +17,6 @@
 
 template <typename T>
 class ringarray {
-private:
     std::vector<T> array; 	// backbone array
     std::size_t _capacity, _head = 0, _tail = 0, _count = 0;
 
@@ -110,11 +109,10 @@ public:
     void resize(const size_t & new_capa) {
     	if (new_capa <= _capacity)
 			return; // No shrinking
-    	size_t new_size = std::max( std::bit_ceil( _capacity + 1 ), std::bit_ceil(new_capa));
-    	if (new_size <= _capacity ) {
-    		throw std::length_error("Computing larger capacity size failed.");
+    	size_t new_size = std::bit_ceil( new_capa + 1 );
+    	if (new_size <= std::max(_capacity, new_capa) ) {
+    		throw std::out_of_range("Index is out of ringarray bounds");
     	}
-    	//std::cout << "!!! Resizing ringarray from " << _capacity << " to " << new_size << std::endl;
     	std::vector<T> new_array(new_size);
     	size_t ix;
 		for (ix = 0; ix < _count; ++ix) {
@@ -124,21 +122,6 @@ public:
 		_capacity = new_size;
 		_tail = _head + ix;
 		return;
-	}
-
-    std::ostream & printOn(std::ostream & out) const {
-		out << "ringarray: size = " << _count << ", capacity = " << _capacity << std::endl;
-		out << "head = " << _head << ", tail = " << _tail << std::endl;
-		for (size_t ix = 0; ix < _count; ++ix) {
-			out << "[" << ix << "] = " << array[(_head + ix) % _capacity] << std::endl;
-		//for (size_t ix = 0; ix < _capacity; ++ix) {
-		//	out << "[" << ix << "] = " << array[ix] << std::endl;
-		}
-		return out;
-	}
-
-    friend std::ostream & operator<<(std::ostream & out, const ringarray<T> & ra) {
-		return ra.printOn(out);
 	}
 };
 

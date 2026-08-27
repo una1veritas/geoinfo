@@ -9,20 +9,19 @@
 
 std::ostream & ConvexHull::printOn(std::ostream & out) const {
 	out << "ConvexHull(";
-	/*
-	for(const auto & elem : xy) {
-		out << elem << ", ";
-	}
-	out << std::endl;
-	*/
+
 	out << " points = [";
-	for(const auto & elem : ptix) {
-		out << elem << ": " << xy[elem] << ", ";
+	for(int i = 0; i < points.size(); ++i) {
+		if (i > 0)
+			out << ", ";
+		out << points[i];
 	}
-	out << "], ";
-	out << " polygon = [";
-	for(long ix = 0; ix < polygon.size(); ++ix) {
-		out << polygon[ix] << ", ";
+	out << "]";
+	out << ", polygon = [";
+	for(int ix = 0; ix < polygon.size(); ++ix) {
+		if (ix > 0)
+			out << ", ";
+		out << polygon[ix] << " " << points[polygon[ix]];
 	}
 	out << "] ";
 	out << ") ";
@@ -30,30 +29,29 @@ std::ostream & ConvexHull::printOn(std::ostream & out) const {
 }
 
 
-bool ConvexHull::add(long ix) {
+bool ConvexHull::add(const Point2D & pt) {
 	// the first and the seconds
 	if ( size() <= 1 ) {
-		ptix.push_back(ix);
-		polygon.push_back(size() - 1);
+		points.push_back(pt);
+		polygon.push_back(points.size() - 1);
 		return true;
 	}
 
-	// add ptix to ptix and polygon
-	if ( polypt(1).rhombus(polypt(0), xy[ix]) <= 0 ) {
-		ptix.push_back(ix);
-		// right or front of the mouth
+	// add pt to points and polygon
+	if ( polygon_point(1).rhombus(polygon_point(0), pt) <= 0 ) {
+		// right or front of the beak (polygon_point(0))
+		points.push_back(pt);
 		polygon.push_back(polygon.pop_front());
-		polygon.push_front(size() - 1);
-	} else if ( polypt(-1).rhombus(polypt(0), xy[ix]) >= 0 ) {
-		ptix.push_back(ix);
-		// outside of the left line of the mouth
-		polygon.push_front(size() - 1);
+		polygon.push_front(points.size() - 1);
+	} else if ( polygon_point(-1).rhombus(polygon_point(0), pt) >= 0 ) {
+		// left or front of the beak
+		points.push_back(pt);
+		polygon.push_front(points.size() - 1);
 	}
 	//     # error, not at growth position
 	//raise ValueError(f'point {pt} is inside the polygon.')
 	//return
 
-	std::cout << "going to remove concave" << std::endl;
 	remove_concave();
 	return true;
 }
@@ -81,26 +79,26 @@ def remove_concave(self):
 void ConvexHull::remove_concave(void) {
 	long mouthix = polygon.pop_back(); 	// the last index in polygon is the index of the polygon mouth
 	Point2D mouthpt = point(mouthix);	// the point of the polygon mouth
-	std::cout << "mouthix = " << mouthix << ", mouthpt = " << mouthpt << std::endl;
+	std::cout << "remove_concave mouthix = " << mouthix << ", mouthpt = " << mouthpt << std::endl;
 	std::cout << "anti-clockwise check" << std::endl;
-	while ( polygon.size() > 3 ) {
+	while ( polygon.size() > 2 ) {
 		std::cout << "polygon = ";
 		for(int i = 0; i < polygon.size(); ++i) {
-			std::cout << polygon[i] << " = " << polypt(i) << ", ";
+			std::cout << polygon[i] << " = " << polygon_point(i) << ", ";
 		}
 		std::cout << std::endl;
-		std::cout << "rhombus mouth, -1, -2 = " << mouthpt.rhombus(polypt(-1), polypt(-2)) << std::endl;
-		if (mouthpt.rhombus(polypt(-1), polypt(-2)) < 0 ) {
-			std::cout << "remove concave peak " << polypt(-2) << ", " << polypt(-1) << std::endl;
+		std::cout << "rhombus mouth, -1, -2 = " << mouthpt.rhombus(polygon_point(-1), polygon_point(-2)) << std::endl;
+		if (mouthpt.rhombus(polygon_point(-1), polygon_point(-2)) < 0 ) {
+			std::cout << "remove concave peak " << polygon_point(-2) << ", " << polygon_point(-1) << std::endl;
 			polygon.pop_back();
 		} else
 			break;
 	}
 	// clockwise check
 	std::cout << "clockwise check" << std::endl;
-	while ( polygon.size() > 3 ) {
-		if ( mouthpt.rhombus(polypt(0), polypt(1)) > 0 ) {
-			std::cout << "remove concave peak " << polypt(1) << ", " << polypt(0) << std::endl;
+	while ( polygon.size() > 2 ) {
+		if ( mouthpt.rhombus(polygon_point(0), polygon_point(1)) > 0 ) {
+			std::cout << "remove concave peak " << polygon_point(1) << ", " << polygon_point(0) << std::endl;
 			polygon.pop_front();
 		} else
 			break;
@@ -118,7 +116,7 @@ ConvexHull::quad_double ConvexHull::peak_distances(void) const {
     long lb = 0, ub = polygon.size() - 1;
     long mix = (lb + ub) >> 1;  // center index
     while (lb < ub) {
-    	double proj = Point2D::vector(polypt(mix), polypt(mix+1)).dot(axis);
+    	double proj = Point2D::vector(polygon_point(mix), polygon_point(mix+1)).dot(axis);
 		if (proj < 0)
 			lb = mix + 1;
 		else
@@ -133,7 +131,7 @@ ConvexHull::quad_double ConvexHull::peak_distances(void) const {
     mix = (lb + ub) >> 1;
 
 	while (lb < ub) {
-		double proj = Point2D::vector(polypt(mix), polypt(mix+1)).dot(perp9);
+		double proj = Point2D::vector(polygon_point(mix), polygon_point(mix+1)).dot(perp9);
 		if (proj < 0)
 			lb = mix + 1;
 		else
@@ -147,7 +145,7 @@ ConvexHull::quad_double ConvexHull::peak_distances(void) const {
 	lb = bkix, ub = polygon.size();
 	mix = (lb + ub) >> 1;
 	while (lb < ub) {
-		double proj = Point2D::vector(polypt(mix), polypt(mix+1)).dot(perp3);
+		double proj = Point2D::vector(polygon_point(mix), polygon_point(mix+1)).dot(perp3);
 		if ( proj < 0 )
 			lb = mix + 1;
 		else
@@ -157,9 +155,9 @@ ConvexHull::quad_double ConvexHull::peak_distances(void) const {
 	long ltix = ub;
 
     //#print(f'peak indices = {self.polygon[0]}, {self.polygon[rtix]}, {self.polygon[bkix]}, {self.polygon[ltix % len(self.polygon)]}')
-	result.rt = perp3.dot( Point2D::vector(first_point(), polypt(rtix)));
-	result.bk = -axis.dot(Point2D::vector(first_point(), polypt(bkix)));
-	result.lt = perp9.dot(Point2D::vector(first_point(), polypt(ltix)));
+	result.rt = perp3.dot( Point2D::vector(first_point(), polygon_point(rtix)));
+	result.bk = -axis.dot(Point2D::vector(first_point(), polygon_point(bkix)));
+	result.lt = perp9.dot(Point2D::vector(first_point(), polygon_point(ltix)));
 	return result;
 }
 

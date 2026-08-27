@@ -50,7 +50,7 @@ if __name__ == '__main__':
     with open(filename, 'r') as file :
         for l in file:
             a = l.strip().split(',')
-            tbl.append(a)
+            tbl.add(a)
     
     for ln in range(len(tbl)):
         l = tbl[ln]
@@ -79,7 +79,7 @@ if __name__ == '__main__':
     last_datetime = epoch_start
     for t in tbl[1:] :
             x, y = proj(t[1], t[0])
-            xy.append((x, y))
+            xy.add((x, y))
     
     '''返還後の出力'''
     #xy =xy[:10]

@@ -11,7 +11,8 @@ class ringarray:
     
     def __init__(self, initcapacity = None):
         if initcapacity is not None :
-            self.capacity = 1 << ceil(log2(int(initcapacity) + 1))
+            initcapacity = 1 << ceil(log2(int(initcapacity) + 1))
+            self.capacity = max(ringarray.INITIAL_CAPACITY, initcapacity)
         else:
             self.capacity = ringarray.INITIAL_CAPACITY
         self.array = [None] * self.capacity
@@ -21,6 +22,9 @@ class ringarray:
     
     def __len__(self):
         return self.length
+    
+    def array_head(self):
+        return self.array[0]
     
     def double_capacity(self):
         self.array += ([None] * self.capacity)
@@ -114,7 +118,7 @@ if __name__ == '__main__':
     data = [9, 1, 3, -1, -5, 7, 7, 0, 11, -12, 99]
     for ea in data:
         if ea >= 0 :
-            ring.append(ea)
+            ring.add(ea)
         else:
             ring.appendleft(ea)
         print('ring = ', ring)

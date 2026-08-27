@@ -4,7 +4,11 @@ Created on 2026/01/23
 @author: sin
 '''
 import math
-    
+
+''' Point2D functions, 2-tuples of integers and/or floats are 
+treated as vector on the plane. 
+'''
+
 def vec(a, b = None):
     if isinstance(a, (tuple, list)) and isinstance(b, (tuple, list)) :
         # from two positions

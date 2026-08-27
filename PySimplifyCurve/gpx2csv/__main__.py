@@ -23,7 +23,7 @@ if __name__ == '__main__':
     for track in gpx.tracks:
         for segment in track.segments:
             for point in segment.points:
-                data_rows.append({
+                data_rows.add({
                     'latitude': point.latitude,
                     'longitude': point.longitude,
                     'elevation': point.elevation,
