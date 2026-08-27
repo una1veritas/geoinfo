@@ -16,8 +16,8 @@ std::ostream & ConvexHull::printOn(std::ostream & out) const {
 			out << ", ";
 		out << points[i];
 	}
-	out << "]";
-	out << ", polygon = [";
+	out << "], ";
+	out << endl << "polygon = [";
 	for(int ix = 0; ix < polygon.size(); ++ix) {
 		if (ix > 0)
 			out << ", ";
@@ -79,26 +79,26 @@ def remove_concave(self):
 void ConvexHull::remove_concave(void) {
 	long mouthix = polygon.pop_back(); 	// the last index in polygon is the index of the polygon mouth
 	Point2D mouthpt = point(mouthix);	// the point of the polygon mouth
-	std::cout << "remove_concave mouthix = " << mouthix << ", mouthpt = " << mouthpt << std::endl;
-	std::cout << "anti-clockwise check" << std::endl;
+//	std::cout << "remove_concave mouthix = " << mouthix << ", mouthpt = " << mouthpt << std::endl;
+//	std::cout << "anti-clockwise check" << std::endl;
 	while ( polygon.size() > 2 ) {
-		std::cout << "polygon = ";
-		for(int i = 0; i < polygon.size(); ++i) {
-			std::cout << polygon[i] << " = " << polygon_point(i) << ", ";
-		}
-		std::cout << std::endl;
-		std::cout << "rhombus mouth, -1, -2 = " << mouthpt.rhombus(polygon_point(-1), polygon_point(-2)) << std::endl;
+//		std::cout << "polygon = ";
+//		for(int i = 0; i < polygon.size(); ++i) {
+//			std::cout << polygon[i] << " = " << polygon_point(i) << ", ";
+//		}
+//		std::cout << std::endl;
+//		std::cout << "rhombus mouth, -1, -2 = " << mouthpt.rhombus(polygon_point(-1), polygon_point(-2)) << std::endl;
 		if (mouthpt.rhombus(polygon_point(-1), polygon_point(-2)) < 0 ) {
-			std::cout << "remove concave peak " << polygon_point(-2) << ", " << polygon_point(-1) << std::endl;
+			//std::cout << "remove concave peak " << polygon_point(-2) << ", " << polygon_point(-1) << std::endl;
 			polygon.pop_back();
 		} else
 			break;
 	}
-	// clockwise check
-	std::cout << "clockwise check" << std::endl;
+//	// clockwise check
+//	std::cout << "clockwise check" << std::endl;
 	while ( polygon.size() > 2 ) {
 		if ( mouthpt.rhombus(polygon_point(0), polygon_point(1)) > 0 ) {
-			std::cout << "remove concave peak " << polygon_point(1) << ", " << polygon_point(0) << std::endl;
+//			std::cout << "remove concave peak " << polygon_point(1) << ", " << polygon_point(0) << std::endl;
 			polygon.pop_front();
 		} else
 			break;
@@ -111,8 +111,22 @@ ConvexHull::quad_double ConvexHull::peak_distances(void) const {
 	long fwix = 0;    //# forward peak index == mouth (polygon start)
     if ( size() <= 1 )
     	return result;
-    Point2D axis = Point2D::vector( first_point(), last_point(), true);
+    //Point2D axis = Point2D::vector( first_point(), last_point(), true);
+    Point2D axis = Point2D::vector( point(0), point(-1), true);
     //# backward peak, - --> +
+    long lb = 0, ub = polygon.size() - 1;
+    long mix = (lb + ub) >> 1;  // center index
+    while (lb < ub) {
+    	double proj = Point2D::vector(polygon_point(mix), polygon_point(mix+1)).dot(axis);
+		if (proj < 0)
+			lb = mix + 1;
+		else
+			ub = mix;
+		mix = (lb + ub) >> 1;
+    }
+    long bkix = ub;
+
+    //# find the backward peak by another method, cross product with rotation of axis by 90 degrees
     long lb = 0, ub = polygon.size() - 1;
     long mix = (lb + ub) >> 1;  // center index
     while (lb < ub) {

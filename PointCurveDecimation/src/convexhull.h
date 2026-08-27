@@ -49,18 +49,17 @@ public:
        	}
     }
 
-    const Point2D & operator[](int ix) const {
+    inline const Point2D & operator[](int ix) const {
     	return point(ix);
     }
 
-
-    const Point2D & first_point(void) const {
-        return points[0];
-    }
-
-    const Point2D & last_point(void) const {
-        return points[points.size() - 1];
-    }
+//    const Point2D & first_point(void) const {
+//        return points[0];
+//    }
+//
+//    const Point2D & last_point(void) const {
+//        return points[points.size() - 1];
+//    }
 
     // get the i-th point in polygon
     const Point2D & polygon_point(int ix) const {
@@ -85,6 +84,5 @@ public:
 
     friend std::ostream & operator<<(std::ostream & out, const ConvexHull & me) { return me.printOn(out); }
 };
-
 
 #endif /* CONVEXHULL_H_ */

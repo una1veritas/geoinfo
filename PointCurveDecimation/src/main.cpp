@@ -72,20 +72,19 @@ int main() {
 	cvx.add(pointseq[0]);
 	cvx.add(pointseq[1]);
 	cvx.add(pointseq[2]);
-	cout << "cvx = " << cvx << endl;
-	cout << "cvx first point, last point " << cvx[0] << ",  " << cvx[-1] << endl;
+//	cout << "cvx = " << cvx << endl;
+//	cout << "cvx first point, last point " << cvx[0] << ",  " << cvx[-1] << endl;
 	cvx_dia = cvx[0].distance_to(cvx[-1]);
-	cout << "cvx dia = " << cvx_dia << endl;
+//	cout << "cvx dia = " << cvx_dia << endl;
 	cvx.add(pointseq[3]);
 	cvx.add(pointseq[4]);
-	cout << "cvx = " << cvx << endl;
-	cvx_dia = cvx[0].distance_to(cvx[-1]);
-	cout << "cvx dia = " << cvx_dia << endl;
-
+//	cout << "cvx = " << cvx << endl;
 	cvx.add(pointseq[5]);
-
-	cout << "Convex Hull = " << cvx << std::endl;
+	cvx_dia = cvx[0].distance_to(cvx[-1]);
+	cout << endl << "Convex Hull = " << cvx << std::endl;
 	cout << "Finished." << endl;
+	cout << "cvx = " << cvx << endl;
+	cout << "cvx distance from cvx[0] = " << cvx[0] << " to cvx[-1] = " << cvx[-1] << " : " << cvx_dia << endl << endl;
 
 	ConvexHull::quad_double dists = cvx.peak_distances();
 	cout << "peak distances = " << dists.fw << ", " << dists.rt << ", " << dists.bk << ", " << dists.lt << endl;
