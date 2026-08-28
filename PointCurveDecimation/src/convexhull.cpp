@@ -108,27 +108,38 @@ void ConvexHull::remove_concave(void) {
 
 ConvexHull::quad_double ConvexHull::peak_distances(void) const {
 	quad_double result = {0.0, 0.0, 0.0, 0.0};
-	long fwix = 0;    //# forward peak index == mouth (polygon start)
-    if ( size() <= 1 )
-    	return result;
-    //Point2D axis = Point2D::vector( first_point(), last_point(), true);
-    Point2D axis = Point2D::vector( point(0), point(-1), true);
-    //# backward peak, - --> +
-    long lb = 0, ub = polygon.size() - 1;
-    long mix = (lb + ub) >> 1;  // center index
-    while (lb < ub) {
-    	double proj = Point2D::vector(polygon_point(mix), polygon_point(mix+1)).dot(axis);
-		if (proj < 0)
-			lb = mix + 1;
-		else
-			ub = mix;
-		mix = (lb + ub) >> 1;
-    }
-    long bkix = ub;
+	long lb, ub, mix;
 
-    //# find the backward peak by another method, cross product with rotation of axis by 90 degrees
-    long lb = 0, ub = polygon.size() - 1;
-    long mix = (lb + ub) >> 1;  // center index
+	if ( size() <= 1 )
+    	return result;
+
+    //Point2D axis = Point2D::vector( first_point(), last_point(), true);
+    const Point2D axis = Point2D::vector( point(0), point(-1), true);
+    cout << "axis = " << axis << std::endl << std::endl;
+
+    long fwix = 0;    // mouth (polygon start)
+	// find forward peak index (fwix) by binary search on cross product sign
+	lb = 0; // mouth (polygon start index) as start index
+	ub = polygon.size() - 1; // polygon end index
+
+	mix = (lb + ub) >> 1;  // center index
+	while (lb < ub) {
+    	const Point2D perptoedge = Point2D::vector(polygon_point(mix), polygon_point(mix+1));
+    	double crossprod = perptoedge.cross_norm(axis);
+    	if (crossprod > 0)
+    		lb = mix + 1;
+    	else
+    		ub = mix;
+    	mix = (lb + ub) >> 1;
+	}
+	fwix = ub;
+	cout << "forward peak index = " << fwix << ", point = " << polygon_point(fwix) << std::endl;
+	result.fw = axis.dot(Point2D::vector(point(0), polygon_point(fwix)));
+
+    //# backward peak, - --> +
+    lb = 0;
+    ub = polygon.size() - 1;
+    mix = (lb + ub) >> 1;  // center index
     while (lb < ub) {
     	double proj = Point2D::vector(polygon_point(mix), polygon_point(mix+1)).dot(axis);
 		if (proj < 0)
@@ -169,9 +180,9 @@ ConvexHull::quad_double ConvexHull::peak_distances(void) const {
 	long ltix = ub;
 
     //#print(f'peak indices = {self.polygon[0]}, {self.polygon[rtix]}, {self.polygon[bkix]}, {self.polygon[ltix % len(self.polygon)]}')
-	result.rt = perp3.dot( Point2D::vector(first_point(), polygon_point(rtix)));
-	result.bk = -axis.dot(Point2D::vector(first_point(), polygon_point(bkix)));
-	result.lt = perp9.dot(Point2D::vector(first_point(), polygon_point(ltix)));
+	result.rt = perp3.dot( Point2D::vector(point(0), polygon_point(rtix)));
+	result.bk = -axis.dot(Point2D::vector(point(0), polygon_point(bkix)));
+	result.lt = perp9.dot(Point2D::vector(point(0), polygon_point(ltix)));
 	return result;
 }
 
