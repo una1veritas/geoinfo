@@ -83,9 +83,6 @@ class ConvexHull(object):
             self.polygon_index.appendleft(len(self)-1)
         else:
             # reject point and close convex-hull
-            #print(f"failed on point {pt}")
-            #print(self.polygon_point(1), self.polygon_point(0), pt, rhombus(self.polygon_point(1), self.polygon_point(0), pt))
-            #print(self.polygon_point(-1), self.polygon_point(0), pt, rhombus(self.polygon_point(-1), self.polygon_point(0), pt))
             return False
         
         self.remove_concave()

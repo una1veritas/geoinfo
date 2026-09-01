@@ -75,11 +75,13 @@ def distance(a, b):
 def dot_product(va, vb):
     return va[0] * vb[0] + va[1] * vb[1]
 
+# positive if a to b is counter-clockwise
 def cross_product_norm(va, vb):
     return va[0] * vb[1] - va[1] * vb[0]
 
-def rhombus(a, b, p):
-    return (b[0] - a[0]) * (p[1] - a[1]) - (b[1] - a[1]) * (p[0] - a[0])
+# positive if a -> b -> c is turn left (b -> c to b-> a is counter-clockwise)
+def rhombus(a, b, c):
+    return (c[0] - b[0]) * (a[1] - b[1]) - (c[1] - b[1]) * (a[0] - b[0])
 
 def distance_to_line(a, b, p):
     d_a_p = distance(a,p)

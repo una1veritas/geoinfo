@@ -11,7 +11,7 @@ import fastrdp
 from collections import deque
 from convexhull import ConvexHull
 
-from point2d import rhombus, distance
+from point2d import distance
 from myrdp import rdp_simplification, rdp_simplification_recursive
 from simplification.cutil import simplify_coords
 import statistics
@@ -126,7 +126,7 @@ if __name__ == '__main__':
     elif run_info['input'] == 'file' :
         delta = 50.0
         xy = list()
-        filename = '40-1836_itoshima_xy-metre.csv'
+        filename = '47-936_ishigakishi_xy-metre.csv' #'40-1836_itoshima_xy-metre.csv'
         with open(filename, 'r') as f :
             for l in f:
                 lonlat = [float(e) for e in l.strip().split(',')]
@@ -236,10 +236,10 @@ if __name__ == '__main__':
 
     fig, ax = plt.subplots()
     ax.plot(x, y, 'y.-', lw=2.0, alpha=0.35)
-    ax.plot(drx, dry, 'b.-', lw=1) #, alpha=0.75)
-    plt_title = f'Greedy+CH, delta = {delta}, points = {len(xy)}, simplified = {len(drseq)}'
-    #ax.plot(rdpx, rdpy, 'b.-', lw=1) #, alpha=0.75)
-    #plt_title = f'simplify_coords, delta = {delta}, points = {len(xy)}, simplified = {len(simplified)}'
+    # ax.plot(drx, dry, 'b.-', lw=1) #, alpha=0.75)
+    # plt_title = f'Greedy+CH, delta = {delta}, points = {len(xy)}, simplified = {len(drseq)}'
+    ax.plot(rdpx, rdpy, 'b.-', lw=1) #, alpha=0.75)
+    plt_title = f'simplify_coords, delta = {delta}, points = {len(xy)}, simplified = {len(simplified)}'
     
     if len(polygons) > 0 :
         for polygon in polygons:
