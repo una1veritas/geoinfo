@@ -187,8 +187,8 @@ class ConvexHull(object):
 
         #print(f'peak indices = {self.polygon_index[0]}, {self.polygon_index[rtix]}, {self.polygon_index[bkix]}, {self.polygon_index[ltix % len(self.polygon_index)]}')
         return (0.0, \
-                dot_product(perp3, vec(self[0], self.polygon_point(rtix))), \
-                dot_product( vec_neg(axis), vec(self[0], self.polygon_point(bkix))), \
-                -dot_product(perp9, vec(self[0], self.polygon_point(ltix))), )
+                abs(dot_product(perp3, vec(self[0], self.polygon_point(rtix)))), \
+                abs(dot_product( vec_neg(axis), vec(self[0], self.polygon_point(bkix)))), \
+                abs(-dot_product(perp9, vec(self[0], self.polygon_point(ltix)))), )
 
         
