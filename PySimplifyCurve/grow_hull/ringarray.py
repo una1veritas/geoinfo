@@ -7,14 +7,14 @@ Created on 2026/03/17
 from math import log2, ceil
 
 class ringarray:
-    INITIAL_CAPACITY = 8
+    INITIAL_CAPACITY = 16
     
     def __init__(self, initcapacity = None):
-        if initcapacity is not None :
-            initcapacity = 1 << ceil(log2(int(initcapacity) + 1))
-            self.capacity = max(ringarray.INITIAL_CAPACITY, initcapacity)
-        else:
-            self.capacity = ringarray.INITIAL_CAPACITY
+        try:
+            initcapacity = int(initcapacity)
+        except (ValueError, TypeError):
+            initcapacity = ringarray.INITIAL_CAPACITY
+        self.capacity = 1 << (max(initcapacity, ringarray.INITIAL_CAPACITY) - 1).bit_length()
         self.array = [None] * self.capacity
         self.tail = 0
         self.head = 0

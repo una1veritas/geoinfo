@@ -126,7 +126,7 @@ if __name__ == '__main__':
     elif run_info['input'] == 'file' :
         delta = 50.0
         xy = list()
-        filename = '47-936_ishigakishi_xy-metre.csv' #'40-1836_itoshima_xy-metre.csv'
+        filename = '40-1836_itoshima_xy-metre.csv' #'47-936_ishigakishi_xy-metre.csv'
         with open(filename, 'r') as f :
             for l in f:
                 lonlat = [float(e) for e in l.strip().split(',')]
