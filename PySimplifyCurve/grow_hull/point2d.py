@@ -9,32 +9,33 @@ import math
 treated as vector on the plane. 
 '''
 
-def vec(a, b = None):
+def vec(a, b = None, unit = False):
     if isinstance(a, (tuple, list)) and isinstance(b, (tuple, list)) :
         # from two positions
-        return (b[0] - a[0], b[1] - a[1])
+        dx = b[0] - a[0]
+        dy = b[1] - a[1]
+        if unit :
+            if dx == 0 and dy == 0 :
+                return (0, 0)
+            l = math.sqrt(dx**2 + dy**2)
+            return (dx/l, dy/l)
+        else:
+            return (dx, dy)
     elif isinstance(a, (tuple, list)) and b == None :
-        return a
+        if unit :
+            return (a[0]/norm(a), a[1]/norm(a))
+        else:
+            return a
     elif isinstance(a, (int, float)) and isinstance(b, (int, float)) :
-        # from two components
-        return (a, b)
-    
-def unitvec(a, b = None):
-    if b == None and isinstance(a, (tuple, list)) :
-        norm_a = norm(a)
-        return (a[0]/norm_a, a[1]/norm_a)
-    elif isinstance(a, (tuple, list)) and isinstance(a, (tuple, list)) :
-        v = (b[0] - a[0], b[1] - a[1])
-        norm_v = norm(v)
-        #print(f'v={v}, norm = {norm_v}')
-        return (v[0]/norm_v, v[1]/norm_v)
-    elif isinstance(a, (int, float)) and isinstance(a, (int, float)) :
-        v = (a, b)
-        norm_v = norm(v)
-        #print(f'v={v}', norm = {norm_v})
-        return (v[0]/norm_v, v[1]/norm_v)
+        # from (0, 0) to (a, b)
+        if unit :
+            l = math.sqrt(b**2 + a**2)
+            return (a/l, b/l)
+        else:
+            return (a, b)
     else:
-        raise ValueError(*f'uintvec: illegal parameters {a}, {b}')
+        raise ValueError(f'vec: illegal parameters {a}, {b}')
+    
 
 def perpvec(a, b = None, clockwise = True):
     if isinstance(b, (tuple, list)) :
