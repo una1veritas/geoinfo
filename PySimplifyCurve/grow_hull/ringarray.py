@@ -76,20 +76,10 @@ class ringarray:
             raise ValueError(f'tried pop to empty queue')
 
     def __getitem__(self, index):
-        if index < 0 :
-            index = abs(index) % self.length
-            index = self.length - index
-        else:
-            index %= self.length
+        index %= self.length
         pos = self.head + index
         pos &= (self.capacity - 1)
-        
-        if self.head < self.tail :
-            return self.array[pos]
-            # else:
-            #     raise ValueError(f'index {pos} out of bounds.')
-        else:
-            return self.array[pos]
+        return self.array[pos]
     
     def __iter__(self):
         index = self.head
