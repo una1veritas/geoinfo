@@ -23,7 +23,7 @@ def ternary_search_ring(arr):
         # Small interval fallback: safe linear scan over the active window
         if high - low < 3:
             maxix = low
-            for i in range(low, high + 1):
+            for i in range(low + 1, high + 1):
                 if arr[i] > arr[maxix]:
                     maxix = i
             return maxix  # Returns the raw index (handled by your container)
