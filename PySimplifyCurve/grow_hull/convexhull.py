@@ -54,6 +54,7 @@ class ConvexHull(object):
         if len(self) == 0 :
             self.points.append(pt)
             return True
+        
         # if self.tolerance > 0.0 and distance(self.first_point(), pt) <= self.tolerance :
         #     self.points.append(pt)
         #     return True
@@ -84,7 +85,7 @@ class ConvexHull(object):
             # outside of the left line of the mouth
             self.polygon_index.appendleft(len(self)-1)
         else:
-            # reject point and close convex-hull
+            # inside the corner by pt; reject point and close convex-hull
             return False
         
         self.remove_concave()
@@ -118,57 +119,16 @@ class ConvexHull(object):
         
         axis = vec(self[0], self[-1], unit=True)   #代表線単位ベクトル
         axis9 = perpvec(axis, clockwise=False)
-        print(f'axis = {axis}, axis9 = {axis9}')
+        print(f'axis = ({self[0]}, {self[-1]})')
         
-        # forward peak --
-        proj1 = dot_product(vec(self.polygon_point(-1), self.polygon_point(0), unit=True), axis9)
-        proj2 = dot_product(vec(self.polygon_point(0), self.polygon_point(1), unit=True), axis9)
-        if proj1 == 0 or proj2 == 0 or (proj1 > 0 and proj2 < 0) :
-            fwix = 0
-        else:
-            cnt = 0
-            # ternary search for the forward peak
-            print('ternary search...')
-            print(self.polygon_index)
-            lb, ub = 0, len(self.polygon_index) - 1
-            while lb < ub:
-                t = (ub - lb) // 3
-                mix1 = lb + (ub - lb + 1) // 3
-                mix2 = mix1 + (ub - lb + 2) // 3
-                print(f't = {t}; {lb},{mix1},{mix2},{ub}')
-                proj1 = dot_product(vec(self[0], self.polygon_point(mix1), unit=True), axis)
-                proj2 = dot_product(vec(self[0], self.polygon_point(mix2), unit=True), axis)
-                print(f'mix1 vec = {vec(self[0], self.polygon_point(mix1))}')
-                print(f'mix2 vec = {vec(self[0], self.polygon_point(mix2))}')
-                print(f'lb = {lb}, mix1 = {mix1}, mix2 = {mix2}, ub = {ub}')
-                print(f'proj1 = {proj1}, proj2 = {proj2}')
-                if proj1 < proj2:
-                    lb = mix1 + 1
-                elif proj1 > proj2:
-                    ub = mix2
-                else:
-                    lb = mix1
-                    ub = mix2
-                print(f'lb = {lb}, ub = {ub}')
-                cnt += 1
-                if cnt > 10 :
-                    break
-            fwix = ub  # (fwix)-th of polygon_index
-            print(f'fwix = {fwix}, point ix = {self.polygon_index[fwix]}, {self.polygon_point(fwix)}')
+        # find peaks as indexes on polygon_index deque.
         
-        # print('polygon index array head = ',self.polygon_index.array_head())
-        # backward peak -- 
-        # backard peak exists between the first point and the last point (beak), 
-        # because the beak cannot be the backward peak
-        # determine which side, clockwise or counter-clock wise, of the polygon has backward peak 
-        # by taking dot product with the lines to or from the first point
-
-        # backward peak
-        # the starting point == self.points[0] is possibly not on self.polygon
-        # so we search it as the point where dot product with axis switches to negative to positive
-        # by binary search on polygon cycle in clockwise direction
+        # self[-1] == self.polygon_point(0)
+        fwpolyix = self.polygon_index.ternary_peak_search(evfunc = lambda ix: dot_product(axis,vec(self[-1], self.polygon_point(ix), unit=True)))
+        print(f'polygon_index = {self.polygon_index}, fwpolyix = {fwpolyix}, self[{self.polygon_index[fwpolyix]}] = {self[self.polygon_index[fwpolyix]]}, vec from self[-1] = {vec(self[-1], self.polygon_point(fwpolyix))}')
+        print(f'axis dot prod = {abs(dot_product(axis, vec(self[-1], self.polygon_point(fwpolyix))))}')
         
-        lb, ub = fwix, len(self.polygon_index) - 1
+        lb, ub = fwpolyix, fwpolyix + len(self.polygon_index) - 1
         while lb < ub :
             mix = (lb + ub) >> 1
             # print(f'lb = {lb}, ub = {ub}, mix = {mix}')
@@ -178,8 +138,11 @@ class ConvexHull(object):
             else:
                 ub = mix
         
-        bkix = ub   # (bkix)-th of polygon_index
-        #print(f'bkix = {bkix},  point ix = {self.polygon_index[bkix]}, {self.polygon_point(bkix)}')
+        bkpolyix = ub % len(self.polygon_index)   # (bkpolyix)-th of polygon_index
+        print(f'bkpolyix = {bkpolyix},  point ix = {self.polygon_index[bkpolyix]}, {self.polygon_point(bkpolyix)}')
+
+        tix = self.polygon_index.binary_zero_search(fwpolyix, fwpolyix + len(self.polygon_index) - 1, evfunc = lambda ix: dot_product(axis, vec(self.polygon_point(ix), self.polygon_point(ix+1))))
+        print(f'tix = {tix}')
         
         # clockwise
         perp3 = perpvec(axis)
@@ -188,8 +151,10 @@ class ConvexHull(object):
         # print(f'perp3 = {perp3}, perp9 = {perp9}')
         
         # right peak
-        lb, ub = fwix, bkix
-        # print(f'rtix lb = {lb}, ub = {ub}')
+        lb, ub = fwpolyix, bkpolyix
+        if lb > ub :
+            ub += len(self.polygon_index)
+        print(f'rtix lb = {lb}, ub = {ub}')
         while lb < ub :
             mix = (lb + ub) >> 1
             proj = dot_product(vec(self.polygon_point(mix), self.polygon_point(mix+1)), perp3)
@@ -201,10 +166,12 @@ class ConvexHull(object):
                 ub = mix
         
         rtix = ub
-        #print(f'rtix = {rtix},  point ix = {self.polygon_index[rtix]}, {self.polygon_point(rtix)}')
+        print(f'rtix = {rtix},  point ix = {self.polygon_index[rtix]}, {self.polygon_point(rtix)}')
         
         # left peak
-        lb, ub = bkix, len(self.polygon_index) # last index + 1 -> 0
+        lb, ub = bkpolyix, len(self.polygon_index) # last index + 1 -> 0
+        if lb > ub :
+            ub += len(self.polygon_index)
         while lb < ub :
             mix = (lb + ub) >> 1
             proj = dot_product(vec(self.polygon_point(mix), self.polygon_point(mix+1)), perp9)
@@ -214,12 +181,12 @@ class ConvexHull(object):
                 ub = mix
         
         ltix = ub
-        #print(f'ltix = {ltix}, point ix = {self.polygon_index[ltix % len(self.polygon_index)]}, {self.polygon_point(ltix)}')
+        print(f'ltix = {ltix}, point ix = {self.polygon_index[ltix % len(self.polygon_index)]}, {self.polygon_point(ltix)}')
 
-        #print(f'peak indices = {self.polygon_index[0]}, {self.polygon_index[rtix]}, {self.polygon_index[bkix]}, {self.polygon_index[ltix % len(self.polygon_index)]}')
-        return (0.0, \
+        print(f'peaks = {self.polygon_index[fwpolyix]}, {self.polygon_index[rtix]}, {self.polygon_index[bkpolyix]}, {self.polygon_index[ltix]}')
+        return (abs(dot_product(axis, vec(self[-1], self.polygon_point(fwpolyix)))), \
                 abs(dot_product(perp3, vec(self[0], self.polygon_point(rtix)))), \
-                abs(dot_product( vec_neg(axis), vec(self[0], self.polygon_point(bkix)))), \
+                abs(dot_product( vec_neg(axis), vec(self[0], self.polygon_point(bkpolyix)))), \
                 abs(-dot_product(perp9, vec(self[0], self.polygon_point(ltix)))), )
 
         
