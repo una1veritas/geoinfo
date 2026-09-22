@@ -183,27 +183,28 @@ class ConvexHull(object):
 
         return low % n
 
-    def binary_search_zero_upper_bound(self, lb, ub, paraxis):
-        if self.length == 0 :
-            return None
-        if lb >= self.length or ub < lb :
-            lb %= self.length
-            ub %= self.length
-            if ub < lb :
-                ub += self.length
-        #print(f'binary_search_upper_bound: lb = {lb}, ub = {ub}')
+    def search_upper_bound(self, lb, ub, paraxis):        
+        n = len(self.polygon_index)
+        if lb >= n :
+            lb %= n
+        if lb > ub :
+            ub = ub % n + n
+
+        self_points = self.points
+        self_polygon_index = self.polygon_index
         
+        #print(f'search_upper_bound: lb = {lb}, ub = {ub}')
         while lb < ub :
             mix = lb + ((ub - lb) >> 1)
             #print(f'lb = {lb}, ub = {ub}, mix = {mix}, evfunc = {evfunc(mix)}')
-            if evfunc(mix) < value :
+            if dot_product(paraxis, vec(self_points[self_polygon_index[mix]], self_points[self_polygon_index[mix+1]])) < 0 :
                 lb = mix + 1
             else:
                 # evfunc(mix) >= value
                 ub = mix
         
         #print(f'ub = {ub % self.length}')
-        return ub % self.length
+        return ub % n
 
     
     def peak_distances(self):
@@ -215,6 +216,7 @@ class ConvexHull(object):
         axis = vec(axis_first, axis_last, unit=True)   #代表線単位ベクトル
         axis3 = perpvec(axis, clockwise=True)
         axis9 = vec_neg(axis3)
+        n = len(self.polygon_index)
         # print(f'axis = {axis}, axis3 = {axis3}')
         self_points = self.points
         self_polygon_index = self.polygon_index
@@ -237,7 +239,7 @@ class ConvexHull(object):
         # backward peak
         # print('back')        
         # find the first point from which edge projection on axis is positive or equals zero. 
-        # lb, ub = fwpolyix, fwpolyix + len(self.polygon_index) - 1
+        # lb, ub = fwpolyix, fwpolyix + n - 1
         # while lb < ub :
         #     mix = lb + ((ub - lb) >> 1)
         #     #print(f'lb = {lb}, ub = {ub}, mix = {mix}, evfunc = {evfunc(mix)}')
@@ -246,34 +248,36 @@ class ConvexHull(object):
         #     else:
         #         # evfunc(mix) >= value
         #         ub = mix        
-        # bkpolyix = ub
-        #print(f'ub = {ub % self.length}')
-        bkpolyix = self.polygon_index.binary_search_upper_bound(fwpolyix, fwpolyix + len(self.polygon_index) - 1, \
-                                                                value = 0, \
-                                                                evfunc = lambda ix: dot_product(axis, vec(self.polygon_point(ix), self.polygon_point(ix+1))))
-        # bkpolyix = self.binary_search_upper_bound(fwpolyix, fwpolyix + len(self.polygon_index) - 1, axis)
+        # bkpolyix = ub % n
+        
+        bkpolyix = self.search_upper_bound(fwpolyix, fwpolyix + len(self.polygon_index) - 1, axis)
+        
         # print(f'bkpolyix = {bkpolyix} (point {self.polygon_index[bkpolyix]}, {self.polygon_point(bkpolyix)} )')
         
         # right peak
         # print('right')
-        rtpolyix = self.polygon_index.binary_search_upper_bound(fwpolyix, bkpolyix, \
-                                                                value = 0, \
-                                                                evfunc = lambda ix: dot_product(axis9, vec(self.polygon_point(ix), self.polygon_point(ix+1))))
+        
+        rtpolyix = self.search_upper_bound(fwpolyix, bkpolyix, axis9)
+        
         # lb, ub = fwpolyix, bkpolyix
         # while lb < ub :
         #     mix = lb + ((ub - lb) >> 1)
         #     #print(f'lb = {lb}, ub = {ub}, mix = {mix}, evfunc = {evfunc(mix)}')
-        #     if -dot_product(axis3, local_vec(self_points[self_polygon_index[mix]], self_points[self_polygon_index[mix+1]])) < 0 :
+        #     if dot_product(axis9, local_vec(self_points[self_polygon_index[mix]], self_points[self_polygon_index[mix+1]])) < 0 :
         #         lb = mix + 1
         #     else:
         #         # evfunc(mix) >= value
-        #         ub = mix        
-        # rtpolyix = ub
+        #         ub = mix
+        # rtpolyix = ub % n
         # print(f'rtpolyix = {rtpolyix} (point {self.polygon_index[rtpolyix]}, {self.polygon_point(rtpolyix)} )')
         
         # left peak
         # print('left')
         # lb, ub = bkpolyix, fwpolyix
+        # if lb >= n :
+        #     lb %= n
+        # if lb > ub :
+        #     ub = ub % n + n
         # while lb < ub :
         #     mix = lb + ((ub - lb) >> 1)
         #     #print(f'lb = {lb}, ub = {ub}, mix = {mix}, evfunc = {evfunc(mix)}')
@@ -281,17 +285,17 @@ class ConvexHull(object):
         #         lb = mix + 1
         #     else:
         #         # evfunc(mix) >= value
-        #         ub = mix        
-        # ltpolyix = ub
-        ltpolyix = self.polygon_index.binary_search_upper_bound(bkpolyix, fwpolyix, \
-                                                                value = 0, \
-                                                                evfunc = lambda ix: dot_product(axis3, vec(self.polygon_point(ix), self.polygon_point(ix+1))))
+        #         ub = mix
+        # ltpolyix = ub % n
+        
+        ltpolyix = self.search_upper_bound(bkpolyix, fwpolyix, axis3)
+
         #print(f'ltpolyix = {ltpolyix} (point {self.polygon_index[ltpolyix % len(self.polygon_index)]}, {self.polygon_point(ltpolyix)} )')
 
         #print(f'peaks = {self.polygon_index[fwpolyix]}, {self.polygon_index[rtpolyix]}, {self.polygon_index[bkpolyix]}, {self.polygon_index[ltpolyix]}')
-        return (abs(dot_product(axis, local_vec(axis_last, self.polygon_point(fwpolyix)))), \
-                abs(dot_product(axis3, local_vec(axis_first, self.polygon_point(rtpolyix)))), \
-                abs(dot_product(vec_neg(axis), local_vec(axis_first, self.polygon_point(bkpolyix)))), \
-                abs(dot_product(axis3, local_vec(axis_first, self.polygon_point(ltpolyix)))), )
+        return (abs(dot_product(axis, vec(axis_last, self.polygon_point(fwpolyix)))), \
+                abs(dot_product(axis3, vec(axis_first, self.polygon_point(rtpolyix)))), \
+                abs(dot_product(vec_neg(axis), vec(axis_first, self.polygon_point(bkpolyix)))), \
+                abs(dot_product(axis3, vec(axis_first, self.polygon_point(ltpolyix)))), )
 
         

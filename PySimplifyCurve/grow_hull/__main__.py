@@ -97,7 +97,7 @@ def Grow_Hull(xy : list, delta : float, record_polygons = False, verbose = False
 
 if __name__ == '__main__':
     
-    run_info = { 'input': 'specified', 'plot': True, 'annotate': False, 'runs': 1}
+    run_info = { 'input': 'file', 'plot': True, 'annotate': False, 'runs': 1}
     
     if run_info['input'] == 'specified' :
         delta = 1.0
@@ -148,7 +148,7 @@ if __name__ == '__main__':
     elif run_info['input'] == 'random' :
         # Set up the number of random points
         delta = 50
-        num_points = 50000
+        num_points = 1000000
         random.seed(20260726)
         xy = list()
         for i in range(0, num_points):
@@ -222,14 +222,14 @@ if __name__ == '__main__':
     
     x, y = [ x for x, y in xy], [ y for x, y in xy]
     drx, dry = [xy[ix][0] for ix in drseq], [xy[ix][1] for ix in drseq]
-    # rdpx, rdpy = [ x for x, y in simplified], [ y for x, y in simplified]
+    rdpx, rdpy = [ x for x, y in simplified], [ y for x, y in simplified]
 
     fig, ax = plt.subplots()
     ax.plot(x, y, 'r.-', lw=2.0, alpha=0.35)
     ax.plot(drx, dry, 'b.-', lw=1) #, alpha=0.75)
-    plt_title = f'Greedy+CH, delta = {delta}, points = {len(xy)}, simplified = {len(drseq)}'
-    # ax.plot(rdpx, rdpy, 'b.-', lw=1) #, alpha=0.75)
-    # plt_title = f'simplify_coords, delta = {delta}, points = {len(xy)}, simplified = {len(simplified)}'
+    plt_title = f'Grow Hull, epsilon = {delta}, {len(xy)} points simplified to {len(drseq)} points'
+    #ax.plot(rdpx, rdpy, 'b.-', lw=1) #, alpha=0.75)
+    #plt_title = f'RDP (simplify_coords), epsilon = {delta}, {len(xy)} points simplified to {len(simplified)} points'
     
     if len(polygons) > 0 :
         for polygon in polygons:
@@ -246,6 +246,8 @@ if __name__ == '__main__':
                 xytext=(5, 2), # Distance from the point to the text (offset)
                 ha='center'     # Horizontal alignment of the text
             )
+    fig = plt.gcf()
+    fig.set_size_inches(8, 8, forward=True) 
     plt.legend(['Input points', 'simplified path', 'polygon_index path'],loc='best')
     plt.title(plt_title)
     ax.set_aspect('equal')
