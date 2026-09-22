@@ -97,20 +97,20 @@ def Grow_Hull(xy : list, delta : float, record_polygons = False, verbose = False
 
 if __name__ == '__main__':
     
-    run_info = { 'input': 'random', 'plot': False, 'annotate': False, 'runs': 1}
+    run_info = { 'input': 'specified', 'plot': True, 'annotate': False, 'runs': 1}
     
     if run_info['input'] == 'specified' :
         delta = 1.0
         # xy = [(0.0, 0.0), (0.5, 0.0), (0.4, 1.2), (0.6, 1.0), (0.7, 0.5), (0.65, 1.1) \
         # ]
-        # xy = [ (0,0), (0.1, -0.1), (-0.2, 0.1), (-0.1, -0.1), (-0.1, -0.2), (0.25, 0.5), \
-        #       (0.8, 0.25), (1.0, 0.75), (1.4, 0.7), (1.5, 1.0), \
-        #       (1.5, 2.75), (2, 2.75), (2.5, 3.2), \
-        #       (3, 3.5), (3.2, 2), (3, 0.5),  \
-        #       (3.25, 1.0), (3.25, -0.25), (3.5, 0.5), \
-        #       (4, 1.25), (3.5, 1.5), (3, 1.25), (2, 1), (1.5, -0.0) \
-        # ]
-        xy = [ (0.0, 0.0), (0.25, 0.75), (0.25, -0.5), (0, -1.0), (-0.25, -0.5)]
+        xy = [ (0,0), (0.1, -0.1), (-0.2, 0.1), (-0.1, -0.1), (-0.1, -0.2), (0.25, 0.5), \
+              (0.8, 0.25), (1.0, 0.75), (1.4, 0.7), (1.5, 1.0), \
+              (1.5, 2.75), (2, 2.75), (2.5, 3.2), \
+              (3, 3.5), (3.2, 2), (3, 0.5),  \
+              (3.25, 1.0), (3.25, -0.25), (3.5, 0.5), \
+              (4, 1.25), (3.5, 1.5), (3, 1.25), (2, 1), (1.5, -0.0) \
+        ]
+        # xy = [ (0.0, 0.0), (0.25, 0.75), (0.25, -0.5), (0, -1.0), (-0.25, -0.5)]
 
         # xy = [
         #     (1.0, 5.0),   # [P0] START ANCHOR (Center of epsilon circle)
@@ -125,9 +125,6 @@ if __name__ == '__main__':
         #     (13.0, 6.5)   # [P9] END
         # ]
 
-        delta = 50.0
-        xy = [(2350.2985962134862, 7339.665950622174), (2354.9986330515962, 7332.633508395293), (2364.4513634485625, 7306.101929872164), (2373.268798564042, 7279.145573831715), (2373.75303331286, 7277.501034047238), (2374.127624418002, 7275.831430235097), (2374.4555097926927, 7273.724116865384), (2374.713653217295, 7271.535790202184), (2376.0221407820545, 7212.0333223956195), (2375.9556324546015, 7207.985497224532), (2375.800208614555, 7204.11241009253), (2372.7144108407115, 7174.934807976959), (2372.5258201152947, 7173.572790564528), (2369.7644555743796, 7155.877560548451), (2369.270337966272, 7153.923857479379), (2368.7376742699144, 7151.940320028185), (2366.511931495072, 7144.159660671146), (2361.9269319783098, 7132.9500539654055), (2359.3226035456223, 7127.4197372222425), (2349.5250689850245, 7106.866880579354), (2341.1534409476512, 7318.938495575385), (2341.1423940083814, 7320.096677078148), (2341.3226429128595, 7321.110867802426), ]
-        
         # with open('xy.csv', 'w') as f :
         #     for x, y in xy:
         #         f.write(f'{x},{y}\n')
@@ -172,7 +169,7 @@ if __name__ == '__main__':
     for _ in range(run_info['runs']):
         swatch = time.perf_counter()
         
-        drseq, polygons = Grow_Hull(xy, delta, verbose = False, record_polygons = False) 
+        drseq, polygons = Grow_Hull(xy, delta, verbose = False, record_polygons = True) 
         swatch = time.perf_counter() - swatch
         exec_times['Grow_Hull'].append(swatch)
     
@@ -199,20 +196,20 @@ if __name__ == '__main__':
     # mrdpx, mrdpy = [xy[i][0] for i in rdpseq], [xy[i][1] for i in rdpseq]
     # print()
     
-    # print('simplification.cutil:')
-    # exec_times['simplification.cutil'] = list()
-    # for _ in range(run_info['runs']):
-    #     swatch = time.perf_counter()
-    #
-    #     simplified = simplify_coords(xy, delta)
-    #     swatch = time.perf_counter() - swatch
-    #
-    #     exec_times['simplification.cutil'].append(swatch)
-    #
-    # print(f'length of simplified seq = {len(simplified)}, ' \
-    #       f'avr. execution time = {statistics.mean(exec_times["simplification.cutil"])} secs., dev = {statistics.pstdev(exec_times["simplification.cutil"])}')
-    # # print(simplified[:20])
-    # print()
+    print('simplification.cutil:')
+    exec_times['simplification.cutil'] = list()
+    for _ in range(run_info['runs']):
+        swatch = time.perf_counter()
+    
+        simplified = simplify_coords(xy, delta)
+        swatch = time.perf_counter() - swatch
+    
+        exec_times['simplification.cutil'].append(swatch)
+    
+    print(f'length of simplified seq = {len(simplified)}, ' \
+          f'avr. execution time = {statistics.mean(exec_times["simplification.cutil"])} secs., dev = {statistics.pstdev(exec_times["simplification.cutil"])}')
+    # print(simplified[:20])
+    print()
     
     if not run_info['plot'] :
         exit(0)
