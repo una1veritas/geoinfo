@@ -54,7 +54,7 @@ def Grow_Hull(xy : list, delta : float, record_polygons = False, verbose = False
         
         if cvx.add(xy[ix]) :
             peak_dists = cvx.peak_distances()
-            if verbose : print(f'adding {xy[ix]} to cvx, peak distances = {peak_dists}')
+            if verbose : print(f'adding {xy[ix]} to vcx {len(cvx)}, peak distances = {peak_dists}')
             if max(peak_dists) > delta :
                 if verbose : print(f'adding {xy[ix]} caused over size: \n')
                 # cancel the last addition
@@ -97,28 +97,37 @@ def Grow_Hull(xy : list, delta : float, record_polygons = False, verbose = False
 
 if __name__ == '__main__':
     
-    run_info = { 'input': 'specified', 'plot': True, 'annotate': True, 'runs': 1}
+    run_info = { 'input': 'random', 'plot': False, 'annotate': False, 'runs': 1}
     
     if run_info['input'] == 'specified' :
         delta = 1.0
-        xy = [(0.0, 0.0), (0.5, 0.0), (0.4, 1.2), (0.6, 1.0), (0.7, 0.5), (0.65, 1.1) \
-        ]
+        # xy = [(0.0, 0.0), (0.5, 0.0), (0.4, 1.2), (0.6, 1.0), (0.7, 0.5), (0.65, 1.1) \
+        # ]
         # xy = [ (0,0), (0.1, -0.1), (-0.2, 0.1), (-0.1, -0.1), (-0.1, -0.2), (0.25, 0.5), \
         #       (0.8, 0.25), (1.0, 0.75), (1.4, 0.7), (1.5, 1.0), \
         #       (1.5, 2.75), (2, 2.75), (2.5, 3.2), \
         #       (3, 3.5), (3.2, 2), (3, 0.5),  \
         #       (3.25, 1.0), (3.25, -0.25), (3.5, 0.5), \
-        #       # (4, 1.25), (3.5, 1.5), (3, 1.25), (2, 1), (1.5, -0.0) \
+        #       (4, 1.25), (3.5, 1.5), (3, 1.25), (2, 1), (1.5, -0.0) \
         # ]
-        # xy = [ (0.0, 0.0), (0.3, 0.4), (0.5, -0.3), (-0.1, -0.4), (-0.3, -0.1), (-0.1, 0.2), \
-        #       (-0.5, 0.3), (-0.1, 0.4), (0.0, 0.8), (0.2, 0.6), (0.5, 1.1), \
-        #       (0.1, 1.3), (0.4, 1.5), (0.8, 1.3), (1.0, 1.3), (1.2, 0.9) 
-        #       ]
+        xy = [ (0.0, 0.0), (0.25, 0.75), (0.25, -0.5), (0, -1.0), (-0.25, -0.5)]
+
+        # xy = [
+        #     (1.0, 5.0),   # [P0] START ANCHOR (Center of epsilon circle)
+        #     (1.3, 5.4),   # Dist = 0.50 < 1.0 (Inside circle: direction should be IGNORED)
+        #     (0.8, 4.6),   # Dist = 0.45 < 1.0 (Inside circle: direction flips back, IGNORED)
+        #     (1.4, 4.7),   # Dist = 0.50 < 1.0 (Inside circle: IGNORED)
+        #     (2.5, 5.2),   # [P4] Dist = 1.51 > 1.0 (EXITS CIRCLE: Hull/Axis initializes here!)
+        #     (4.5, 5.5),   # Dev < 1.0 from baseline
+        #     (6.5, 5.8),   # Dev < 1.0 from baseline
+        #     (8.5, 6.0),   # Dev < 1.0 from baseline
+        #     (10.5, 6.2),  # Dev < 1.0 from baseline
+        #     (13.0, 6.5)   # [P9] END
+        # ]
+
+        delta = 50.0
+        xy = [(2350.2985962134862, 7339.665950622174), (2354.9986330515962, 7332.633508395293), (2364.4513634485625, 7306.101929872164), (2373.268798564042, 7279.145573831715), (2373.75303331286, 7277.501034047238), (2374.127624418002, 7275.831430235097), (2374.4555097926927, 7273.724116865384), (2374.713653217295, 7271.535790202184), (2376.0221407820545, 7212.0333223956195), (2375.9556324546015, 7207.985497224532), (2375.800208614555, 7204.11241009253), (2372.7144108407115, 7174.934807976959), (2372.5258201152947, 7173.572790564528), (2369.7644555743796, 7155.877560548451), (2369.270337966272, 7153.923857479379), (2368.7376742699144, 7151.940320028185), (2366.511931495072, 7144.159660671146), (2361.9269319783098, 7132.9500539654055), (2359.3226035456223, 7127.4197372222425), (2349.5250689850245, 7106.866880579354), (2341.1534409476512, 7318.938495575385), (2341.1423940083814, 7320.096677078148), (2341.3226429128595, 7321.110867802426), ]
         
-
-        #delta = 50.0
-        #xy = [(-2252.08, -9008.75), (-2274.34, -9033.79), (-2293.84, -9076.09), (-2325.88, -9150.36), (-2337.55, -9172.08), (-2357.59, -9189.33), (-2386.54, -9201.0), (-2409.93, -9206.57), (-2436.08, -9195.96), (-2471.71, -9187.05), (-2500.66, -9192.62), (-2531.44, -9198.07), (-2544.63, -9200.4), (-2570.22, -9207.08), (-2579.7, -9222.64), (-2583.03, -9236.56), (-2578.86, -9264.66), (-2585.0, -9280.8), (-2598.36, -9300.82), (-2599.78, -9305.41), (-2605.59, -9324.21), (-2605.06, -9353.69), (-2611.47, -9389.58), (-2615.37, -9463.0), (-2630.7, -9547.87), (-2658.27, -9633.27), (-2668.4, -9657.94), (-2672.2, -9667.22), (-2728.45, -9727.87), (-2775.48, -9763.74), (-2856.78, -9811.01), (-2861.35, -9813.71), (-2915.22, -9845.5), (-2957.55, -9866.1), (-2969.04, -9868.65), (-3008.47, -9877.48), (-3020.05, -9877.1), (-3076.95, -9875.24), (-3162.08, -9885.78), (-3232.47, -9906.06), (-3340.44, -9939.42), (-3390.0, -9945.54), (-3450.92, -9976.91), (-3479.32, -9978.56), (-3517.15, -9975.78), (-3580.59, -9965.22), (-3603.03, -9963.42), (-3608.42, -9962.99), (-3636.03, -9978.51), (-3651.84, -9987.4), (-3706.66, -10011.04), (-3738.81, -10019.24), (-3761.52, -10021.93), (-3773.34, -10022.84), (-3802.43, -10026.17), (-3830.3, -10025.86), (-3845.45, -10023.11), (-3868.78, -10016.41), (-3891.28, -10006.6), (-3924.4, -9978.49), (-3956.77, -9960.59), (-3979.67, -9947.65), (-4003.16, -9933.84), (-4030.62, -9922.69), (-4062.04, -9920.03), (-4084.75, -9924.79), (-4113.8, -9929.03), (-4139.85, -9923.8), (-4169.33, -9894.86), (-4180.74, -9891.8), (-4221.39, -9906.24), (-4265.91, -9930.71), (-4287.61, -9941.82), (-4340.47, -9948.48), (-4366.62, -9947.36), (-4383.32, -9932.32), (-4403.35, -9914.5), (-4410.63, -9913.55), (-4416.16, -9912.83), (-4430.34, -9922.01), (-4448.17, -9948.16), (-4457.57, -9957.55), (-4458.73, -9958.72), (-4469.86, -9960.93), (-4488.25, -9960.37), (-4491.6, -9959.2), (-4510.5, -9952.56), (-4519.1, -9950.07), (-4523.85, -9948.68), (-4550.55, -9948.66), (-4575.6, -9966.46), (-4588.26, -9979.49), (-4594.54, -9985.92), (-4601.23, -9988.14), (-4635.72, -9988.12), (-4662.71, -10005.64), (-4687.76, -10013.98), (-4729.52, -10028.99), (-4769.58, -10033.44), (-4797.98, -10026.18), (-4819.12, -10012.25)]
-
         # with open('xy.csv', 'w') as f :
         #     for x, y in xy:
         #         f.write(f'{x},{y}\n')
@@ -135,14 +144,14 @@ if __name__ == '__main__':
         # extract a part
         print(f'points in the input {filename} provided: {len(xy)}\n')
         
-        #xy = xy[1727:1828]
+        # xy = xy[20300:20319+24]
         #xy = [(round(e[0],2), round(e[1],2)) for e in xy]
         #print(xy)
     
     elif run_info['input'] == 'random' :
         # Set up the number of random points
         delta = 50
-        num_points = 100000
+        num_points = 50000
         random.seed(20260726)
         xy = list()
         for i in range(0, num_points):
@@ -163,13 +172,12 @@ if __name__ == '__main__':
     for _ in range(run_info['runs']):
         swatch = time.perf_counter()
         
-        drseq, polygons = Grow_Hull(xy, delta, verbose = True, record_polygons = True) 
+        drseq, polygons = Grow_Hull(xy, delta, verbose = False, record_polygons = False) 
         swatch = time.perf_counter() - swatch
-        
         exec_times['Grow_Hull'].append(swatch)
     
-    print(f'length of simplified seq = {len(drseq)}, ' \
-          f'avr. execution time = {statistics.mean(exec_times['Grow_Hull'])} secs., dev = {statistics.pstdev(exec_times['Grow_Hull'])}')
+    print(f'length of simplified seq = {len(drseq)}, ', end='')
+    print(f'avr. execution time = {statistics.mean(exec_times["Grow_Hull"])} secs., dev = {statistics.pstdev(exec_times["Grow_Hull"])}')
     if len(drseq) < 200 :
         print(f'{drseq}, {polygons}')
     else:
@@ -191,22 +199,6 @@ if __name__ == '__main__':
     # mrdpx, mrdpy = [xy[i][0] for i in rdpseq], [xy[i][1] for i in rdpseq]
     # print()
     
-    # npxy = np.array(xy)
-    # print('rdp module:')
-    # exectimes.clear()
-    # for _ in range(runs):
-    #     swatch = time.perf_counter()
-    #
-    #     mask = rdp.rdp(npxy, epsilon=delta, return_mask=True)
-    #     swatch = time.perf_counter() - swatch
-    #
-    #     exectimes.append(swatch)
-    #
-    # rdpseq = [i for i in range(len(mask)) if mask[i]]
-    # print(f'length of simplified seq = {len(rdpseq)}, ' \
-    #       f'avr. execution time = {statistics.mean(exectimes)} secs., dev = {statistics.pstdev(exectimes)}')
-    # print()
-    
     # print('simplification.cutil:')
     # exec_times['simplification.cutil'] = list()
     # for _ in range(run_info['runs']):
@@ -218,7 +210,7 @@ if __name__ == '__main__':
     #     exec_times['simplification.cutil'].append(swatch)
     #
     # print(f'length of simplified seq = {len(simplified)}, ' \
-    #       f'avr. execution time = {statistics.mean(exec_times['simplification.cutil'])} secs., dev = {statistics.pstdev(exec_times['simplification.cutil'])}')
+    #       f'avr. execution time = {statistics.mean(exec_times["simplification.cutil"])} secs., dev = {statistics.pstdev(exec_times["simplification.cutil"])}')
     # # print(simplified[:20])
     # print()
     

@@ -41,7 +41,8 @@ class ConvexHull(object):
     def polygon_point(self, index):
         # to allow negative index, we use modulo len of polygon_index
         # python negative value -x modulo len equals len - x
-        return self.points[self.polygon_index[index % len(self.polygon_index)]]
+        # return self.points[self.polygon_index[index % len(self.polygon_index)]]
+        return self.points[self.polygon_index[index]]
     
     def polygon_points(self):
         if len(self.polygon_index) == 0 :
@@ -49,15 +50,16 @@ class ConvexHull(object):
         return [self.polygon_point(i) for i in range(len(self.polygon_index) + 1)]
     
     # test and add pt to points
-    def add(self, pt):
+    def add(self, pt, supress=False):
         #print(pt)
         if len(self) == 0 :
             self.points.append(pt)
             return True
         
-        # if self.tolerance > 0.0 and distance(self.first_point(), pt) <= self.tolerance :
-        #     self.points.append(pt)
-        #     return True
+        if supress and self.tolerance > 0.0 and distance(self.first_point(), pt) <= self.tolerance :
+            self.points.append(pt)
+            return True
+        
         if len(self.polygon_index) == 0 :
             self.points.append(pt)
             self.polygon_index.append(0)
@@ -112,81 +114,161 @@ class ConvexHull(object):
                 break
         self.polygon_index.appendleft(beak_ix)
         #print(self.polygon_index)
+
+    def ternary_search_max(self, axis_first, axis_last):        
+        n = len(self.polygon_index)
+        if n == 0 :
+            return None
+        elif n == 1:
+            return 0
         
+        local_vec = vec
+        axis = local_vec(axis_first, axis_last, unit=True)
+        self_points = self.points
+        self_polygon_index = self.polygon_index
+        low = 0
+        high = n - 1
+        # --- 最初に1回だけ：山がリングの裏側（中央が谷）にあるかチェックして正常化 ---
+        # 3個以下のときは以下の処理をスキップ
+        if high - low > 2:
+            m1 = low + (high - low) // 3
+            m2 = low + ((high - low) << 1) // 3
+            if dot_product(axis, local_vec(axis_last, self_points[self_polygon_index[low]])) >= dot_product(axis, vec(axis_last, self_points[self_polygon_index[m1]])) \
+            and dot_product(axis, local_vec(axis_last, self_points[self_polygon_index[m2]])) <= dot_product(axis, vec(axis_last, self_points[self_polygon_index[high]])) :
+                # 山をおもて側に引きずり出す（最初の一発だけ有効）
+                low = m2 + 1
+                high = m1 + n - 1
+
+        while high - low > 2:
+            m1 = low + (high - low) // 3
+            m2 = low + ((high - low)<<1) // 3
+    
+            # v_low = forward_projection(low) # arr[low]
+            v_m1 = dot_product(axis, local_vec(axis_last, self_points[self_polygon_index[m1]]))
+            v_m2 = dot_product(axis, local_vec(axis_last, self_points[self_polygon_index[m2]])) # arr[m2]
+            # v_high = forward_projection(high) # arr[high]
+
+            # print(f'ternary search: {high-low}, low={low}, m1={m1}, m2={m2}, high={high}, v_low={v_low}, {v_m1}, {v_m2}, v_high={v_high}')
+            
+            # 2. 通常の三分探索（標準ロジック）
+            if v_m1 < v_m2:
+                low = m1 + 1
+                # print('case 3')
+            elif v_m1 > v_m2:
+                high = m2 - 1
+                # print('case 4')      
+
+            # 3. 平坦な山頂（プラトー）
+            else:
+                # 通常の平坦な山頂：両側を狭める
+                low = m1 + 1
+                high = m2 - 1
+                # print('case 7')
+    
+            # 探索範囲は絞られる一方なので low, high は最大 2n 程度、
+            # したがってわざわざ % を取って小さく維持する必要はない
+        # print(f'low = {low}, low % n = {low % n}')
+        # print(f'high - low = {high - low}')
+        # low <= high が完全に維持されているため、引き算も range も100%安全！
+        if high > low :
+            # print(f'ternary search: brute force search between: low={low}, high={high}')
+            maxix = low
+            maxvec = local_vec(axis_last, self_points[self_polygon_index[maxix]])
+            for i in range(low + 1, high + 1):
+                # print(f'ternary search: {self[i]}:{evfunc(i)} > {self[maxix]}:{evfunc(maxix)}')
+                if dot_product(axis, local_vec(axis_last, self_points[self_polygon_index[i]])) > dot_product(axis, maxvec):
+                    maxix = i
+                    maxvec = local_vec(axis_last, self_points[self_polygon_index[maxix]])
+            return maxix % n
+
+        return low % n
+
+    
     def peak_distances(self):
         if len(self) <= 2 or len(self.polygon_index) <= 2 :
             return (0.0, 0.0, 0.0, 0.0)
         
-        axis = vec(self[0], self[-1], unit=True)   #代表線単位ベクトル
-        axis9 = perpvec(axis, clockwise=False)
-        print(f'axis = ({self[0]}, {self[-1]})')
+        axis_first = self.points[0]
+        axis_last = self.points[-1]
+        axis = vec(axis_first, axis_last, unit=True)   #代表線単位ベクトル
+        axis3 = perpvec(axis, clockwise=True)
+        # print(f'axis = {axis}, axis3 = {axis3}')
+        self_points = self.points
+        self_polygon_index = self.polygon_index
+        local_vec = vec
         
         # find peaks as indexes on polygon_index deque.
-        
+        # print(f'search peaks in [', end='')
+        # for i in range(len(self.polygon_index)):
+        #     print(f'{self.polygon_point(i)}', end=', ')
+        # print(']')
         # self[-1] == self.polygon_point(0)
-        fwpolyix = self.polygon_index.ternary_peak_search(evfunc = lambda ix: dot_product(axis,vec(self[-1], self.polygon_point(ix), unit=True)))
-        print(f'polygon_index = {self.polygon_index}, fwpolyix = {fwpolyix}, self[{self.polygon_index[fwpolyix]}] = {self[self.polygon_index[fwpolyix]]}, vec from self[-1] = {vec(self[-1], self.polygon_point(fwpolyix))}')
-        print(f'axis dot prod = {abs(dot_product(axis, vec(self[-1], self.polygon_point(fwpolyix))))}')
+
+        #forward peak
+        # print('forward')
+        # fwpolyix = self.polygon_index.ternary_search_max(evfunc = lambda ix: dot_product(axis,vec(lastpt, self.polygon_point(ix))))
+        fwpolyix = self.ternary_search_max(axis_first, axis_last)
+        # print(f'fwpolyix = {fwpolyix} (point {self.polygon_index[fwpolyix]}, {self[self.polygon_index[fwpolyix]]} ), vec from self[-1] = {vec(self[-1], self.polygon_point(fwpolyix))}')
+        # print(f'axis dot prod = {abs(dot_product(axis, vec(self[-1], self.polygon_point(fwpolyix))))}')
         
+        # backward peak
+        # print('back')        
+        # find the first point from which edge projection on axis is positive or equals zero. 
         lb, ub = fwpolyix, fwpolyix + len(self.polygon_index) - 1
         while lb < ub :
-            mix = (lb + ub) >> 1
-            # print(f'lb = {lb}, ub = {ub}, mix = {mix}')
-            proj = dot_product(vec(self.polygon_point(mix), self.polygon_point(mix+1)), axis)
-            if proj < 0 :
+            mix = lb + ((ub - lb) >> 1)
+            #print(f'lb = {lb}, ub = {ub}, mix = {mix}, evfunc = {evfunc(mix)}')
+            if dot_product(axis, local_vec(self_points[self_polygon_index[mix]], self_points[self_polygon_index[mix+1]])) < 0 :
                 lb = mix + 1
             else:
-                ub = mix
-        
-        bkpolyix = ub % len(self.polygon_index)   # (bkpolyix)-th of polygon_index
-        print(f'bkpolyix = {bkpolyix},  point ix = {self.polygon_index[bkpolyix]}, {self.polygon_point(bkpolyix)}')
-
-        tix = self.polygon_index.binary_zero_search(fwpolyix, fwpolyix + len(self.polygon_index) - 1, evfunc = lambda ix: dot_product(axis, vec(self.polygon_point(ix), self.polygon_point(ix+1))))
-        print(f'tix = {tix}')
-        
-        # clockwise
-        perp3 = perpvec(axis)
-        # anti-clockwise
-        perp9 = perpvec(axis, clockwise=False)
-        # print(f'perp3 = {perp3}, perp9 = {perp9}')
+                # evfunc(mix) >= value
+                ub = mix        
+        bkpolyix = ub
+        #print(f'ub = {ub % self.length}')
+        # bkpolyix = self.polygon_index.binary_search_upper_bound(fwpolyix, fwpolyix + len(self.polygon_index) - 1, \
+        #                                                         value = 0, \
+        #                                                         evfunc = lambda ix: dot_product(axis, vec(self.polygon_point(ix), self.polygon_point(ix+1))))
+        # bkpolyix = self.binary_search_upper_bound(fwpolyix, fwpolyix + len(self.polygon_index) - 1, axis)
+        # print(f'bkpolyix = {bkpolyix} (point {self.polygon_index[bkpolyix]}, {self.polygon_point(bkpolyix)} )')
         
         # right peak
+        # print('right')
+        # rtpolyix = self.polygon_index.binary_search_upper_bound(fwpolyix, bkpolyix, \
+        #                                                         value = 0, \
+        #                                                         evfunc = lambda ix: -dot_product(axis3, vec(self.polygon_point(ix), self.polygon_point(ix+1))))
         lb, ub = fwpolyix, bkpolyix
-        if lb > ub :
-            ub += len(self.polygon_index)
-        print(f'rtix lb = {lb}, ub = {ub}')
         while lb < ub :
-            mix = (lb + ub) >> 1
-            proj = dot_product(vec(self.polygon_point(mix), self.polygon_point(mix+1)), perp3)
-            # mvec = vec(self.polygon_point(mix), self.polygon_point(mix+1))
-            # print(f'lb = {lb}, ub = {ub}, mix = {mix}, mvec = {mvec}, proj = {proj}')
-            if proj > 0 :
+            mix = lb + ((ub - lb) >> 1)
+            #print(f'lb = {lb}, ub = {ub}, mix = {mix}, evfunc = {evfunc(mix)}')
+            if -dot_product(axis3, local_vec(self_points[self_polygon_index[mix]], self_points[self_polygon_index[mix+1]])) < 0 :
                 lb = mix + 1
             else:
-                ub = mix
-        
-        rtix = ub
-        print(f'rtix = {rtix},  point ix = {self.polygon_index[rtix]}, {self.polygon_point(rtix)}')
+                # evfunc(mix) >= value
+                ub = mix        
+        rtpolyix = ub
+        # print(f'rtpolyix = {rtpolyix} (point {self.polygon_index[rtpolyix]}, {self.polygon_point(rtpolyix)} )')
         
         # left peak
-        lb, ub = bkpolyix, len(self.polygon_index) # last index + 1 -> 0
-        if lb > ub :
-            ub += len(self.polygon_index)
+        # print('left')
+        lb, ub = bkpolyix, fwpolyix
         while lb < ub :
-            mix = (lb + ub) >> 1
-            proj = dot_product(vec(self.polygon_point(mix), self.polygon_point(mix+1)), perp9)
-            if proj > 0 :
+            mix = lb + ((ub - lb) >> 1)
+            #print(f'lb = {lb}, ub = {ub}, mix = {mix}, evfunc = {evfunc(mix)}')
+            if dot_product(axis3, local_vec(self_points[self_polygon_index[mix]], self_points[self_polygon_index[mix+1]])) < 0 :
                 lb = mix + 1
             else:
-                ub = mix
-        
-        ltix = ub
-        print(f'ltix = {ltix}, point ix = {self.polygon_index[ltix % len(self.polygon_index)]}, {self.polygon_point(ltix)}')
+                # evfunc(mix) >= value
+                ub = mix        
+        ltpolyix = ub
+        # ltpolyix = self.polygon_index.binary_search_upper_bound(bkpolyix, fwpolyix, \
+        #                                                         value = 0, \
+        #                                                         evfunc = lambda ix: dot_product(axis3, vec(self.polygon_point(ix), self.polygon_point(ix+1))))
+        #print(f'ltpolyix = {ltpolyix} (point {self.polygon_index[ltpolyix % len(self.polygon_index)]}, {self.polygon_point(ltpolyix)} )')
 
-        print(f'peaks = {self.polygon_index[fwpolyix]}, {self.polygon_index[rtix]}, {self.polygon_index[bkpolyix]}, {self.polygon_index[ltix]}')
-        return (abs(dot_product(axis, vec(self[-1], self.polygon_point(fwpolyix)))), \
-                abs(dot_product(perp3, vec(self[0], self.polygon_point(rtix)))), \
-                abs(dot_product( vec_neg(axis), vec(self[0], self.polygon_point(bkpolyix)))), \
-                abs(-dot_product(perp9, vec(self[0], self.polygon_point(ltix)))), )
+        #print(f'peaks = {self.polygon_index[fwpolyix]}, {self.polygon_index[rtpolyix]}, {self.polygon_index[bkpolyix]}, {self.polygon_index[ltpolyix]}')
+        return (abs(dot_product(axis, local_vec(axis_last, self.polygon_point(fwpolyix)))), \
+                abs(dot_product(axis3, local_vec(axis_first, self.polygon_point(rtpolyix)))), \
+                abs(dot_product(vec_neg(axis), local_vec(axis_first, self.polygon_point(bkpolyix)))), \
+                abs(dot_product(axis3, local_vec(axis_first, self.polygon_point(ltpolyix)))), )
 
         
