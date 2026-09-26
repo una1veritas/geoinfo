@@ -14,6 +14,7 @@ from point2d import distance
 from myrdp import rdp_simplification, rdp_simplification_recursive
 from simplification.cutil import simplify_coords
 import statistics
+import sys
 
 from gh_native.gh_native import ConvexHull, grow_hull
 
@@ -28,11 +29,10 @@ class Timer:
         self.end = time.time()
         print(self.message + f"Execution time: {self.end - self.start} seconds")
 
-# def simplify_RDP(xy : np.array, epsilon):
-#     mask = rdp.rdp(xy, epsilon=epsilon, return_mask=True)
-#     xy_rdp = xy[mask]
-#     return xy_rdp, [int(i) for i in np.where(mask)[0]]
-
+def simplify_RDP(xy : np.array, epsilon):
+    mask = rdp.rdp(xy, epsilon=epsilon, return_mask=True)
+    xy_rdp = xy[mask]
+    return xy_rdp, [int(i) for i in np.where(mask)[0]]
 
 
 def Grow_Hull(xy : list, epsilon : float, record_polygons = False, verbose = False) -> tuple:
@@ -99,30 +99,34 @@ def Grow_Hull(xy : list, epsilon : float, record_polygons = False, verbose = Fal
 
 if __name__ == '__main__':
     
-    run_info = { 'input': 'specified', 'plot': True, 'annotate': False, 'runs': 5}
+    run_info = { 'input': 'specified', 'epsilon' : 10.0, 'plot': True, 'annotate': False, 'runs': 1}
+    for argstr in sys.argv[1:] :
+        argtokens = [arg.strip() for arg in argstr.split('=')]
+        if argtokens[0] in ('file', 'random', 'specified') :
+            run_info['input'] = argtokens[0]
+            if len(argtokens) > 1 :
+                if run_info['input'] == 'file' :
+                    run_info['filename'] = argtokens[1]
+                elif run_info['input'] == 'random' :
+                    run_info['number'] = int(argtokens[1])
+        elif argtokens[0] == 'epsilon' :
+            run_info['epsilon'] = float(argtokens[1])
+        elif argtokens[0] == 'runs' :
+            run_info['runs'] = int(argtokens[1])
     
     if run_info['input'] == 'specified' :
-        epsilon = 1.0
+        if 'epsilon' not in run_info :
+            run_info['epsilon'] = 1.0
         # xy = [(0.0, 0.0), (0.5, 0.0), (0.4, 1.2), (0.6, 1.0), (0.7, 0.5), (0.65, 1.1) \
         # ]
-        # xy = [ (0,0), (0.1, -0.1), (-0.2, 0.1), (-0.1, -0.1), (-0.1, -0.2), (0.25, 0.5), \
-        #       (0.8, 0.25), (1.0, 0.75), (1.4, 0.7), (1.5, 1.0), \
-        #       (1.5, 2.75), (2, 2.75), (2.5, 3.2), \
-        #       (3, 3.5), (3.2, 2), (3, 0.5),  \
-        #       (3.25, 1.0), (3.25, -0.25), (3.5, 0.5), \
-        #       (4, 1.25), (3.5, 1.5), (3, 1.25), (2, 1), (1.5, -0.0) \
-        # ]
-        # xy = [ (0.0, 0.0), (0.25, 0.75), (0.25, -0.5), (0, -1.0), (-0.25, -0.5)]
-        xy = [
-            (0.0, 0.0),
-            (10.0, 0.0),
-            (10.0, 6.0),
-            (2.0, 6.0),
-            (2.0, 2.0),
-            (8.0, 2.0),
-            (8.0, 8.0),
-            (0.0, 8.0)
+        xy = [ (0,0), (0.1, -0.1), (-0.2, 0.1), (-0.1, -0.1), (-0.1, -0.2), (0.25, 0.5), \
+              (0.8, 0.25), (1.0, 0.75), (1.4, 0.7), (1.5, 1.0), \
+              (1.5, 2.75), (2, 2.75), (2.5, 3.2), \
+              (3, 3.5), (3.2, 2), (3, 0.5),  \
+              (3.25, 1.0), (3.25, -0.25), (3.5, 0.5), \
+              (4, 1.25), (3.5, 1.5), (3, 1.25), (2, 1), (1.5, -0.0) \
         ]
+        # xy = [ (0.0, 0.0), (0.25, 0.75), (0.25, -0.5), (0, -1.0), (-0.25, -0.5)]
         # xy = [
         #     (0.0000, 0.0000),
         #     (8.6603, 5.0000),
@@ -133,7 +137,6 @@ if __name__ == '__main__':
         #     (1.4641, 13.1962),
         #     (-5.4641, 6.9282)
         # ]
-        epsilon = 2.5
         # xy = [
         #     (1.0, 5.0),   # [P0] START ANCHOR (Center of epsilon circle)
         #     (1.3, 5.4),   # Dist = 0.50 < 1.0 (Inside circle: direction should be IGNORED)
@@ -153,9 +156,12 @@ if __name__ == '__main__':
         #
     
     elif run_info['input'] == 'file' :
-        epsilon = 50.0
+        if 'epsilon' not in run_info :
+            run_info['epsilon'] = 50.0
         xy = list()
-        filename = '40-1836_itoshima_xy-metre.csv' #'47-936_ishigakishi_xy-metre.csv'
+        # filename = '40-1836_itoshima_xy-metre.csv' 
+        # filename = '47-936_ishigakishi_xy-metre.csv'
+        filename = '40-1836_itoshima_xy-metre.csv' if 'filename' not in run_info else run_info['filename']
         with open(filename, 'r') as f :
             for l in f:
                 lonlat = [float(e) for e in l.strip().split(',')]
@@ -169,8 +175,9 @@ if __name__ == '__main__':
     
     elif run_info['input'] == 'random' :
         # Set up the number of random points
-        epsilon = 25
-        num_points = 1200
+        if 'epsilon' not in run_info :
+            run_info['epsilon'] = 25
+        num_points = run_info['number']
         random.seed(20260726)
         xy = list()
         for i in range(0, num_points):
@@ -186,6 +193,8 @@ if __name__ == '__main__':
     
     exec_times = dict()
         
+    epsilon = run_info['epsilon']
+    
     print('Grow_Hull:')
     exec_times['Grow_Hull'] = list()
     for _ in range(run_info['runs']):
@@ -201,7 +210,7 @@ if __name__ == '__main__':
         print(f'{drseq}, {polygons}')
     print()
     
-    print('grow_hull:')
+    print('grow_hull (Rust native extension):')
     exec_times['grow_hull'] = list()
     for _ in range(run_info['runs']):
         swatch = time.perf_counter()
@@ -216,21 +225,21 @@ if __name__ == '__main__':
         print(f'{drseq}, {polygons}')
     print()
     
-    # print('my non-recursive RDP:')
-    # exectimes.clear()
-    # for _ in range(runs):
-    #     swatch = time.perf_counter()
-    #
-    #     rdpseq = rdp_simplification(xy, delta)
-    #     swatch = time.perf_counter() - swatch
-    #
-    #     exectimes.append(swatch)
-    #
-    # print(f'length of simplified seq = {len(rdpseq)}, ' \
-    #       f'avr. execution time = {statistics.mean(exectimes)} secs., dev = {statistics.pstdev(exectimes)}')
-    # mrdpx, mrdpy = [xy[i][0] for i in rdpseq], [xy[i][1] for i in rdpseq]
-    # print()
+    print('my non-recursive RDP:')
+    exec_times['myRDP'] = list()
+    for _ in range(run_info['runs']):
+        swatch = time.perf_counter()
     
+        rdpseq = rdp_simplification(xy, epsilon)
+        swatch = time.perf_counter() - swatch
+    
+        exec_times['myRDP'].append(swatch)
+    
+    print(f'length of simplified seq = {len(rdpseq)}, ', end = '')
+    print(f'avr. execution time = {statistics.mean(exec_times["myRDP"])} secs., dev = {statistics.pstdev(exec_times["myRDP"])}')
+    print()
+    
+
     print('simplification.cutil:')
     exec_times['simplification.cutil'] = list()
     for _ in range(run_info['runs']):
@@ -261,10 +270,10 @@ if __name__ == '__main__':
 
     fig, ax = plt.subplots()
     ax.plot(x, y, 'r.-', lw=2.0, alpha=0.35)
-    # ax.plot(drx, dry, 'b.-', lw=1) #, alpha=0.75)
-    # plt_title = f'Grow Hull, epsilon = {epsilon}, {len(xy)} points simplified to {len(drseq)} points'
-    ax.plot(rdpx, rdpy, 'b.-', lw=1) #, alpha=0.75)
-    plt_title = f'RDP (simplify_coords), epsilon = {epsilon}, {len(xy)} points simplified to {len(simplified)} points'
+    ax.plot(drx, dry, 'b.-', lw=1) #, alpha=0.75)
+    plt_title = f'Grow Hull, epsilon = {epsilon}, {len(xy)} points simplified to {len(drseq)} points'
+    #ax.plot(rdpx, rdpy, 'b.-', lw=1) #, alpha=0.75)
+    #plt_title = f'RDP (simplify_coords), epsilon = {epsilon}, {len(xy)} points simplified to {len(simplified)} points'
     
     if polygons:
         for poly in polygons:
