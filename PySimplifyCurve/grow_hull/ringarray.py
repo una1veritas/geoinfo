@@ -7,7 +7,7 @@ Created on 2026/03/17
 from math import log2, ceil
 
 class ringarray:
-    INITIAL_CAPACITY = 16
+    INITIAL_CAPACITY = 64
     
     def __init__(self, initcapacity = None):
         try:

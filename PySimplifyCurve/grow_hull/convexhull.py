@@ -11,10 +11,10 @@ class ConvexHull(object):
     '''
     Convex Hull for simple polygon points by double ended queue
     '''
-    def __init__(self, delta = 0.0):
+    def __init__(self): #, delta = 0.0):
         self.points = list() # index seq of Point2Ds considering
-        self.polygon_index = ringarray(127)     # index seq in clockwise
-        self.tolerance = delta
+        self.polygon_index = ringarray()     # index seq in clockwise
+        #self.tolerance = delta
     
     def clear(self):
         self.points.clear()
@@ -44,19 +44,22 @@ class ConvexHull(object):
         # return self.points[self.polygon_index[index % len(self.polygon_index)]]
         return self.points[self.polygon_index[index]]
     
+    # as a debug utility 
     def polygon_points(self):
         if len(self.polygon_index) == 0 :
             return []
         return [self.polygon_point(i) for i in range(len(self.polygon_index) + 1)]
     
-    # test and add pt to points
-    def add(self, pt, supress=False):
-        #print(pt)
-        if len(self) == 0 :
-            self.points.append(pt)
-            return True
+    def is_simple(self, pt):
+        # outside pf the right front infinite line of the mouth
+        return rhombus(self.polygon_point(1), self.polygon_point(0), pt) <= 0 or \
+            rhombus(self.polygon_point(-1), self.polygon_point(0), pt) >= 0
+        # outside of the left front infinite line of the mouth
         
-        if supress and self.tolerance > 0.0 and distance(self.first_point(), pt) <= self.tolerance :
+    # check and add pt to points
+    def add(self, pt):
+        # print(pt)
+        if len(self) == 0 :
             self.points.append(pt)
             return True
         
@@ -65,16 +68,11 @@ class ConvexHull(object):
             self.polygon_index.append(0)
             self.polygon_index.append(len(self) - 1)
             return True
+
         if len(self.polygon_index) == 1 :
             self.points.add(pt)
             self.polygon_index.append(len(self) - 1)
             return True
-
-        # axvec = vec(self.points[0], self.points[-1])
-        # newvec = vec(self.points[0], pt)
-        # if norm(axvec) > norm(newvec) :
-        #     # pt getting nearer.
-        #     return False
         
         # point[0]-point[1]-pt
         if rhombus(self.polygon_point(1), self.polygon_point(0), pt) <= 0 :
@@ -92,7 +90,7 @@ class ConvexHull(object):
         
         self.remove_concave()
         return True
-           
+        
     def remove_concave(self):
         # from tail
         #print(self.polygon_index)
@@ -216,11 +214,7 @@ class ConvexHull(object):
         axis = vec(axis_first, axis_last, unit=True)   #代表線単位ベクトル
         axis3 = perpvec(axis, clockwise=True)
         axis9 = vec_neg(axis3)
-        n = len(self.polygon_index)
         # print(f'axis = {axis}, axis3 = {axis3}')
-        self_points = self.points
-        self_polygon_index = self.polygon_index
-        local_vec = vec
         
         # find peaks as indexes on polygon_index deque.
         # print(f'search peaks in [', end='')
@@ -234,62 +228,20 @@ class ConvexHull(object):
         # fwpolyix = self.polygon_index.ternary_search_max(evfunc = lambda ix: dot_product(axis,vec(lastpt, self.polygon_point(ix))))
         fwpolyix = self.ternary_search_max(axis_first, axis_last)
         # print(f'fwpolyix = {fwpolyix} (point {self.polygon_index[fwpolyix]}, {self[self.polygon_index[fwpolyix]]} ), vec from self[-1] = {vec(self[-1], self.polygon_point(fwpolyix))}')
-        # print(f'axis dot prod = {abs(dot_product(axis, vec(self[-1], self.polygon_point(fwpolyix))))}')
         
-        # backward peak
-        # print('back')        
-        # find the first point from which edge projection on axis is positive or equals zero. 
-        # lb, ub = fwpolyix, fwpolyix + n - 1
-        # while lb < ub :
-        #     mix = lb + ((ub - lb) >> 1)
-        #     #print(f'lb = {lb}, ub = {ub}, mix = {mix}, evfunc = {evfunc(mix)}')
-        #     if dot_product(axis, local_vec(self_points[self_polygon_index[mix]], self_points[self_polygon_index[mix+1]])) < 0 :
-        #         lb = mix + 1
-        #     else:
-        #         # evfunc(mix) >= value
-        #         ub = mix        
-        # bkpolyix = ub % n
+        # search the backward peak
         
-        bkpolyix = self.search_upper_bound(fwpolyix, fwpolyix + len(self.polygon_index) - 1, axis)
-        
+        bkpolyix = self.search_upper_bound(fwpolyix, fwpolyix + len(self.polygon_index) - 1, axis)        
         # print(f'bkpolyix = {bkpolyix} (point {self.polygon_index[bkpolyix]}, {self.polygon_point(bkpolyix)} )')
         
-        # right peak
+        # search the right (3 o'clock) peak
         # print('right')
         
         rtpolyix = self.search_upper_bound(fwpolyix, bkpolyix, axis9)
         
-        # lb, ub = fwpolyix, bkpolyix
-        # while lb < ub :
-        #     mix = lb + ((ub - lb) >> 1)
-        #     #print(f'lb = {lb}, ub = {ub}, mix = {mix}, evfunc = {evfunc(mix)}')
-        #     if dot_product(axis9, local_vec(self_points[self_polygon_index[mix]], self_points[self_polygon_index[mix+1]])) < 0 :
-        #         lb = mix + 1
-        #     else:
-        #         # evfunc(mix) >= value
-        #         ub = mix
-        # rtpolyix = ub % n
-        # print(f'rtpolyix = {rtpolyix} (point {self.polygon_index[rtpolyix]}, {self.polygon_point(rtpolyix)} )')
-        
-        # left peak
+        # search the left (9 o'clock) peak point
         # print('left')
-        # lb, ub = bkpolyix, fwpolyix
-        # if lb >= n :
-        #     lb %= n
-        # if lb > ub :
-        #     ub = ub % n + n
-        # while lb < ub :
-        #     mix = lb + ((ub - lb) >> 1)
-        #     #print(f'lb = {lb}, ub = {ub}, mix = {mix}, evfunc = {evfunc(mix)}')
-        #     if dot_product(axis3, local_vec(self_points[self_polygon_index[mix]], self_points[self_polygon_index[mix+1]])) < 0 :
-        #         lb = mix + 1
-        #     else:
-        #         # evfunc(mix) >= value
-        #         ub = mix
-        # ltpolyix = ub % n
-        
         ltpolyix = self.search_upper_bound(bkpolyix, fwpolyix, axis3)
-
         #print(f'ltpolyix = {ltpolyix} (point {self.polygon_index[ltpolyix % len(self.polygon_index)]}, {self.polygon_point(ltpolyix)} )')
 
         #print(f'peaks = {self.polygon_index[fwpolyix]}, {self.polygon_index[rtpolyix]}, {self.polygon_index[bkpolyix]}, {self.polygon_index[ltpolyix]}')

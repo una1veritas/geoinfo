@@ -1,0 +1,110 @@
+'''
+Created on 2026/01/23
+
+@author: sin
+'''
+import math
+
+''' Point2D functions, 2-tuples of integers and/or floats are 
+treated as vector on the plane. 
+'''
+
+def vec(a, b = None, unit = False):
+    if isinstance(a, (tuple, list)) and isinstance(b, (tuple, list)) :
+        # from two positions
+        dx = b[0] - a[0]
+        dy = b[1] - a[1]
+        if unit :
+            if dx == 0 and dy == 0 :
+                return (0, 0)
+            l = math.sqrt(dx**2 + dy**2)
+            return (dx/l, dy/l)
+        else:
+            return (dx, dy)
+    elif isinstance(a, (tuple, list)) and b == None :
+        if unit :
+            return (a[0]/norm(a), a[1]/norm(a))
+        else:
+            return a
+    elif isinstance(a, (int, float)) and isinstance(b, (int, float)) :
+        # from (0, 0) to (a, b)
+        if unit :
+            l = math.sqrt(b**2 + a**2)
+            return (a/l, b/l)
+        else:
+            return (a, b)
+    else:
+        raise ValueError(f'vec: illegal parameters {a}, {b}')
+    
+
+def perpvec(a, b = None, clockwise = True):
+    if isinstance(b, (tuple, list)) :
+        if clockwise :
+            return (b[1] - a[1], a[0] - b[0])
+        else:
+            return (a[1] - b[1], b[0] - a[0])
+    elif b is None :
+        if clockwise :
+            return (a[1], -a[0])
+        else:
+            return (-a[1], a[0])
+    
+def norm(va):
+    return math.sqrt(va[0]*va[0] + va[1]*va[1])
+
+def vec_neg(v):
+    return (-v[0], -v[1])
+
+def sum_vec(v, w):
+    return (v[0]+w[0], v[1]+w[1])
+
+def subt_vec(v, w):
+    return (v[0]-w[0], v[1]-w[1])
+
+def mul_vec(c, v):
+    if isinstance(c, (int, float)) :
+        return (v[0]*c, v[1]*c)
+    elif isinstance(c, (tuple, list)) :
+        return dot_product(c, v)
+    else: 
+        raise ValueError(f'mul_vec({c}, {v}): arguments must be a pair of scalar and vector')
+
+''' distance between two Point2D points '''
+def distance(a, b):
+    return math.sqrt( (b[0] - a[0])**2 + (b[1] - a[1])**2 )
+
+def dot_product(va, vb):
+    return va[0] * vb[0] + va[1] * vb[1]
+
+# positive if a to b is counter-clockwise
+def cross_product_norm(va, vb):
+    return va[0] * vb[1] - va[1] * vb[0]
+
+# positive if a -> b -> c is turn left (b -> c to b-> a is counter-clockwise)
+def rhombus(a, b, c):
+    return (c[0] - b[0]) * (a[1] - b[1]) - (c[1] - b[1]) * (a[0] - b[0])
+
+def distance_to_line(a, b, p):
+    d_a_p = distance(a,p)
+    d_b_p = distance(b,p)
+    d_a_b = distance(a, b)
+    #print(f'distance to line {d_a_p}, {d_b_p}, {dot_product(vec(a, b), vec(a, p))},  {dot_product(vec(b,a), vec(b, p))} {d_a_b}')
+    if d_a_p == 0 or d_b_p == 0 :
+        return 0
+    if dot_product(vec(a, b), vec(a, p)) <= 0.0 or a == b :
+        return d_a_p #norm(vec(a, p))
+    if dot_product(vec(b,a), vec(b, p)) <= 0.0 :
+        return d_b_p #norm(vec(b, p))
+    return math.fabs(cross_product_norm(vec(a,b),vec(a,p))/d_a_b)
+
+'''
+double gpspoint::distanceTo(const gpspoint &q1, const gpspoint &q2) const {
+    if ( inner_prod(q1, q2, *this) < epsilon ) { // < 0.0
+        return q1.distanceTo(*this);
+    }
+    if ( inner_prod(q2, q1, *this) < epsilon ) { // < 0.0
+        return q2.distanceTo(*this);
+    }
+    return ABS(norm_outer_prod(q1, q2, *this)) / q1.distanceTo(q2);
+}
+'''
