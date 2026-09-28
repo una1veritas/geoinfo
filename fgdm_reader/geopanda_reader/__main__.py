@@ -51,8 +51,8 @@ def concatenate():
     print(f"=== 九州本島 単一外周ポリゴン ===")
     print(f"単一ポリゴンの頂点数: {len(coords):,} 点")
 
-gml_dir = "/Users/sin/Downloads/N03-20230101_40_GML"
-geojson_file = "N03-23_40_230101.geojson"
+gml_dir = "/Users/sin/Downloads/N03-20230101_47_GML"
+geojson_file = "N03-23_47_230101.geojson"
 geojson_path = os.path.join(gml_dir, geojson_file)
 
 # GeoJSON読み込み（福岡県全体のデータ）
@@ -82,11 +82,11 @@ def get_boundaries(target_gdf):
 # 1. 福岡市全体（東区・博多区・中央区・南区・西区・城南区・早良区）
 # ----------------------------------------------------
 # N03_003 カラムが "福岡市" のものを抽出
-fukuoka_city_gdf = gdf[gdf["N03_003"] == "福岡市"]
+fukuoka_city_gdf = gdf[gdf["N03_003"] == "石垣市"]
 city_boundaries = get_boundaries(fukuoka_city_gdf)
 
-print(f"【福岡市全体】抽出ポリゴン数: {len(city_boundaries)} 個")
-for ea in city_boundaries[:3]:  # 先頭3件表示
+print(f"【石垣市全体】抽出ポリゴン数: {len(city_boundaries)} 個")
+for ea in sorted(city_boundaries, key = lambda e: e['point_count'], reverse=True)[:10]:  # 先頭3件表示
     print(f'  {ea["city_name"]}, 点数: {ea["point_count"]}, 先頭2点: {ea["coords"][:2]}')
 
 
@@ -94,7 +94,9 @@ for ea in city_boundaries[:3]:  # 先頭3件表示
 # 2. 福岡県全体（すべての市町村・島嶼部を含む）
 # ----------------------------------------------------
 # N03_001 カラムが "福岡県" のものを抽出（ファイル内の全要素）
-fukuoka_pref_gdf = gdf[gdf["N03_001"] == "福岡県"]
+fukuoka_pref_gdf = gdf[gdf["N03_001"] == "沖縄県"]
 pref_boundaries = get_boundaries(fukuoka_pref_gdf)
 
-print(f"\n【福岡県全体】抽出ポリゴン数: {len(pref_boundaries)} 個")
+print(f"\n【沖縄県県全体】抽出ポリゴン数: {len(pref_boundaries)} 個")
+for ea in sorted(pref_boundaries, key = lambda e: e['point_count'], reverse=True)[:10]:  # 先頭3件表示
+    print(f'  {ea["city_name"]}, 点数: {ea["point_count"]}, 先頭2点: {ea["coords"][:2]}')
