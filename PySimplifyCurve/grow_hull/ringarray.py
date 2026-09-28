@@ -100,6 +100,18 @@ class ringarray:
         self.tail = 0
         self.length = 0
 
+    def trim_to_last(self, n: int):
+            """最後の n 要素だけを残して他をクリア（カーソル移動のみ）"""
+            if self.length > n:
+                # 削るべき要素数
+                remove_count = self.length - n
+                
+                # 先頭インデックスをビット演算で進める
+                self.head = (self.head + remove_count) & (self.capacity - 1)
+                
+                # 長さを n に更新
+                self.length = n
+    
     # perform binary search to find the least index ix satisfying value <= evfunc(ix)
     # among the clock-wise range [lb, ub]. 
     def binary_search_upper_bound(self, lb, ub, value = 0, evfunc = None):

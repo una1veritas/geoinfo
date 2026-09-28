@@ -43,13 +43,13 @@ def Grow_Hull(xy : list, epsilon : float, record_polygons = False, verbose = Fal
     # add the first point
     decpath.append(0)   
     cvx = ConvexHull() #delta)     # reusable convex hull
-    cvx.add(xy[decpath[-1]])
+    cvx.add(xy[0])
     start_ix = decpath[-1]
+    cvx.add(xy[1])
     if verbose : print(f'X: cvx start_ix = {start_ix}')
     if record_polygons : polygons.append(cvx.polygon_points())
     
-    ix = 1
-    while ix < len(xy) :
+    for ix in range(2, len(xy)) :
         if verbose : print(f"\nconvex-hull growing: {ix}, {xy[ix]}")
         
         if cvx.add(xy[ix]) :    # add or reject if crossing
@@ -63,15 +63,15 @@ def Grow_Hull(xy : list, epsilon : float, record_polygons = False, verbose = Fal
                 decpath.append(last_ix)
                 cvx.clear()
                 start_ix = last_ix
-                if verbose : print(f'A: start_ix = {start_ix}')
                 cvx.add(xy[start_ix])
+                if verbose : print(f'A: start_ix = {start_ix}')
                 cvx.add(xy[start_ix + 1])
                 if record_polygons : polygons.append(cvx.polygon_points())
-                ix += 1     # advances to the next
-                continue
-            if record_polygons : polygons[-1] = cvx.polygon_points()     # update
-            ix += 1
-            continue
+                #ix += 1     # advances to the next
+            elif record_polygons : 
+                polygons[-1] = cvx.polygon_points()     # update
+            # ix += 1
+            # continue
         else:
             # rejected xy[ix], so close cvx and restart
             if verbose : print(f'xy[{ix}] = {xy[ix]} is rejected.')
@@ -83,8 +83,8 @@ def Grow_Hull(xy : list, epsilon : float, record_polygons = False, verbose = Fal
             cvx.add(xy[start_ix])
             cvx.add(xy[ix])
             if record_polygons : polygons.append(cvx.polygon_points())
-            ix += 1     # advances to the next
-            continue
+            # ix += 1     # advances to the next
+            # continue
     #
     if len(cvx) > 0 :
         # add the last line segment
@@ -100,7 +100,7 @@ def Grow_Hull(xy : list, epsilon : float, record_polygons = False, verbose = Fal
 
 if __name__ == '__main__':
     
-    run_info = { 'input': 'random', 'plot': True, 'annotate': False, 'runs': 3}
+    run_info = { 'input': 'file', 'plot': True, 'annotate': False, 'runs': 3}
     
     if run_info['input'] == 'specified' :
         epsilon = 1.0

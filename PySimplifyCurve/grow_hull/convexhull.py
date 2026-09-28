@@ -70,7 +70,7 @@ class ConvexHull(object):
             return True
 
         if len(self.polygon_index) == 1 :
-            self.points.add(pt)
+            self.points.append(pt)
             self.polygon_index.append(len(self) - 1)
             return True
         
