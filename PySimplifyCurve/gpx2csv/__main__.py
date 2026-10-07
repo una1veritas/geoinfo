@@ -1,40 +1,22 @@
-'''
-Created on 2025/07/27
+import urllib.request
 
-@author: sin
-'''
-import sys
-import gpxpy.gpx
-import csv
+url = "https://tenhou.net/sc/raw/list.cgi"
+headers = {
+    "User-Agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36",
+    "Referer": "https://tenhou.net/sc/raw/"
+}
 
-if __name__ == '__main__':
-    filename = '2025-0726-151032.gpx'  #default file name
-    if len(sys.argv) > 1 : filename = sys.argv[1]
-    if filename == None :
-        raise ValueError('no input .gpx file name.')
-    
-    # Open the GPX file
-    print(f'open file \'{filename}\'.')
-    with open(filename, 'r') as gpx_file:
-        gpx = gpxpy.parse(gpx_file)
+print(f"[{url}] の応答を確認中...")
 
-    # Prepare data for CSV
-    data_rows = []
-    for track in gpx.tracks:
-        for segment in track.segments:
-            for point in segment.points:
-                data_rows.add({
-                    'latitude': point.latitude,
-                    'longitude': point.longitude,
-                    'elevation': point.elevation,
-                    'time': point.time.isoformat() if point.time else None
-                })
-
-    # Write to CSV
-    if data_rows:
-        with open('output.csv', 'w', newline='') as csvfile:
-            fieldnames = data_rows[0].keys()
-            writer = csv.DictWriter(csvfile, fieldnames=fieldnames)
-            writer.writeheader()
-            writer.writerows(data_rows)
-        print(f'written to \'output.csv\'.')
+try:
+    req = urllib.request.Request(url, headers=headers)
+    with urllib.request.urlopen(req) as resp:
+        body = resp.read().decode('utf-8', errors='ignore')
+        print("-> 取得成功！ 先頭500文字:")
+        print("--------------------------------------------------")
+        print(body[:500])
+        print("--------------------------------------------------")
+except urllib.error.HTTPError as e:
+    print(f"HTTPエラー: {e.code}")
+except Exception as e:
+    print(f"エラー: {e}")
