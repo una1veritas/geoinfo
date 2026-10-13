@@ -4,7 +4,7 @@ import glob
 import pandas as pd
 
 # ユーザーの環境に合わせてルートパスを設定してください
-base_dir = '/Users/sin/Downloads/Geolife Trajectories 1.3/Data'
+dirname = '/Volumes/Media_SSD/Downloads/Dataset/Geolife Trajectories 1.3/Data/{number}/Trajectory'
 
 def analyze_geolife_points(root_path):
     file_stats = []

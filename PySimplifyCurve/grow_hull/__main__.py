@@ -3,17 +3,16 @@ Created on 2026/03/01
 
 @author: sin
 '''
-import numpy as np
 import matplotlib.pyplot as plt
-import math, random, time
-import rdp
-import fastrdp
+import math, sys, random, time
 from convexhull import ConvexHull
 
 from point2d import distance
 from myrdp import rdp_simplification, rdp_simplification_recursive
+from myvw import vw_simplification
 from simplification.cutil import simplify_coords
 import statistics
+
 
 class Timer:
     def __init__(self, mess = ''):
@@ -26,12 +25,10 @@ class Timer:
         self.end = time.time()
         print(self.message + f"Execution time: {self.end - self.start} seconds")
 
-def simplify_RDP(xy : np.array, epsilon):
-    mask = rdp.rdp(xy, epsilon=epsilon, return_mask=True)
-    xy_rdp = xy[mask]
-    return xy_rdp, [int(i) for i in np.where(mask)[0]]
-
-
+# def simplify_RDP(xy : np.array, epsilon):
+#     mask = rdp.rdp(xy, epsilon=epsilon, return_mask=True)
+#     xy_rdp = xy[mask]
+#     return xy_rdp, [int(i) for i in np.where(mask)[0]]
 
 def Grow_Hull(xy : list, epsilon : float, record_polygons = False, verbose = False) -> tuple:
     decpath = list()        # index seq. of decimated point seq.
@@ -98,12 +95,78 @@ def Grow_Hull(xy : list, epsilon : float, record_polygons = False, verbose = Fal
     
     return (decpath, polygons)
 
+def plot_algorithm_comparison(xy, results):
+    """
+    3つのアルゴリズム（Grow-Hull, RDP, V-W）の簡略化結果（座標列）を並列表示して比較する関数
+    
+    :param xy: 元の座標リスト [(x0, y0), (x1, y1), ...]
+    :param results: 各アルゴリズムの実行結果情報のリスト
+                    [
+                        {'name': 'Grow-Hull', 'coords': gh_coords, 'param': f'eps={eps}'},
+                        {'name': 'RDP',       'coords': rdp_coords, 'param': f'eps={eps}'},
+                        {'name': 'Visvalingam-Whyatt', 'coords': vw_coords, 'param': f'area={area}'},
+                    ]
+    """
+    x_orig = [pt[0] for pt in xy]
+    y_orig = [pt[1] for pt in xy]
+    
+    # 3つのグラフを1行3列で作成 (拡大・パン操作が全画面で連動するよう sharex/sharey を設定)
+    fig, axes = plt.subplots(1, 3, figsize=(18, 6), sharex=True, sharey=True)
+    
+    for i, res in enumerate(results):
+        ax = axes[i]
+        coords = res['coords']
+        print(i, res['name'], coords[:10])
+        
+        # 1. 元の軌跡（薄い赤色・下地）
+        ax.plot(x_orig, y_orig, 'r.-', lw=1.5, alpha=0.35, label='Input points')
+        
+        # 2. 簡略化された軌跡（青色）
+        sx = [pt[0] for pt in coords]
+        sy = [pt[1] for pt in coords]
+        ax.plot(sx, sy, 'b.-', lw=1.2, alpha=0.85, label='Simplified path')
+        
+        # タイトルと削減率の表示
+        reduction_rate = (1 - len(coords) / len(xy)) * 100
+        title_str = (f"{res['name']} ({res.get('param', '')})\n"
+                     f"{len(xy)} -> {len(coords)} pts ({reduction_rate:.1f}% reduced)")
+        
+        ax.set_title(title_str, fontsize=11)
+        ax.set_aspect('equal')
+        ax.legend(loc='best', fontsize=9)
+        ax.grid(True, linestyle=':', alpha=0.5)
+
+    plt.suptitle("Simplification Algorithm Comparison", fontsize=14, fontweight='bold')
+    plt.tight_layout()
+    plt.show()
+    
 if __name__ == '__main__':
     
-    run_info = { 'input': 'file', 'plot': True, 'annotate': False, 'runs': 3}
-    
+    run_info = { 'input': 'file', 'epsilon' : 5.0, 'plot': True, 'annotate': False, 'runs': 1}
+    if len(sys.argv) > 1 :
+        for kv in sys.argv[1:] :
+            k, sep, v = kv.partition('=')
+            if k in ('file', 'random', 'specified') :
+                run_info['input'] = k
+                if k == 'file' and len(v) > 0:
+                    run_info['file'] = v
+            if k.startswith('--') :
+                k = k[2:]
+                if k in run_info :
+                    if k in ['epsilon'] :
+                        run_info[k] = float(v)
+                    elif k in ['plot', 'annotate'] :
+                        if len(v) > 0 and v.lowewr() in ('0', 'false', 'no') :
+                            run_info[k] = False
+                        else:
+                            run_info[k] = True
+                    elif k in ['runs'] :
+                        run_info[k] = int(v)
+                else:
+                    print(f'Unknown option: {k}')
+        
     if run_info['input'] == 'specified' :
-        epsilon = 1.0
+        run_info['epsilon'] = 1.0
         # xy = [(0.0, 0.0), (0.5, 0.0), (0.4, 1.2), (0.6, 1.0), (0.7, 0.5), (0.65, 1.1) \
         # ]
         xy = [ (0,0), (0.1, -0.1), (-0.2, 0.1), (-0.1, -0.1), (-0.1, -0.2), (0.25, 0.5), \
@@ -134,9 +197,12 @@ if __name__ == '__main__':
         #
     
     elif run_info['input'] == 'file' :
-        epsilon = 50.0
+        if 'file' not in run_info:
+            run_info['file'] = '40-1836_itoshima_xy-metre.csv'
+        if 'epsilon' not in run_info or run_info['epsilon'] is None :
+            run_info['epsilon'] = 50.0
         xy = list()
-        filename = '40-1836_itoshima_xy-metre.csv' #'47-936_ishigakishi_xy-metre.csv'
+        filename = run_info['file']
         with open(filename, 'r') as f :
             for l in f:
                 lonlat = [float(e) for e in l.strip().split(',')]
@@ -150,7 +216,7 @@ if __name__ == '__main__':
     
     elif run_info['input'] == 'random' :
         # Set up the number of random points
-        epsilon = 50
+        run_info['epsilon'] = 50
         num_points = 50000
         random.seed(20260726)
         xy = list()
@@ -172,49 +238,77 @@ if __name__ == '__main__':
     for _ in range(run_info['runs']):
         swatch = time.perf_counter()
         
-        drseq, polygons = Grow_Hull(xy, epsilon, verbose = False, record_polygons = False) 
+        ghindices, polygons = Grow_Hull(xy, run_info['epsilon'], verbose = False, record_polygons = False) 
         swatch = time.perf_counter() - swatch
         exec_times['Grow_Hull'].append(swatch)
     
-    print(f'length of simplified seq = {len(drseq)}, ', end='')
+    ghseq = [xy[ix] for ix in ghindices]
+    print(f'length of rdpseq seq = {len(ghseq)}, ', end='')
     print(f'avr. execution time = {statistics.mean(exec_times["Grow_Hull"])} secs., dev = {statistics.pstdev(exec_times["Grow_Hull"])}')
-    if len(drseq) < 200 :
-        print(f'{drseq}, {polygons}')
+    if len(ghseq) < 200 :
+        print(f'{ghseq}, {polygons}')
     print()
     
-    # print('my non-recursive RDP:')
-    # exectimes.clear()
-    # for _ in range(runs):
-    #     swatch = time.perf_counter()
-    #
-    #     rdpseq = rdp_simplification(xy, epsilon)
-    #     swatch = time.perf_counter() - swatch
-    #
-    #     exectimes.append(swatch)
-    #
-    # print(f'length of simplified seq = {len(rdpseq)}, ' \
-    #       f'avr. execution time = {statistics.mean(exectimes)} secs., dev = {statistics.pstdev(exectimes)}')
-    # mrdpx, mrdpy = [xy[i][0] for i in rdpseq], [xy[i][1] for i in rdpseq]
-    # print()
+    print('VW:')
+    exec_times['VW'] = list()
+    run_info['threshold_area'] = 1.5 * run_info['epsilon']**2 
+    for _ in range(run_info['runs']):
+        swatch = time.perf_counter()
+        
+        vwindices = vw_simplification(xy, run_info['threshold_area'])   # area threshold = (epsilon^2)/2
+        swatch = time.perf_counter() - swatch
+        exec_times['VW'].append(swatch)
+    
+    vwseq = [xy[ix] for ix in vwindices]
+    print(f'length of rdpseq seq = {len(vwseq)}, ', end='')
+    print(f'avr. execution time = {statistics.mean(exec_times["VW"])} secs., dev = {statistics.pstdev(exec_times["VW"])}')
+    print()
     
     print('simplification.cutil:')
     exec_times['simplification.cutil'] = list()
     for _ in range(run_info['runs']):
         swatch = time.perf_counter()
     
-        simplified = simplify_coords(xy, epsilon)
+        rdpseq = simplify_coords(xy, run_info['epsilon'])
         swatch = time.perf_counter() - swatch
     
         exec_times['simplification.cutil'].append(swatch)
     
-    print(f'length of simplified seq = {len(simplified)}, ' \
+    print(f'length of rdpseq seq = {len(rdpseq)}, ' \
           f'avr. execution time = {statistics.mean(exec_times["simplification.cutil"])} secs., dev = {statistics.pstdev(exec_times["simplification.cutil"])}')
-    # print(simplified[:20])
+    # print(rdpseq[:20])
     print()
     
     if not run_info['plot'] :
         exit(0)
     
+    # アルゴリズムの実行結果をまとめる
+    results = [
+        {
+            'name': 'Grow-Hull',
+            'coords': ghseq,
+            'param': f"ε={run_info['epsilon']}"
+        },
+        {
+            'name': 'RDP',
+            'coords': rdpseq,
+            'param': f"ε={run_info['epsilon']}"
+        },
+        {
+            'name': 'Visvalingam-Whyatt',
+            'coords': vwseq,
+            'param': f"Δ={run_info['threshold_area']}"
+        }
+    ]
+    
+    # プロットの実行
+    plot_algorithm_comparison(
+        xy=xy,
+        results=results
+    )
+    
+    exit(0)
+
     # npx , npy = npxy[:,0], npxy[:,1]
     # with Timer('module fastrdp: ') :
     #     frdpx, frdpy = fastrdp.rdp(npx, npy, epsilon=epsilon)
@@ -222,15 +316,16 @@ if __name__ == '__main__':
     # print()
     
     x, y = [ x for x, y in xy], [ y for x, y in xy]
-    drx, dry = [xy[ix][0] for ix in drseq], [xy[ix][1] for ix in drseq]
-    rdpx, rdpy = [ x for x, y in simplified], [ y for x, y in simplified]
+    drx, dry = [xy[ix][0] for ix in ghseq], [xy[ix][1] for ix in ghseq]
+    vx, vy = [ x for x, y in xy], [ y for x, y in xy]
+    rdpx, rdpy = [ x for x, y in rdpseq], [ y for x, y in rdpseq]
 
     fig, ax = plt.subplots()
     ax.plot(x, y, 'r.-', lw=2.0, alpha=0.35)
     ax.plot(drx, dry, 'b.-', lw=1) #, alpha=0.75)
-    plt_title = f'Grow Hull, epsilon = {epsilon}, {len(xy)} points simplified to {len(drseq)} points'
+    plt_title = f'Grow Hull, epsilon = {run_info["epsilon"]}, {len(xy)} points rdpseq to {len(ghseq)} points'
     #ax.plot(rdpx, rdpy, 'b.-', lw=1) #, alpha=0.75)
-    #plt_title = f'RDP (simplify_coords), epsilon = {epsilon}, {len(xy)} points simplified to {len(simplified)} points'
+    #plt_title = f'RDP (simplify_coords), epsilon = {epsilon}, {len(xy)} points rdpseq to {len(rdpseq)} points'
     
     if polygons and len(polygons) > 0 :
         for polygon in polygons:
@@ -249,7 +344,7 @@ if __name__ == '__main__':
             )
     fig = plt.gcf()
     fig.set_size_inches(8, 8, forward=True) 
-    plt.legend(['Input points', 'simplified path', 'polygon_index path'],loc='best')
+    plt.legend(['Input points', 'rdpseq path', 'polygon_index path'],loc='best')
     plt.title(plt_title)
     ax.set_aspect('equal')
     plt.show()
