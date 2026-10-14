@@ -55,7 +55,22 @@ class ConvexHull(object):
         return rhombus(self.polygon_point(1), self.polygon_point(0), pt) <= 0 or \
             rhombus(self.polygon_point(-1), self.polygon_point(0), pt) >= 0
         # outside of the left front infinite line of the mouth
+    
+    # 1 -- Outside the Angle (Reflex Sector), 
+    # 0 -- Inside the angle & Outside the polygon
+    # -1 -- Inside the angle & Inside the polygon
+    def point_location(self, pt) :
+        # polygon seq is in clock-wise
         
+        if rhombus(self.polygon_point(1), self.polygon_point(0), pt) <= 0 :
+            # right or front of the mouth
+            return 1
+        if rhombus(self.polygon_point(-1), self.polygon_point(0), pt) >= 0 :
+            # outside of the left line of the mouth
+            return 1
+        # check whether the pt is inside or outside of the polygon
+        # to be coutinue...
+    
     # check and add pt to points
     def add(self, pt):
         # print(pt)

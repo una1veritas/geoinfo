@@ -142,7 +142,8 @@ def plot_algorithm_comparison(xy, results):
     
 if __name__ == '__main__':
     
-    run_info = { 'input': 'file', 'epsilon' : 5.0, 'plot': True, 'annotate': False, 'runs': 1}
+    run_info = { 'input': 'file', 'epsilon' : 5.0, 'plot': True, 'annotate': False, 'runs': 1, 
+                'gh': True, 'rdp': True, 'vw': True, 'file': None }
     if len(sys.argv) > 1 :
         for kv in sys.argv[1:] :
             k, sep, v = kv.partition('=')
@@ -155,7 +156,7 @@ if __name__ == '__main__':
                 if k in run_info :
                     if k in ['epsilon'] :
                         run_info[k] = float(v)
-                    elif k in ['plot', 'annotate'] :
+                    elif k in ['plot', 'annotate', 'gh', 'rdp', 'vw'] :
                         if len(v) > 0 and v.lowewr() in ('0', 'false', 'no') :
                             run_info[k] = False
                         else:
@@ -197,7 +198,7 @@ if __name__ == '__main__':
         #
     
     elif run_info['input'] == 'file' :
-        if 'file' not in run_info:
+        if 'file' not in run_info or run_info['file'] is None :
             run_info['file'] = '40-1836_itoshima_xy-metre.csv'
         if 'epsilon' not in run_info or run_info['epsilon'] is None :
             run_info['epsilon'] = 50.0
@@ -232,74 +233,68 @@ if __name__ == '__main__':
     
     
     exec_times = dict()
+    results = list()
+    
+    if not (run_info['gh'] or run_info['rdp'] or run_info['vw']) or run_info['gh'] :
+        print('Grow_Hull:')
+        exec_times['Grow_Hull'] = list()
+        for _ in range(run_info['runs']):
+            swatch = time.perf_counter()
+            
+            ghindices, polygons = Grow_Hull(xy, run_info['epsilon'], verbose = False, record_polygons = False) 
+            swatch = time.perf_counter() - swatch
+            exec_times['Grow_Hull'].append(swatch)
         
-    print('Grow_Hull:')
-    exec_times['Grow_Hull'] = list()
-    for _ in range(run_info['runs']):
-        swatch = time.perf_counter()
+        ghseq = [xy[ix] for ix in ghindices]
+        print(f'length of output seq = {len(ghseq)}, ', end='')
+        print(f'avr. execution time = {statistics.mean(exec_times["Grow_Hull"])} secs., dev = {statistics.pstdev(exec_times["Grow_Hull"])}')
+        if len(ghseq) < 200 :
+            print(f'{ghseq}, {polygons}')
+        print()
+        results.append(
+            { 'name': 'Grow-Hull', 'coords': ghseq, 'param': f"ε={run_info['epsilon']}" }
+            )
         
-        ghindices, polygons = Grow_Hull(xy, run_info['epsilon'], verbose = False, record_polygons = False) 
-        swatch = time.perf_counter() - swatch
-        exec_times['Grow_Hull'].append(swatch)
-    
-    ghseq = [xy[ix] for ix in ghindices]
-    print(f'length of rdpseq seq = {len(ghseq)}, ', end='')
-    print(f'avr. execution time = {statistics.mean(exec_times["Grow_Hull"])} secs., dev = {statistics.pstdev(exec_times["Grow_Hull"])}')
-    if len(ghseq) < 200 :
-        print(f'{ghseq}, {polygons}')
-    print()
-    
-    print('VW:')
-    exec_times['VW'] = list()
-    run_info['threshold_area'] = 1.5 * run_info['epsilon']**2 
-    for _ in range(run_info['runs']):
-        swatch = time.perf_counter()
+    if run_info['vw'] :
+        print('VW:')
+        exec_times['VW'] = list()
+        run_info['threshold_area'] = 1.5 * run_info['epsilon']**2 
+        for _ in range(run_info['runs']):
+            swatch = time.perf_counter()
+            
+            vwindices = vw_simplification(xy, run_info['threshold_area'])   # area threshold = (epsilon^2)/2
+            swatch = time.perf_counter() - swatch
+            exec_times['VW'].append(swatch)
         
-        vwindices = vw_simplification(xy, run_info['threshold_area'])   # area threshold = (epsilon^2)/2
-        swatch = time.perf_counter() - swatch
-        exec_times['VW'].append(swatch)
+        vwseq = [xy[ix] for ix in vwindices]
+        print(f'length of output seq = {len(vwseq)}, ', end='')
+        print(f'avr. execution time = {statistics.mean(exec_times["VW"])} secs., dev = {statistics.pstdev(exec_times["VW"])}')
+        print()
+        results.append( 
+            { 'name': 'Visvalingam-Whyatt', 'coords': vwseq, 'param': f"Δ={run_info['threshold_area']}" } 
+            )
     
-    vwseq = [xy[ix] for ix in vwindices]
-    print(f'length of rdpseq seq = {len(vwseq)}, ', end='')
-    print(f'avr. execution time = {statistics.mean(exec_times["VW"])} secs., dev = {statistics.pstdev(exec_times["VW"])}')
-    print()
-    
-    print('simplification.cutil:')
-    exec_times['simplification.cutil'] = list()
-    for _ in range(run_info['runs']):
-        swatch = time.perf_counter()
-    
-        rdpseq = simplify_coords(xy, run_info['epsilon'])
-        swatch = time.perf_counter() - swatch
-    
-        exec_times['simplification.cutil'].append(swatch)
-    
-    print(f'length of rdpseq seq = {len(rdpseq)}, ' \
-          f'avr. execution time = {statistics.mean(exec_times["simplification.cutil"])} secs., dev = {statistics.pstdev(exec_times["simplification.cutil"])}')
-    # print(rdpseq[:20])
-    print()
+    if run_info['rdp'] :
+        print('simplification.cutil:')
+        exec_times['simplification.cutil'] = list()
+        for _ in range(run_info['runs']):
+            swatch = time.perf_counter()
+        
+            rdpseq = simplify_coords(xy, run_info['epsilon'])
+            swatch = time.perf_counter() - swatch
+        
+            exec_times['simplification.cutil'].append(swatch)
+        
+        print(f'length of output seq = {len(rdpseq)}, ' \
+              f'avr. execution time = {statistics.mean(exec_times["simplification.cutil"])} secs., dev = {statistics.pstdev(exec_times["simplification.cutil"])}')
+        # print(rdpseq[:20])
+        print()
+        results.append( 
+            { 'name': 'RDP', 'coords': rdpseq, 'param': f"ε={run_info['epsilon']}" }
+            )
     
     if not run_info['plot'] :
         exit(0)
-    
-    # アルゴリズムの実行結果をまとめる
-    results = [
-        {
-            'name': 'Grow-Hull',
-            'coords': ghseq,
-            'param': f"ε={run_info['epsilon']}"
-        },
-        {
-            'name': 'RDP',
-            'coords': rdpseq,
-            'param': f"ε={run_info['epsilon']}"
-        },
-        {
-            'name': 'Visvalingam-Whyatt',
-            'coords': vwseq,
-            'param': f"Δ={run_info['threshold_area']}"
-        }
-    ]
     
     # プロットの実行
     plot_algorithm_comparison(

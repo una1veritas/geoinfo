@@ -50,23 +50,22 @@ if __name__ == '__main__':
     with open(filename, 'r') as file :
         for l in file:
             a = l.strip().split(',')
-            tbl.add(a)
+            tbl.append(a)
     
     for ln in range(len(tbl)):
         l = tbl[ln]
         if ln == 0 :
             tbl[ln] = tuple(l)
         else:
-            lat = float(l[0])
-            lon = float(l[1])
-            if len(l) >= 3 : 
-                alt = float(l[2])
+            lat = float(l[1])
+            lon = float(l[2])
+            if len(l) >= 4 : 
+                alt = float(l[3])
             else:
                 alt = 0.0
-            if len(l) >= 4 :
-                dt = datetime.fromisoformat(l[3])
-            else:
-                dt = epoch_start
+            dt = datetime.fromisoformat(l[0])
+            #else:
+            #    dt = epoch_start
             tbl[ln] = (lat, lon, alt, dt)
 
     centre = (mean([ea[1] for ea in tbl[1:]]), mean([ea[0] for ea in tbl[1:]]))
@@ -79,7 +78,7 @@ if __name__ == '__main__':
     last_datetime = epoch_start
     for t in tbl[1:] :
             x, y = proj(t[1], t[0])
-            xy.add((x, y))
+            xy.append((x, y))
     
     '''返還後の出力'''
     #xy =xy[:10]
