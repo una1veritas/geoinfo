@@ -6,6 +6,7 @@ Created on 2026/07/09
 
 from ringarray import ringarray
 from point2d import *
+import matplotlib.pyplot as plt
 
 class ConvexHull(object):
     '''
@@ -61,6 +62,8 @@ class ConvexHull(object):
     # -1 -- Inside the angle & Inside the polygon
     def point_location(self, pt) :
         # polygon seq is in clock-wise
+        if len(self.polygon_index) < 3 :
+            return 1 # don't care
         
         if rhombus(self.polygon_point(1), self.polygon_point(0), pt) <= 0 :
             # right or front of the mouth
@@ -68,8 +71,32 @@ class ConvexHull(object):
         if rhombus(self.polygon_point(-1), self.polygon_point(0), pt) >= 0 :
             # outside of the left line of the mouth
             return 1
+        
         # check whether the pt is inside or outside of the polygon
-        # to be coutinue...
+        # --- Binary Search Phase ---
+        # We know 'pt' is strictly between ray(0->1) and ray(0->size-1)
+        low = 1
+        high = len(self.polygon_index) - 1
+        
+        while low + 1 < high:
+            mid = (low + high)>>1
+            # Check which side of the ray V0 -> Vmid the point lies on
+            if rhombus(self.polygon_point(mid), self.polygon_point(0), pt) < 0:
+                # Point is to the right of the mid ray -> search the right half
+                high = mid
+            else:
+                # Point is to the left of the mid ray -> search the left half
+                low = mid
+                
+        # --- Final Edge Check ---
+        # The point is now trapped inside the single triangle triangle: V0, Vlow, Vhigh
+        # We check if 'pt' is inside or outside the polygon edge Vlow -> Vhigh
+        if rhombus(self.polygon_point(high), self.polygon_point(low), pt) <= 0:
+            # It's to the right of the closing edge -> Outside the polygon
+            return 0
+        else:
+            # It's to the left of the closing edge -> Inside the polygon
+            return -1
     
     # check and add pt to points
     def add(self, pt):
@@ -265,4 +292,85 @@ class ConvexHull(object):
                 abs(dot_product(vec_neg(axis), vec(axis_first, self.polygon_point(bkpolyix)))), \
                 abs(dot_product(axis3, vec(axis_first, self.polygon_point(ltpolyix)))), )
 
+
+if __name__ == '__main__':
+    xy = [ 
+        (0, 0), (0.4, 0), (0.2, 1), (0.5, 0.5), (0.4, 0.8), 
+        (0.6, 0.3), (0.5, 0.8), (0.07, 0.4), (0.5, 0.0), 
+    ]
+    cvx = ConvexHull()
+    for p in xy:
+        inout = cvx.point_location(p)
+        if inout == 1:
+            cvx.add(p)
+            print(cvx)
+            continue
         
+        if inout == -1:
+            print(f'point {p} is inside the convex hull, skipped.')
+            continue
+        if inout == 0:
+            print(f'point {p} is inside the angle, out side of convex hull, rejected.')
+            break
+
+    # 1. Extract X and Y coordinates for all input points
+    all_x = [p[0] for p in xy]
+    all_y = [p[1] for p in xy]
+    
+    # 2. Extract X and Y coordinates for the completed Convex Hull vertices
+    # (Assuming your hull objects lets you iterate or fetch all current vertices)
+    hull_points = [cvx.polygon_point(i) for i in range(len(cvx.polygon_index))]
+    # Close the polygon loop for drawing by appending the first point to the end
+    hull_points.append(hull_points[0]) 
+    
+    hull_x = [p[0] for p in hull_points]
+    hull_y = [p[1] for p in hull_points]
+    
+    # 3. Create the Plot
+    rejected_pt = (0.25, 0.5)
+    
+    plt.figure(figsize=(10, 8)) # ラベルが見やすくなるよう少し大きめに
+    plt.scatter(all_x, all_y, color='gray', label='Input Points (xy)', zorder=2)
+    plt.plot(hull_x, hull_y, color='blue', linestyle='-', linewidth=2, label='Convex Hull Perimeter', zorder=3)
+    plt.scatter(hull_x[:-1], hull_y[:-1], color='red', s=50, label='Hull Vertices', zorder=4)
+    plt.scatter(rejected_pt[0], rejected_pt[1], color='orange', marker='X', s=150, label='Rejected Point (0.25, 0.5)', zorder=5)
+    
+    # ----------------------------------------------------
+    # 4. 【追加】点に番号のラベルを振る
+    # ----------------------------------------------------
+    # (A) すべての入力データ（xy）にインデックス番号を振る（黒い小さな文字）
+    for idx, p in enumerate(xy):
+        plt.annotate(
+            str(idx), 
+            (p[0], p[1]), 
+            textcoords="offset points", 
+            xytext=(5, 5),   # 点の右上に少しずらす
+            ha='center', 
+            fontsize=9, 
+            color='black',
+            alpha=0.6        # 邪魔にならないよう少し薄く
+        )
+    
+    # (B) 凸包のデック（polygon_index）の並び順（0, 1, 2, ...）を赤文字で強調表示する
+    for local_idx in range(len(cvx.polygon_index)):
+        p = cvx.polygon_point(local_idx)
+        plt.annotate(
+            f"p({local_idx})", # p(0), p(1) と表示
+            (p[0], p[1]), 
+            textcoords="offset points", 
+            xytext=(-15, -15), # 全体の番号と重ならないよう、左下にずらす
+            ha='center', 
+            fontsize=10, 
+            fontweight='bold', # 太字
+            color='red',       # 赤文字
+            bbox=dict(boxstyle="round,pad=0.1", fc="white", ec="red", alpha=0.7, lw=0.5) # 小さな枠線
+        )
+    # ----------------------------------------------------
+    
+    # --- 後半の装飾コード（そのまま） ---
+    plt.title('Convex Hull and Point Location Visualization with Labels')
+    plt.xlabel('X Coordinate')
+    plt.ylabel('Y Coordinate')
+    plt.legend()
+    plt.grid(True, linestyle='--', alpha=0.6)
+    plt.show()
