@@ -299,7 +299,8 @@ if __name__ == '__main__':
         (0.6, 0.3), (0.5, 0.8), (0.07, 0.4), (0.5, 0.0), 
     ]
     cvx = ConvexHull()
-    for p in xy:
+    for ix in range(0, len(xy)):
+        p = xy[ix]
         inout = cvx.point_location(p)
         if inout == 1:
             cvx.add(p)
@@ -327,7 +328,7 @@ if __name__ == '__main__':
     hull_y = [p[1] for p in hull_points]
     
     # 3. Create the Plot
-    rejected_pt = (0.25, 0.5)
+    rejected_pt = xy[ix]
     
     plt.figure(figsize=(10, 8)) # ラベルが見やすくなるよう少し大きめに
     plt.scatter(all_x, all_y, color='gray', label='Input Points (xy)', zorder=2)
