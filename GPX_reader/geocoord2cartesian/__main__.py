@@ -81,7 +81,7 @@ if __name__ == '__main__':
             x, y = proj(t[1], t[0])
             xy.append((x, y))
     
-    '''返還後の出力'''
+    '''変換後の出力'''
     #xy =xy[:10]
     if len(outfilename) :
         with open(outfilename, 'w') as f :

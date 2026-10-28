@@ -23,7 +23,7 @@ def datetime2mjd(dt: datetime):
 if __name__ == '__main__':
     if len(sys.argv) < 2:
         print('input (and optionally output) file names are needed.')
-        print('usage: python3 gpxreader [-elev] [-mytracks] [-mjd] [-elapsed] gpxfile [csvfile]')
+        print('usage: python3 gpxreader [-elev] [-metre] [-mytracks] [-mjd] [-elapsed] gpxfile [csvfile]')
         sys.exit()
     
     elevinfo = False
@@ -31,6 +31,7 @@ if __name__ == '__main__':
     mjdtime = False
     jsttime = False
     elapsedtime = False
+    cartmetre = True
     xmltext = ''
     outfilename = ''
     
@@ -40,6 +41,9 @@ if __name__ == '__main__':
             if arg == '-elev':
                 elevinfo = True
                 print('will add elevation info.')
+            elif arg == '-metre':
+                cartmetre = True
+                print('convert to metre Euclidean metric.')
             elif arg == '-mytracks':
                 mytracksgpx = True
                 print('will add speed info.')
@@ -93,7 +97,7 @@ if __name__ == '__main__':
                 outfilename = trkname + '.csv'
                 
             print(f'writing {trkname} to {outfilename}...')
-
+            
             # JST (UTC+9) の定義
             JST = timezone(timedelta(hours=9))
             with open(outfilename, mode='w', encoding='utf-8') as outfile:
@@ -149,3 +153,9 @@ if __name__ == '__main__':
                         line.append(gpxspeed)
                     
                     outfile.write(','.join(line) + '\n')
+            if cartmetre :
+                print('converting into catesian metric in metre...')
+                with open(outfilename, mode='r', encoding='utf-8') as lonlatfile:
+                    for aline in lonlatfile:
+                        print(aline)
+                print('finished.')
