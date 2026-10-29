@@ -57,20 +57,21 @@ class ConvexHull(object):
             rhombus(self.polygon_point(-1), self.polygon_point(0), pt) >= 0
         # outside of the left front infinite line of the mouth
     
-    # 1 -- Outside the Angle (Reflex Sector), 
+    # 1 -- Right outside or the front of the Angle (Reflex Sector), 
+    # 2 -- Left outside of the Angle (Reflex Sector), 
     # 0 -- Inside the angle & Outside the polygon
     # -1 -- Inside the angle & Inside the polygon
     def point_location(self, pt) :
         # polygon seq is in clock-wise
-        if len(self.polygon_index) < 3 :
-            return 1 # don't care
+        if len(self.polygon_index) <= 1 :
+            return 1 # don't care, considered as the right side
         
-        if rhombus(self.polygon_point(1), self.polygon_point(0), pt) <= 0 :
-            # right or front of the mouth
+        elif rhombus(self.polygon_point(1), self.polygon_point(0), pt) <= 0 :
+            # right or front of the angle
             return 1
-        if rhombus(self.polygon_point(-1), self.polygon_point(0), pt) >= 0 :
-            # outside of the left line of the mouth
-            return 1
+        elif rhombus(self.polygon_point(-1), self.polygon_point(0), pt) >= 0 :
+            # outside of the left line of the angle
+            return 2
         
         # check whether the pt is inside or outside of the polygon
         # --- Binary Search Phase ---
@@ -98,41 +99,37 @@ class ConvexHull(object):
             # It's to the left of the closing edge -> Inside the polygon
             return -1
     
-    # check and add pt to points
-    def add(self, pt):
-        # print(pt)
-        if len(self) == 0 :
-            self.points.append(pt)
-            return True
+    # add pt to points, and polygon_index
+    def add_right(self, pt):
+        self.points.append(pt)  
+        ptix = len(self.points) - 1
+        #print(pt, ptix)
+        if ptix == 0 :
+            self.polygon_index.append(ptix)
+            return
+        # right or front of the mouth
+        self.polygon_index.append(self.polygon_index.popleft())
+        self.polygon_index.appendleft(ptix)
         
-        if len(self.polygon_index) == 0 :
-            self.points.append(pt)
-            self.polygon_index.append(0)
-            self.polygon_index.append(len(self) - 1)
-            return True
-
-        if len(self.polygon_index) == 1 :
-            self.points.append(pt)
-            self.polygon_index.append(len(self) - 1)
-            return True
+        #print(f"polygon = {self.polygon_index}")
+        self.remove_concave()
+        #print(f"polygon = {self.polygon_index}")
+        return
         
-        # point[0]-point[1]-pt
-        if rhombus(self.polygon_point(1), self.polygon_point(0), pt) <= 0 :
-            self.points.append(pt)
-            # right or front of the mouth
-            self.polygon_index.append(self.polygon_index.popleft())
-            self.polygon_index.appendleft(len(self) - 1)
-        elif rhombus(self.polygon_point(-1), self.polygon_point(0), pt) >= 0 :
-            self.points.append(pt)
-            # outside of the left line of the mouth
-            self.polygon_index.appendleft(len(self)-1)
-        else:
-            # inside the corner by pt; reject point and close convex-hull
-            return False
+    # add pt to points, and polygon_index
+    def add_left(self, pt):
+        self.points.append(pt)
+        ptix = len(self.points) - 1
+        #print(pt, ptix)
+        if ptix == 0 :
+            self.polygon_index.append(ptix)
+            return
+        # left or front of the mouth
+        self.polygon_index.appendleft(ptix)
         
         self.remove_concave()
-        return True
-        
+        return
+    
     def remove_concave(self):
         # from tail
         #print(self.polygon_index)
@@ -295,22 +292,28 @@ class ConvexHull(object):
 
 if __name__ == '__main__':
     xy = [ 
-        (0, 0), (0.4, 0), (0.2, 1), (0.5, 0.5), (0.4, 0.8), 
+        (0, 0), (0, 0.15), (-0.05, -0.05), (0.4, 0), (0.2, 1), (0.5, 0.5), (0.4, 0.8), 
         (0.6, 0.3), (0.5, 0.8), (0.07, 0.4), (0.5, 0.0), 
     ]
+    epsilon = 0.2
     cvx = ConvexHull()
     for ix in range(0, len(xy)):
         p = xy[ix]
-        inout = cvx.point_location(p)
-        if inout == 1:
-            cvx.add(p)
+        if len(cvx) == 0 :  # 最初の1点は無条件追加
+            cvx.add_right(p)
+            continue
+        if distance(cvx.point(0), p) < epsilon and len(cvx.polygon_index) == 1 :  # 最初の1点は無条件追加
+            continue
+        pos = cvx.point_location(p)
+        if pos == 1:
+            cvx.add_right(p)
             print(cvx)
-            continue
-        
-        if inout == -1:
+        elif pos == 2:
+            cvx.add_left(p)
+            print(cvx)
+        elif pos == -1:
             print(f'point {p} is inside the convex hull, skipped.')
-            continue
-        if inout == 0:
+        elif pos == 0:
             print(f'point {p} is inside the angle, out side of convex hull, rejected.')
             break
 
@@ -331,6 +334,7 @@ if __name__ == '__main__':
     rejected_pt = xy[ix]
     
     plt.figure(figsize=(10, 8)) # ラベルが見やすくなるよう少し大きめに
+    plt.plot(all_x, all_y, color='lightgray', linestyle='-.', zorder=2)
     plt.scatter(all_x, all_y, color='gray', label='Input Points (xy)', zorder=2)
     plt.plot(hull_x, hull_y, color='blue', linestyle='-', linewidth=2, label='Convex Hull Perimeter', zorder=3)
     plt.scatter(hull_x[:-1], hull_y[:-1], color='red', s=50, label='Hull Vertices', zorder=4)
